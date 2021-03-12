@@ -13,6 +13,8 @@ namespace Items
 		[HideInInspector]
 		public List<Item> items;
 
+		[SerializeField] private Item[] addOnGameStart;
+
 		public delegate void Event(Item item);
 		public Event onItemAdded; // Called when an item is added to this container or moved to a different slot
 		public Event onItemRemoved; // Called when an item is removed from this container, or moved to a different slot
@@ -28,6 +30,14 @@ namespace Items
 			for (int i = 0; i < slots; i++)
 			{
 				items.Add(null);
+			}
+
+			if (addOnGameStart != null)
+			{
+				foreach (var item in addOnGameStart)
+				{
+					AddItem(item.id);
+				}
 			}
 		}
 

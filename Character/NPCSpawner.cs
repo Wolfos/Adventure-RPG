@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using Data;
 using UnityEngine;
 
-namespace NPC
+namespace Character
 {
 	public class NPCSpawner : SaveableObject
 	{
 		[SerializeField] private string assetFile;
 		[SerializeField] private int maxAmount;
 		[SerializeField] private float respawnTime = 120;
+		[SerializeField] private string npcName;
 
 		private List<NPC> npcs;
 		private Bounds bounds;
@@ -47,10 +48,17 @@ namespace NPC
 			{
 				var prefab = Resources.Load(assetFile);
 				var newNPC = Instantiate(prefab, transform, false) as GameObject;
-				NPC npc = newNPC.GetComponent<NPC>();
-				npc.UpdateData(JsonUtility.FromJson<CharacterData>(data[i]));
+				var npc = newNPC.GetComponent<NPC>();
+				newNPC.name = npcName;
+				var d = JsonUtility.FromJson<CharacterData>(data[i]);
+				npc.UpdateData(d);
 				npc.bounds = bounds;
+				if (d.isDead)
+				{
+					newNPC.SetActive(false);
+				}
 				npcs.Add(npc);
+				
 			}
 		}
 
@@ -60,6 +68,7 @@ namespace NPC
 			{
 				var prefab = Resources.Load(assetFile);
 				var npc = Instantiate(prefab, transform, false) as GameObject;
+				npc.name = npcName;
 
 				if (npc == null)
 				{
@@ -96,10 +105,12 @@ namespace NPC
 
 				foreach (var npc in npcs)
 				{
-					if (!npc.gameObject.activeSelf && Time.time > npc.inactiveTime + respawnTime)
-					{
-						npc.gameObject.SetActive(true);
-					}
+					// if (!npc.gameObject.activeSelf && TimeManager.RealTime() > npc.data.inactiveTime + respawnTime)
+					// {
+					// 	Debug.Log("respawning");
+					// 	npc.data.isDead = false;
+					// 	npc.gameObject.SetActive(true);
+					// }
 				}
 			}
 		}

@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using Models;
+using UnityEditor;
 using Utility;
 
 public class TimeManager
@@ -9,18 +10,18 @@ public class TimeManager
 	{
 		get
 		{
-			if(_instance == null) _instance = new TimeManager(0);
+			if(_instance == null) _instance = new TimeManager(12.0f);
 			return _instance;
 		}
 	}
 	
 	public const float timeScale = 0.01f;
-	public float _time;
+	public float time = 12.0f;
 	
 	public static float Time
 	{
-		get => Instance._time;
-		set => Instance._time = value;
+		get => Instance.time;
+		set => Instance.time = value;
 	}
 
 	public static void UpdateTime(float interval)
@@ -38,12 +39,12 @@ public class TimeManager
 
 	public static float RealTime()
 	{
-		float time = Time + 12;
+		float time = Time;
 		if (time > 24) time -= 24;
 		return time;
 	}
 
-	public static bool IsBetween(int start, int end)
+	public static bool IsBetween(TimeStamp start, TimeStamp end)
 	{
 		float time = RealTime();
 		if (time > end && time < start) return false;

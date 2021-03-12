@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using Combat;
-using NPC;
+using Character;
 using UnityEngine;
 
 namespace Items
@@ -10,7 +10,7 @@ namespace Items
 	{
 		[SerializeField] private List<Damage> damage;
 		private bool wasFired = false;
-		private Character firedBy;
+		private CharacterBase firedBy;
 
 		private void OnEnable()
 		{
@@ -28,7 +28,7 @@ namespace Items
 		{
 			if (!wasFired) return;
 			
-			var character = other.GetComponent<Character>();
+			var character = other.GetComponent<CharacterBase>();
 			if (character == firedBy) return;
 			
 			// Hit character
@@ -71,7 +71,7 @@ namespace Items
 			wasFired = false;
 		}
 
-		public void Fire(Vector3 direction, float force, Damage weaponDamage, Character firedBy)
+		public void Fire(Vector3 direction, float force, Damage weaponDamage, CharacterBase firedBy)
 		{
 			GameObject go = Instantiate(gameObject);
 			

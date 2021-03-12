@@ -1,23 +1,24 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Combat;
+using Data;
 using Items;
 using UI;
 using UnityEngine;
 using Utility;
 
-namespace NPC
+namespace Character
 {
 	[RequireComponent(typeof(Container))]
-	public abstract class Character : MonoBehaviour
+	[RequireComponent(typeof(CharacterEquipment))]
+	public abstract class CharacterBase : MonoBehaviour
 	{
 		public Container inventory;
-		public CharacterData data;
+		public CharacterData data = new CharacterData();
 		public Transform graphic;
 		[SerializeField] protected Animator animator;
-		[SerializeField] protected Transform rightHand, leftHand;
-		[SerializeField] protected RuntimeAnimatorController unarmed;
 		[SerializeField] private Renderer[] renderers;
 		[SerializeField] private float startHealth;
 		[SerializeField] private float healthOffset = 80;
@@ -27,16 +28,23 @@ namespace NPC
 		[SerializeField] private LayerMask interactionLayerMask, attackLayerMask;
 		[SerializeField] private Damage unarmedDamage;
 		[SerializeField] private Collider collider;
+		[SerializeField] private AudioClip hitSound;
 
-		protected Item rightHandEquipped, leftHandEquipped, twoHandEquipped;
-		private bool replaceEquippedItem;
-		private List<Character> currentTargets;
+		private List<CharacterBase> currentTargets;
 		private Collider currentInteraction;
 
-		protected Weapon currentWeapon;
-		
 		private HealthDisplay healthDisplay;
 		protected Action<Damage> onDamaged;
+		protected CharacterEquipment equipment;
+		
+		protected void Awake()
+		{
+			if (SaveGameManager.newGame)
+			{
+				data.characterId = CharacterPool.Register(this).ToString();
+			}
+			equipment = GetComponent<CharacterEquipment>();
+		}
 
 		protected void Start()
 		{
@@ -56,30 +64,19 @@ namespace NPC
 				interactionTrigger.onTriggerExit += InteractionTriggerExit;
 			}
 
-			currentTargets = new List<Character>();
+			currentTargets = new List<CharacterBase>();
 		}
 
 		protected void OnEnable()
 		{
-			inventory.onItemEquipped += ItemEquipped;
-			inventory.onItemUnequipped += ItemUnequipped;
-			
 			SetHealth(startHealth);
-			
 			if(healthDisplay != null) healthDisplay.gameObject.SetActive(false);
-
 			collider.enabled = true;
-		}
-
-		protected void OnDisable()
-		{
-			inventory.onItemEquipped -= ItemEquipped;
-			inventory.onItemUnequipped -= ItemUnequipped;
 		}
 
 		protected void Update()
 		{
-			if (data.health < startHealth && data.health > 0)
+			if (data.health < startHealth && data.health > 0 && !PlayerMenu.isActive && !PauseMenu.isActive)
 			{
 				healthDisplay.gameObject.SetActive(true);
 				healthDisplay.CurrentHealth = data.health;
@@ -97,7 +94,7 @@ namespace NPC
 		#region Combat
 		private void CheckTargetsAlive()
 		{
-			List<Character> toRemove = new List<Character>();
+			List<CharacterBase> toRemove = new List<CharacterBase>();
 			foreach (var target in currentTargets)
 			{
 				if (target.data.health <= 0)
@@ -116,7 +113,7 @@ namespace NPC
 		{
 			if (((1<<other.gameObject.layer) & attackLayerMask) != 0)
 			{
-				var character = other.GetComponent<Character>();
+				var character = other.GetComponent<CharacterBase>();
 				if(character != this) currentTargets.Add(character);
 			}
 		}
@@ -125,7 +122,7 @@ namespace NPC
 		{
 			if (((1 << other.gameObject.layer) & attackLayerMask) != 0)
 			{
-				var character = other.GetComponent<Character>();
+				var character = other.GetComponent<CharacterBase>();
 				if (currentTargets.Contains(character))
 				{
 					currentTargets.Remove(character);
@@ -136,17 +133,17 @@ namespace NPC
 		protected void Attack()
 		{
 			bool willAttack = false;
-			if (currentWeapon)
+			if (equipment.currentWeapon)
 			{
-				currentWeapon.baseDamage.source = this;
-				if (currentWeapon is RangedWeapon) (currentWeapon as RangedWeapon).ammunition = GetAmmo();
-				willAttack = currentWeapon.Attack(graphic.forward, currentTargets);
+				equipment.currentWeapon.baseDamage.source = data.characterId;
+				if (equipment.currentWeapon is RangedWeapon) (equipment.currentWeapon as RangedWeapon).ammunition = GetAmmo();
+				willAttack = equipment.currentWeapon.Attack(graphic.forward, currentTargets, attackLayerMask);
 			}
 			else // Unarmed attack
 			{
 				foreach (var target in currentTargets)
 				{
-					unarmedDamage.source = this;
+					unarmedDamage.source = data.characterId;
 					target.TakeDamage(unarmedDamage, transform.position);
 				}
 
@@ -200,14 +197,6 @@ namespace NPC
 		}
 		#endregion
 
-		public void CheckEquipment()
-		{
-			foreach (var item in inventory.items)
-			{
-				if(item != null && item.Equipped) ItemEquipped(item);
-			}
-		}
-
 		public void SetHealth(float health)
 		{
 			data.health = health;
@@ -223,6 +212,7 @@ namespace NPC
 			StopAllCoroutines();
 			collider.enabled = false;
 			ResetColours();
+			data.isDead = true;
 			DeathAnimationStarted();
 			if(healthDisplay != null) healthDisplay.gameObject.SetActive(false);
 			animator.SetTrigger("Death");
@@ -243,6 +233,7 @@ namespace NPC
 		public void TakeDamage(Damage damage, Vector3 point)
 		{
 			onDamaged?.Invoke(damage);
+			SFXPlayer.PlaySound(hitSound, 0.2f);
 			
 			var knockback = (transform.position - point).normalized * damage.knockback * 10;
 			StartCoroutine(HitFlash());
@@ -314,99 +305,15 @@ namespace NPC
 			if (ammo != null && !ammo.Equipped) ammo.Equipped = true;
 			return ammo as Ammunition;
 		}
-		
-		private void ItemEquipped(Item item)
+
+		// My damage killed something
+		public void Killed(string kill)
 		{
-			var t = item.transform;
-			
-			switch (item.type)
+			var quest = data.quests.FirstOrDefault(q => q.stage.target == kill);
+			if (quest != null)
 			{
-				case ItemType.Consumable:
-					break;
-				case ItemType.RangedWeapon:
-					if (rightHandEquipped)
-					{
-						replaceEquippedItem = true;
-						rightHandEquipped.Equipped = false;
-					}
-
-					if (leftHandEquipped)
-					{
-						replaceEquippedItem = true;
-						leftHandEquipped.Equipped = false;
-					}
-					
-					if (twoHandEquipped && twoHandEquipped != item)
-					{
-						replaceEquippedItem = true;
-						twoHandEquipped.Equipped = false;
-					}
-
-					t.parent = leftHand;
-					t.localPosition = Vector3.zero;
-					t.localRotation = Quaternion.identity;
-
-					animator.runtimeAnimatorController = item.animationSet;
-					twoHandEquipped = item;
-					currentWeapon = item as Weapon;
-					break;
-				case ItemType.MeleeWeapon:
-					if (rightHandEquipped && rightHandEquipped != item)
-					{
-						replaceEquippedItem = true;
-						rightHandEquipped.Equipped = false;
-					}
-					
-					if (twoHandEquipped)
-					{
-						replaceEquippedItem = true;
-						twoHandEquipped.Equipped = false;
-					}
-					
-					t.parent = rightHand;
-					t.localPosition = Vector3.zero;
-					t.localRotation = Quaternion.identity;
-
-					animator.runtimeAnimatorController = item.animationSet;
-					rightHandEquipped = item;
-					currentWeapon = item as Weapon;
-					break;
-				case ItemType.Ammunition:
-					break;
+				quest.Progress();
 			}
-		}
-
-		private void ItemUnequipped(Item item)
-		{
-			switch (item.type)
-			{
-				case ItemType.Consumable:
-					break;
-				case ItemType.RangedWeapon:
-					if (!replaceEquippedItem)
-					{
-						animator.runtimeAnimatorController = unarmed;
-						leftHandEquipped = null;
-						rightHandEquipped = null;
-						twoHandEquipped = null;
-						currentWeapon = null;
-					}
-
-					break;
-				case ItemType.MeleeWeapon:
-					if (!replaceEquippedItem)
-					{
-						animator.runtimeAnimatorController = unarmed;
-						rightHandEquipped = null;
-						currentWeapon = null;
-					}
-
-					break;
-				case ItemType.Ammunition:
-					break;
-			}
-
-			replaceEquippedItem = false;
 		}
 	}
 }

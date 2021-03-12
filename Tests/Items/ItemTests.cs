@@ -1,18 +1,15 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.TestTools;
 using Items;
 
 
-namespace Tests
+namespace Code.Tests.Items
 {
 	public class ItemTests
 	{
 		private Container TestContainer(int slots)
 		{
-			GameObject g = new GameObject("Test");
+			var g = new GameObject("Test");
 			var container = g.AddComponent<Container>();
 			container.SetSlots(slots);
 			return container;

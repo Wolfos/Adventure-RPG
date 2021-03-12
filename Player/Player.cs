@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Combat;
 using Data;
 using Items;
 using UI;
 using UnityEngine;
-using NPC;
+using Character;
 using Utility;
 
 namespace Player
 {
-	public class Player : Character
+	public class Player : CharacterBase
 	{	
 		[HideInInspector] public CharacterController characterController;
 		
@@ -23,7 +24,33 @@ namespace Player
 		
 		public static bool disableMovement = true;
 		private Vector3 velocity;
-		
+		private static readonly int CanWalk = Animator.StringToHash("CanWalk");
+
+		private void Awake()
+		{
+			base.Awake();
+			SystemContainer.Register(this);
+		}
+
+		private void OnDestroy()
+		{
+			SystemContainer.UnRegister<Player>();
+		}
+
+		public void StartQuest(Quest quest)
+		{
+			if (HasQuest(quest)) return;
+			
+			var q = Instantiate(quest);
+			q.name = quest.name;
+			data.quests.Add(q);
+			data.questProgress.Add(quest.progress);
+		}
+
+		public bool HasQuest(Quest quest)
+		{
+			return data.quests.Any(x => x.name == quest.name);
+		}
 		
 
 		private void Start()
@@ -59,6 +86,8 @@ namespace Player
 
 		private void Movement()
 		{
+			if (!animator.GetBool(CanWalk)) return;
+			
 			if (characterController.isGrounded)
 			{
 				var input = InputMapper.GetMovement();
@@ -82,7 +111,7 @@ namespace Player
 			if (InputMapper.InventoryButton())
 			{
 				disableMovement = !disableMovement;
-				Inventory.ToggleActive(inventory);
+				PlayerMenu.ToggleActive();
 			}
 			
 			// Open or close pause menu

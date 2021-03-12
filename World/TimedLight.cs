@@ -1,13 +1,13 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
+using Models;
 using UnityEngine;
 
 public class TimedLight : MonoBehaviour
 {
 	private Light light;
 
-	[SerializeField] private int onTime = 19;
-	[SerializeField] private int offTime = 7;
+	[SerializeField] private TimeStamp onTime = new TimeStamp(20,0);
+	[SerializeField] private TimeStamp offTime = new TimeStamp(7,0);
 
 	private float intensity;
 	private bool on;

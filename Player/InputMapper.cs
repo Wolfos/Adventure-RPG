@@ -225,5 +225,15 @@ namespace Player
 
 			return false;
 		}
+
+		public static bool MenuLeft()
+		{
+			return Input.GetKeyDown("joystick button 4");
+		}
+
+		public static bool MenuRight()
+		{
+			return Input.GetKeyDown("joystick button 5");
+		}
 	}
 }

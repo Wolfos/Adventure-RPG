@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml.Schema;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -13,12 +14,22 @@ namespace Data
 	{
 		private Dictionary<string, SaveableObject> saveableObjects;
 		private List<string> saveData;
+
+		public static bool newGame = true;
+		public static float timeSinceLoad;
+		private static float lastLoadTime;
 		
 		private void Awake()
 		{
+			lastLoadTime = Time.time;
 			if(SceneManager.sceneCount == 1) SceneManager.LoadSceneAsync("MainMenu", LoadSceneMode.Additive);
 			SystemContainer.Register(this);
 			saveableObjects = new Dictionary<string, SaveableObject>();
+		}
+
+		private void Update()
+		{
+			timeSinceLoad = Time.time - lastLoadTime;
 		}
 
 		public void Register(SaveableObject objectToRegister)
@@ -63,26 +74,15 @@ namespace Data
 
 		private IEnumerator LoadMainMenuRoutine()
 		{
+			CharacterPool.Clear();
 			saveableObjects.Clear();
 			AsyncOperation async;
 			
 			// Unload scenes
-			if (SceneManager.GetSceneByName("MainMenu").isLoaded)
+			for (int i = 0; i < SceneManager.sceneCount; i++)
 			{
-				async = SceneManager.UnloadSceneAsync("MainMenu");
-				while (!async.isDone) yield return null;
-			}
-
-			if (SceneManager.GetSceneByName("Game").isLoaded)
-			{
-				async = SceneManager.UnloadSceneAsync("Game");
-				while (!async.isDone) yield return null;
-			}
-
-			if (SceneManager.GetSceneByName("GameUI").isLoaded)
-			{
-				async = SceneManager.UnloadSceneAsync("GameUI");
-				while (!async.isDone) yield return null;
+				if(SceneManager.GetSceneAt(i).buildIndex == 0) continue;
+				SceneManager.UnloadSceneAsync(SceneManager.GetSceneAt(i));
 			}
 			
 			//Load scenes
@@ -92,27 +92,17 @@ namespace Data
 			SceneManager.SetActiveScene(SceneManager.GetSceneByName("MainMenu"));
 		}
 
+		// New game
 		private IEnumerator LoadGameRoutine()
 		{
+			CharacterPool.Clear();
 			AsyncOperation async;
-			
+
 			// Unload scenes
-			if (SceneManager.GetSceneByName("MainMenu").isLoaded)
+			for (int i = 0; i < SceneManager.sceneCount; i++)
 			{
-				async = SceneManager.UnloadSceneAsync("MainMenu");
-				while (!async.isDone) yield return null;
-			}
-
-			if (SceneManager.GetSceneByName("Game").isLoaded)
-			{
-				async = SceneManager.UnloadSceneAsync("Game");
-				while (!async.isDone) yield return null;
-			}
-
-			if (SceneManager.GetSceneByName("GameUI").isLoaded)
-			{
-				async = SceneManager.UnloadSceneAsync("GameUI");
-				while (!async.isDone) yield return null;
+				if(SceneManager.GetSceneAt(i).buildIndex == 0) continue;
+				SceneManager.UnloadSceneAsync(SceneManager.GetSceneAt(i));
 			}
 
 			//Load scenes
@@ -126,10 +116,24 @@ namespace Data
 
 		private IEnumerator LoadSaveRoutine()
 		{
-			saveableObjects.Clear();
+			CharacterPool.Clear();
+			newGame = false;
+			
+			// Remove all non-global objects from the list. They will be destroyed
+			var toRemove = (
+				from obj in saveableObjects 
+				where !obj.Value.global 
+				select obj.Key).ToList();
+
+			foreach (var key in toRemove)
+			{
+				saveableObjects.Remove(key);
+			}
+
 
 			yield return StartCoroutine(LoadGameRoutine());
-			
+
+			lastLoadTime = Time.time;
 			yield return null; // SaveableObjects will re-register themselves during this frame
 			
 			string allData = File.ReadAllText(Application.persistentDataPath + "/Save.json");

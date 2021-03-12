@@ -9,6 +9,7 @@ namespace Data
     public abstract class SaveableObject : MonoBehaviour
     {
         public string id;
+        [HideInInspector] public bool global;
         
         protected virtual void Start()
         {

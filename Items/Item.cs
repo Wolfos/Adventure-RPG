@@ -1,4 +1,4 @@
-﻿using NPC;
+﻿using Character;
 using UI;
 using UnityEngine;
 
@@ -109,11 +109,10 @@ namespace Items
 		
 		private void OnCanInteract()
 		{
-			Vector3 screenPosition = Camera.main.WorldToScreenPoint(transform.position);
-			Tooltip.Activate(friendlyName + (quantity > 1 ? " (" + quantity + ")" : ""), screenPosition);
+			Tooltip.Activate(friendlyName + (quantity > 1 ? " (" + quantity + ")" : ""), transform, Vector3.zero);
 		}
 
-		private void OnInteract(Character character)
+		private void OnInteract(CharacterBase character)
 		{
 			character.inventory.AddItem(this);
 			Tooltip.DeActivate();

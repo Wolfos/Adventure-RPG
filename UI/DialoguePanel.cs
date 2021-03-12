@@ -102,6 +102,48 @@ namespace UI
 					break;
 				}
 
+				case StartQuestNode qn:
+				{
+					qn.Execute();
+					var port = qn.GetOutputPort("next");
+				
+					if(port.IsConnected) nextNodes.Add(port.Connection.node);
+					
+					OnNodeEnded(0);
+					break;
+				}
+				
+				case SetQuestStageNode qn:
+				{
+					qn.Execute();
+					EndDialogue();
+					var port = qn.GetOutputPort("next");
+					
+					if(port.IsConnected) nextNodes.Add(port.Connection.node);
+					
+					OnNodeEnded(0);
+					break;
+				}
+
+				case GetQuestStageNode qn:
+				{
+					var n = qn.GetNextNode();
+					nextNodes.Add(n);
+					OnNodeEnded(0);
+					break;
+				}
+
+				case GiveItemNode gin:
+				{
+					gin.Execute();
+					var port = gin.GetOutputPort("next");
+				
+					if(port.IsConnected) nextNodes.Add(port.Connection.node);
+					
+					OnNodeEnded(0);
+					break;
+				}
+
 				default:
 					throw new System.NotImplementedException();
 			}

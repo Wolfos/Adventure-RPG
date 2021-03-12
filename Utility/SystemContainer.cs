@@ -5,6 +5,7 @@
 */
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Utility
 {
@@ -30,6 +31,11 @@ namespace Utility
             instance.systems.TryGetValue(typeof(T), out system);
             if (system == null) Debug.LogError("System of type " + typeof(T) + " was not found");
             return (T)system;
+        }
+
+        public static void UnRegister<T>()
+        {
+            instance.systems.Remove(typeof(T));
         }
     }
 }

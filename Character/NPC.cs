@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections;
 using Combat;
-using UI;
+using Data;
 using UnityEngine;
 using UnityEngine.AI;
+using Utility;
 
-namespace NPC
+namespace Character
 {
 	public enum NPCDemeanor
 	{
@@ -17,7 +18,7 @@ namespace NPC
 		Idle, Wandering, Combat
 	}
 	
-	public class NPC : Character
+	public class NPC : CharacterBase
 	{
 		[Header("NPC settings")][SerializeField] private NPCDemeanor demeanor;
 		[SerializeField] private NPCRoutine defaultRoutine;
@@ -26,20 +27,21 @@ namespace NPC
 		[SerializeField] private int[] startingInventory;
 		
 		[SerializeField] private float meleeAttackRange = 1;
-		[SerializeField] private float maxPursueDistance = 10;
-
-		[HideInInspector] public float inactiveTime;
+		[SerializeField] private float maxPursueDistance = 20;
+		[SerializeField] private float startChaseDistance = 10;
+		
 		[HideInInspector] public Bounds bounds;
 		[HideInInspector] public bool respawn = false;
 
 		private NPCRoutine currentRoutine;
-		private Character currentTarget;
+
+		public Action OnDeath;
+
+		private Player.Player player;
 
 		private new void OnEnable()
 		{
 			if(agent.enabled) Debug.LogError("NavmeshAgent was enabled by default. Due to a bug in Unity, it should start off disabled");
-			
-			data = new CharacterData();
 
 			if (respawn)
 			{
@@ -74,8 +76,9 @@ namespace NPC
 				inventory.AddItem(startingInventory[i]);
 				inventory.items[i].Equipped = true;
 			}
-			CheckEquipment();
+			equipment.CheckEquipment();
 
+			player = SystemContainer.GetSystem<Player.Player>();
 			base.Start();
 		}
 
@@ -85,6 +88,7 @@ namespace NPC
 			SetHealth(data.health);
 			transform.position = data.position;
 			transform.rotation = data.rotation;
+			CharacterPool.Register(data.characterId, this);
 			ActivateRoutine(data.routine, true, true);
 		}
 
@@ -128,20 +132,32 @@ namespace NPC
 			data.position = transform.position;
 			data.rotation = transform.rotation;
 			data.velocity = agent.velocity;
-			
+
 			base.Update();
 		}
 
 		private void OnDamaged(Damage damage)
 		{
-			if (damage.source is Character)
+			if (!string.IsNullOrEmpty(damage.source))
 			{
-				currentTarget = damage.source;
+				data.currentTarget = damage.source;
 				if (currentRoutine != NPCRoutine.Combat)
 				{
 					ActivateRoutine(NPCRoutine.Combat);
 				}
 			}
+
+			if (data.health - damage.amount <= 0) // Dying
+			{
+				OnDeath?.Invoke();
+				CharacterPool.GetCharacter(damage.source)?.Killed(gameObject.name);
+			}
+			
+		}
+
+		private CharacterBase GetTarget()
+		{
+			return CharacterPool.GetCharacter(data.currentTarget);
 		}
 
 		private IEnumerator CombatRoutine(bool delayed = false, bool proceed = false)
@@ -162,7 +178,9 @@ namespace NPC
 					yield return null;
 				}
 
-				Vector3 targetPos = currentTarget.transform.position;
+				while (GetTarget() == null) yield return null;
+
+				Vector3 targetPos = GetTarget().transform.position;
 				Vector3 pos = transform.position;
 				
 				data.destination = targetPos;
@@ -212,6 +230,14 @@ namespace NPC
 
 				while (agent.hasPath)
 				{
+					if (demeanor == NPCDemeanor.Hostile)
+					{
+						if (Vector3.SqrMagnitude(transform.position - player.transform.position) < startChaseDistance * startChaseDistance)
+						{
+							data.currentTarget = player.data.characterId;
+							ActivateRoutine(NPCRoutine.Combat);
+						}
+					}
 					if (Mathf.Abs(agent.velocity.magnitude) < 0.01f) // Stuck
 					{
 						break;
@@ -225,12 +251,9 @@ namespace NPC
 			}
 		}
 
-		private new void OnDisable()
+		private void OnDisable()
 		{
-			inactiveTime = Time.time;
 			onDamaged -= OnDamaged;
-			
-			base.OnDisable();
 		}
 	}
 }

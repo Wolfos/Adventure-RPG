@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using NPC;
+using Character;
 using UI;
 
 namespace Dialogue
@@ -15,11 +15,10 @@ namespace Dialogue
         
         private void OnCanInteract()
         {
-            Vector3 screenPosition = Camera.main.WorldToScreenPoint(transform.position + transform.up * tooltipOffset);
-            Tooltip.Activate(friendlyName, screenPosition);
+            Tooltip.Activate(friendlyName, transform, transform.up * tooltipOffset);
         }
 
-        private void OnInteract(Character character)
+        private void OnInteract(CharacterBase character)
         {
             DialoguePanel.Activate(conversationAsset);
         }

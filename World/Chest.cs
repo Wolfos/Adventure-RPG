@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using NPC;
+using Character;
 using UnityEngine;
 using Data;
 using UI;
@@ -7,8 +7,8 @@ using Utility;
 
 public class Chest : SaveableObject
 {
-	private bool isOpen;
 	// TODO: This should be saved	
+	private bool isOpen;
 	[SerializeField] private List<int> items;
 	[SerializeField] private List<int> quantity;
 	[SerializeField] private Animator animator;
@@ -22,16 +22,14 @@ public class Chest : SaveableObject
 
 	public override void Load(string json)
 	{
-		
 	}
 
 	private void OnCanInteract()
 	{
-		Vector3 screenPosition = Camera.main.WorldToScreenPoint(transform.position);
-		Tooltip.Activate(isOpen ? "Close" : "Open", screenPosition);
+		Tooltip.Activate(isOpen ? "Close" : "Open", transform, Vector3.zero);
 	}
 
-	private void OnInteract(Character character)
+	private void OnInteract(CharacterBase character)
 	{
 		int i = 0;
 		foreach (int item in items)

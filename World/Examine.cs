@@ -1,5 +1,5 @@
 ﻿using System.Collections;
-using NPC;
+using Character;
 using UnityEngine;
 
 namespace World
@@ -11,27 +11,12 @@ namespace World
 		[SerializeField] private Renderer renderer;
 
 		private bool panelVisible;
-
-		private void OnMouseOver()
-		{
-			panelVisible = true;
-			UI.Tooltip.Activate(text, Input.mousePosition);
-			renderer.material.SetColor("_EmissionColor", Color.grey);
-		}
-
-		private void OnMouseExit()
-		{
-			panelVisible = true;
-			UI.Tooltip.DeActivate();
-			renderer.material.SetColor("_EmissionColor", Color.black);
-		}
-
-		private void OnInteract(Character character)
+		
+		private void OnInteract(CharacterBase character)
 		{
 			if (!panelVisible)
 			{
-				var position = Camera.main.WorldToScreenPoint(transform.position);
-				UI.Tooltip.Activate(text, position);
+				UI.Tooltip.Activate(text, transform, Vector3.zero);
 				StartCoroutine(WasInteracted(character.transform));
 			}
 			else

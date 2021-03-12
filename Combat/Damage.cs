@@ -1,5 +1,5 @@
 ﻿using System;
-using NPC;
+using Character;
 using UnityEngine;
 
 namespace Combat
@@ -15,6 +15,6 @@ namespace Combat
 		public DamageType type;
 		public float amount;
 		public float knockback = 1;
-		[NonSerialized] public dynamic source;
+		[NonSerialized] public string source;
 	}
 }

@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using Items;
 using Player;
+using Utility;
 
 namespace UI
 {
@@ -30,23 +31,23 @@ namespace UI
 
 		private List<Button> buttons;
 
-		public static void ToggleActive(Container container)
-		{
-			instance.container = container;
-			instance.gameObject.SetActive(!instance.gameObject.activeSelf);
-		}
+		private bool firstRun = true;
 
-		void Awake()
-		{
-			instance = this;
-			gameObject.SetActive(false);
-		}
+		[SerializeField] private Text moneyAmount;
 
 		private void OnEnable()
 		{
-			if (container == null) return;
+			if (firstRun)
+			{
+				firstRun = false;
+				return;
+			}
+
+			var player = SystemContainer.GetSystem<Player.Player>();
+			container = player.inventory;
 			container.onItemAdded += ItemAdded;
 			container.onItemRemoved += ItemRemoved;
+			moneyAmount.text = player.data.money.ToString("N0");
 
 		   
 			AddButtons();

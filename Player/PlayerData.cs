@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Data;
-using NPC;
+using Character;
 using Player;
 using UnityEngine;
 
@@ -12,7 +12,7 @@ public class PlayerData : SaveableObject
 	public override void Load(string json)
 	{
 		var data = JsonUtility.FromJson<CharacterData>(json);
-
+		CharacterPool.Register(data.characterId, player);
 		player.data = data;
 		player.characterController.enabled = false;
 		transform.position = data.position;
@@ -34,7 +34,7 @@ public class PlayerData : SaveableObject
 		}
 		
 		
-		player.CheckEquipment();	
+		player.GetComponent<CharacterEquipment>().CheckEquipment();	
 		player.characterController.enabled = true;
 	}
 		
@@ -52,16 +52,13 @@ public class PlayerData : SaveableObject
 				quantities.Add(item.quantity);
 			}
 		}
-			
-		var data = new CharacterData()
-		{
-			position = transform.position,
-			rotation = player.graphic.rotation,
-			health = player.data.health,
-			items = items,
-			equipped = equipped,
-			quantities = quantities
-		};
+
+		var data = player.data;
+		data.position = transform.position;
+		data.rotation = player.graphic.rotation;
+		data.items = items;
+		data.equipped = equipped;
+		data.quantities = quantities;
 
 		return JsonUtility.ToJson(data);
 	}
