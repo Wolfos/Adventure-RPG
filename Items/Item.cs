@@ -6,7 +6,7 @@ namespace Items
 {
 	public enum ItemType
 	{
-		Consumable, RangedWeapon, MeleeWeapon, Ammunition
+		Consumable, RangedWeapon, MeleeWeapon, Ammunition, Clothing
 	}
 	public class Item : MonoBehaviour
 	{

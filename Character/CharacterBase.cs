@@ -129,6 +129,7 @@ namespace Character
 				}
 			}
 		}
+		
 
 		protected void Attack()
 		{
@@ -235,7 +236,7 @@ namespace Character
 			onDamaged?.Invoke(damage);
 			SFXPlayer.PlaySound(hitSound, 0.2f);
 			
-			var knockback = (transform.position - point).normalized * damage.knockback * 10;
+			var knockback = (transform.position - point).normalized * (damage.knockback * 20);
 			StartCoroutine(HitFlash());
 			StartCoroutine(Knockback(knockback));
 			

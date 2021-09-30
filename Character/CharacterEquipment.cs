@@ -10,6 +10,11 @@ namespace Character
 		[SerializeField] private Transform rightHand;
 		[SerializeField] private Transform leftHand;
 		[SerializeField] private RuntimeAnimatorController unarmed;
+		[Tooltip("These objects show when the character is naked")]
+		[SerializeField] private GameObject[] nakedObjects;
+		[SerializeField] private Transform rootBone;
+		[SerializeField] private SkinnedMeshRenderer bonesSource;
+		
 		private Item rightHandEquipped;
 		private Item leftHandEquipped;
 		private Item twoHandEquipped;
@@ -89,6 +94,17 @@ namespace Character
 					break;
 				case ItemType.Ammunition:
 					break;
+				case ItemType.Clothing:
+					foreach (var obj in nakedObjects)
+					{
+						obj.SetActive(false);
+					}
+
+					var equipment = item as Equipment;
+					equipment.SetBones(rootBone, bonesSource.bones);
+					
+					item.transform.SetParent(animator.transform);
+					break;
 			}
 			item.gameObject.SetActive(true);
 		}
@@ -120,6 +136,13 @@ namespace Character
 
 					break;
 				case ItemType.Ammunition:
+					break;
+				case ItemType.Clothing:
+					foreach (var obj in nakedObjects)
+					{
+						obj.SetActive(true);
+					}
+
 					break;
 			}
 			item.gameObject.SetActive(false);

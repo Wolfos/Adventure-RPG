@@ -20,8 +20,8 @@ namespace Player
 		[SerializeField] private float jumpSpeed;
 		[SerializeField] private float gravity;
 		[SerializeField] private Texture2D defaultCursor, aimCursor;
-		
-		
+
+		private PlayerCamera playerCamera;
 		public static bool disableMovement = true;
 		private Vector3 velocity;
 		private static readonly int CanWalk = Animator.StringToHash("CanWalk");
@@ -30,6 +30,19 @@ namespace Player
 		{
 			base.Awake();
 			SystemContainer.Register(this);
+		}
+		
+		private void Start()
+		{
+			Cursor.visible = false;
+			Cursor.lockState = CursorLockMode.Locked;
+			//Cursor.SetCursor(defaultCursor, Vector2.zero, CursorMode.Auto);
+			characterController = GetComponent<CharacterController>();
+			StartCoroutine(EnableMovement());
+
+			playerCamera = SystemContainer.GetSystem<PlayerCamera>();
+
+			base.Start();
 		}
 
 		private void OnDestroy()
@@ -50,16 +63,6 @@ namespace Player
 		public bool HasQuest(Quest quest)
 		{
 			return data.quests.Any(x => x.name == quest.name);
-		}
-		
-
-		private void Start()
-		{
-			Cursor.SetCursor(defaultCursor, Vector2.zero, CursorMode.Auto);
-			characterController = GetComponent<CharacterController>();
-			StartCoroutine(EnableMovement());
-
-			base.Start();
 		}
 
 		private IEnumerator EnableMovement()
@@ -92,7 +95,14 @@ namespace Player
 			{
 				var input = InputMapper.GetMovement();
 				input = Vector3.ClampMagnitude(input, 1);
-				velocity = input * movementSpeed;
+
+				var cameraTransform = playerCamera.transform;
+				var forward = cameraTransform.forward;
+				var right = cameraTransform.right;
+				forward *= input.z;
+				right *= input.x;
+
+				velocity = (forward + right) * movementSpeed;
 				animator.SetFloat("Speed", velocity.magnitude);
 				if (InputMapper.JumpButton()) velocity.y = jumpSpeed;
 			}
@@ -111,6 +121,8 @@ namespace Player
 			if (InputMapper.InventoryButton())
 			{
 				disableMovement = !disableMovement;
+				Cursor.visible = disableMovement;
+				Cursor.lockState = Cursor.visible ? CursorLockMode.None : CursorLockMode.Locked;
 				PlayerMenu.ToggleActive();
 			}
 			
@@ -118,6 +130,8 @@ namespace Player
 			if (InputMapper.PauseButton())
 			{
 				disableMovement = !disableMovement;
+				Cursor.visible = disableMovement;
+				Cursor.lockState = Cursor.visible ? CursorLockMode.None : CursorLockMode.Locked;
 				PauseMenu.ToggleActive();
 			}
 		}
@@ -193,7 +207,14 @@ namespace Player
 				var input = InputMapper.GetMovement();
 				if (input.magnitude > 0.1f)
 				{
-					float angle = Mathf.Atan2(input.x, input.z) * Mathf.Rad2Deg;
+					var cameraTransform = playerCamera.transform;
+					var forward = cameraTransform.forward;
+					var right = cameraTransform.right;
+					forward *= input.z;
+					right *= input.x;
+					var direction = forward + right;
+					
+					float angle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
 					graphic.rotation = Quaternion.Euler(new Vector3(0, angle, 0));
 				}
 			}

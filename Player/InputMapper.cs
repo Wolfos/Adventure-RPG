@@ -35,9 +35,22 @@ namespace Player
 			return input;
 		}
 
+		public static Vector2 GetCameraMovement()
+		{
+			var input = Vector2.zero;
+			input = GetRightStick();
+			if (usingController == false)
+			{
+				input.x = -Input.GetAxis("Mouse X");
+				input.y = Input.GetAxis("Mouse Y");
+			}
+
+			return input;
+		}
+
 		public static Vector2 GetRightStick()
 		{
-			Vector2 input = Vector2.zero;
+			var input = Vector2.zero;
 			input.x = Input.GetAxis("RightStickX");
 			input.y = Input.GetAxis("RightStickY");
 

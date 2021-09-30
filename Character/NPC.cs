@@ -41,7 +41,7 @@ namespace Character
 
 		private new void OnEnable()
 		{
-			if(agent.enabled) Debug.LogError("NavmeshAgent was enabled by default. Due to a bug in Unity, it should start off disabled");
+			if(agent.enabled) Debug.LogError("NavmeshAgent was enabled by default. Due to a bug in Unity, it should start disabled");
 
 			if (respawn)
 			{
@@ -199,7 +199,7 @@ namespace Character
 				{
 					data.destination = transform.position;
 					agent.destination = data.destination;
-					Attack();
+					StartCoroutine(AttackRoutine());
 					yield return new WaitForSeconds(1);
 				}
 
@@ -207,6 +207,16 @@ namespace Character
 				
 				yield return null;
 			}
+		}
+
+		private IEnumerator AttackRoutine()
+		{
+			animator.SetTrigger("Telegraph");
+			yield return null;
+			var clip = animator.GetCurrentAnimatorClipInfo(0)[0].clip;
+			var length = clip.length;
+			yield return new WaitForSeconds(length - 0.1f);
+			Attack();
 		}
 		
 		private IEnumerator WanderingRoutine(bool delayed = false, bool proceed = false)
