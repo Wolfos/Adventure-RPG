@@ -1,4 +1,5 @@
-﻿using Character;
+﻿using System;
+using Character;
 using UI;
 using UnityEngine;
 
@@ -8,6 +9,19 @@ namespace Items
 	{
 		Consumable, RangedWeapon, MeleeWeapon, Ammunition, Clothing
 	}
+
+	public enum ItemEffectType
+	{
+		AddHealth, AddMana
+	}
+
+	[Serializable]
+	public class ItemEffect
+	{
+		public ItemEffectType type;
+		public float amount;
+	}
+	
 	public class Item : MonoBehaviour
 	{
 		[HideInInspector] public int id;
@@ -27,6 +41,8 @@ namespace Items
 		[HideInInspector]
 		public int slot;
 		private bool _equipped;
+
+		public ItemEffect[] effects;
 
 		public bool Equipped
 		{

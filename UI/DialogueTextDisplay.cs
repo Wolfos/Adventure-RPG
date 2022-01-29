@@ -14,7 +14,7 @@ namespace UI
 
 		private void Update()
 		{
-			if (continueTimer > 0.2f && InputMapper.InteractionButton())
+			if (continueTimer > 0.2f && InputMapper.DialogueNext())
 			{
 				callback?.Invoke(0);
 			}

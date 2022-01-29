@@ -13,7 +13,7 @@ namespace Dialogue
         
         public void Execute()
         {
-            SystemContainer.GetSystem<Player.Player>().StartQuest(quest);
+            SystemContainer.GetSystem<Player.PlayerCharacter>().StartQuest(quest);
         }
         
     }

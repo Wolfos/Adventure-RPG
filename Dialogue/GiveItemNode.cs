@@ -17,11 +17,11 @@ namespace Dialogue
         {
             if (giveItem)
             {
-                SystemContainer.GetSystem<Player.Player>().inventory.AddItem(item.id);
+                SystemContainer.GetSystem<Player.PlayerCharacter>().inventory.AddItem(item.id);
             }
             else if (giveMoney)
             {
-                SystemContainer.GetSystem<Player.Player>().data.money += money;
+                SystemContainer.GetSystem<Player.PlayerCharacter>().data.money += money;
             }
         }
     }

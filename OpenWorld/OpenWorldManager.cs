@@ -122,7 +122,7 @@ namespace OpenWorld
         private Chunk CreateNewChunk(string name, int x, int z)
         {
             var chunkName = $"{name} {x}, {z}";
-            var chunkScene = EditorSceneManager.GetSceneByPath($"Assets/Scenes/Chunks/{chunkName}.unity");
+            var chunkScene = SceneManager.GetSceneByPath($"Assets/Scenes/Chunks/{chunkName}.unity");
             bool isNew = false;
             if (!chunkScene.IsValid())
             {

@@ -13,9 +13,9 @@ public class TimeDisplay : MonoBehaviour
 
 	void Update()
 	{
-		float time = TimeManager.RealTime();
-		int hours = Mathf.FloorToInt(time);
-		int minutes = Mathf.FloorToInt((time - hours) * 60);
+		var time = TimeManager.RealTime();
+		var hours = Mathf.FloorToInt(time);
+		var minutes = Mathf.FloorToInt((time - hours) * 60);
 
 		text.text = (hours < 10 ? 0.ToString() : "") + hours + ":" + (minutes < 10 ? 0.ToString() : "") + minutes;
 	}

@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Utility;
 
@@ -10,12 +9,27 @@ namespace Data
     {
         public string id;
         [HideInInspector] public bool global;
+        private static SaveGameManager SaveGameManager => SystemContainer.GetSystem<SaveGameManager>();
         
         protected virtual void Start()
         {
-            SystemContainer.GetSystem<SaveGameManager>().Register(this);
+            SaveGameManager.Register(this);
+
+            if (!SaveGameManager.IsLoading)
+            {
+                var data = SaveGameManager.GetData(this);
+                if (data != string.Empty)
+                {
+                    Load(data);
+                }
+            }
         }
-        
+
+        private void OnDestroy()
+        {
+            SaveGameManager.Unregister(this);
+        }
+
         public abstract string Save();
         public abstract void Load(string json);
     }

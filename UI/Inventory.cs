@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
@@ -8,6 +9,11 @@ using Utility;
 
 namespace UI
 {
+	public enum SelectItemBehaviour
+	{
+		Use,
+		Transfer
+	}
 	/// <summary>
 	/// An inventory menu
 	/// </summary>
@@ -16,40 +22,36 @@ namespace UI
 		private static Inventory instance;
 		
 		public Container container;
+		public Container otherContainer;
 
-		[SerializeField]
-		private GameObject itemButton;
-
-		[SerializeField]
-		private Color emptyColor;
-
-		[SerializeField]
-		private Sprite emptySprite;
-
-		[SerializeField]
-		private RectTransform itemsContainer;
-
-		private List<Button> buttons;
-
-		private bool firstRun = true;
-
+		[SerializeField] private GameObject itemButton;
+		[SerializeField] private Color emptyColor;
+		[SerializeField] private Sprite emptySprite;
+		[SerializeField] private RectTransform itemsContainer;
 		[SerializeField] private Text moneyAmount;
+		[SerializeField] private SelectItemBehaviour selectItemBehaviour;
+
+		private List<Button> _buttons;
+		private bool _firstRun = true;
 
 		private void OnEnable()
 		{
-			if (firstRun)
+			if (_firstRun)
 			{
-				firstRun = false;
+				_firstRun = false;
 				return;
 			}
 
-			var player = SystemContainer.GetSystem<Player.Player>();
-			container = player.inventory;
+			var player = SystemContainer.GetSystem<PlayerCharacter>();
+			if (container == null)
+			{
+				container = player.inventory;
+			}
+
 			container.onItemAdded += ItemAdded;
 			container.onItemRemoved += ItemRemoved;
 			moneyAmount.text = player.data.money.ToString("N0");
-
-		   
+			
 			AddButtons();
 			AddAllItems();
 		}
@@ -74,9 +76,9 @@ namespace UI
 		{
 			if (InputMapper.DropButton())
 			{
-				for (int i = 0; i < buttons.Count; i++)
+				for (int i = 0; i < _buttons.Count; i++)
 				{
-					if (buttons[i].gameObject == EventSystem.current.currentSelectedGameObject)
+					if (_buttons[i].gameObject == EventSystem.current.currentSelectedGameObject)
 					{
 						container.DropItem(i);
 					}
@@ -86,10 +88,10 @@ namespace UI
 
 		private void AddButtons()
 		{
-			buttons = new List<Button>();
+			_buttons = new List<Button>();
 			for (int i = 0; i < container.slots; i++)
 			{
-				GameObject button = Instantiate(itemButton);
+				var button = Instantiate(itemButton);
 				button.name = "ItemButton " + i;
 				button.transform.SetParent(itemsContainer.transform, false);
 				int iterator = i;
@@ -97,25 +99,25 @@ namespace UI
 				if(i == 0 && InputMapper.usingController) button.GetComponent<Button>().Select();
 				button.GetComponentInChildren<DraggableItem>().inventory = this;
 				button.GetComponentInChildren<DraggableItem>().slot = iterator;
-				Text quantityText = button.GetComponentInChildren<Text>();
+				var quantityText = button.GetComponentInChildren<Text>();
 				quantityText.text = "";
 				if (container.items[i] != null)
 				{
 					int quantity = container.items[i].quantity;
 					if (quantity > 1) quantityText.text = quantity.ToString();
 				}
-				buttons.Add(button.GetComponent<Button>());
+				_buttons.Add(button.GetComponent<Button>());
 			}
 		}
 
 		private void ClearButtons()
 		{
-			foreach (var b in buttons)
+			foreach (var b in _buttons)
 			{
 				Destroy(b.gameObject);
 			}
 			
-			buttons.Clear();
+			_buttons.Clear();
 		}
 
 		/// <summary>
@@ -127,50 +129,61 @@ namespace UI
 			for (int i = 0; i < container.GetItemCount(); i++)
 			{
 				Item item = container.GetItemBySlot(i);
-				if (item != null) ItemAdded(item);
+				if (item != null) ItemAdded(item, item.slot);
 			}
 		}
 
-		void ItemAdded(Item item)
+		void ItemAdded(Item item, int slot)
 		{
 			item.onEquipped += ItemEquipped;
 			item.onUnEquipped += ItemUnEquipped;
 
-			Button button = buttons[item.slot];
+			Button button = _buttons[slot];
 			button.transform.Find("Image").GetComponent<Image>().sprite = item.icon;
 			button.image.color = item.Equipped ? item.equippedInventoryBackgroundColor : item.inventoryBackgroundColor;
 		}
 
-		void ItemRemoved(Item item)
+		private void ItemRemoved(Item item, int slot)
 		{
 			item.onEquipped -= ItemEquipped;
 			item.onUnEquipped -= ItemUnEquipped;
 
-			Button button = buttons[item.slot];
+			Button button = _buttons[slot];
 			button.image.color = emptyColor;
 			button.transform.Find("Image").GetComponent<Image>().sprite = emptySprite;
 		}
 
-		void ItemEquipped(Item item)
+		private void ItemEquipped(Item item)
 		{
-			Button button = buttons[item.slot];
+			Button button = _buttons[item.slot];
 			if (!button) return;
 			button.image.color = item.equippedInventoryBackgroundColor;
 		}
 
-		void ItemUnEquipped(Item item)
+		private void ItemUnEquipped(Item item)
 		{
-			if (item.slot >= buttons.Count) return;
+			if (item.slot >= _buttons.Count) return;
 			
-			Button button = buttons[item.slot];
+			var button = _buttons[item.slot];
 			if (!button) return;
 			button.image.color = item.inventoryBackgroundColor;
 		}
 
-		void ButtonClicked(int b)
+		private void ButtonClicked(int button)
 		{
-			if (container.GetItemBySlot(b) == null) return; // Slot was empty
-			container.GetItemBySlot(b).Equipped = !container.GetItemBySlot(b).Equipped;
+			if (container.GetItemBySlot(button) == null) return; // Slot was empty
+			var item = container.GetItemBySlot(button);
+			switch(selectItemBehaviour)
+			{
+				case SelectItemBehaviour.Use:
+					item.Equipped = !item.Equipped;
+					break;
+				case SelectItemBehaviour.Transfer:
+					container.MoveItem(button, otherContainer);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
 		}
 
 		/// <summary>
@@ -179,15 +192,15 @@ namespace UI
 		/// <param name="slot">The slot the item came from</param>
 		public void ItemDropped(int slot)
 		{
-			PointerEventData pointer = new PointerEventData(EventSystem.current);
+			var pointer = new PointerEventData(EventSystem.current);
 			pointer.position = Input.mousePosition;
-			List<RaycastResult> results = new List<RaycastResult>();
+			var results = new List<RaycastResult>();
 
 			EventSystem.current.RaycastAll(pointer, results);
 
 			foreach (RaycastResult result in results)
 			{
-				DraggableItem target = result.gameObject.GetComponent<DraggableItem>();
+				var target = result.gameObject.GetComponent<DraggableItem>();
 
 				if (target != null)
 				{

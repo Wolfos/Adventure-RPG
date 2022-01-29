@@ -23,7 +23,7 @@ namespace Dialogue
 
 		public void Execute()
 		{
-			var player = SystemContainer.GetSystem<Player.Player>();
+			var player = SystemContainer.GetSystem<Player.PlayerCharacter>();
 			if (player.HasQuest(quest))
 			{
 				var playerQuest = player.data.quests.First(q => q.name == quest.name);

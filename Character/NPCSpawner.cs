@@ -43,7 +43,7 @@ namespace Character
 				Destroy(npc.gameObject);
 			}
 			npcs.Clear();
-			string[] data = json.Split(new[] {"</npc>"}, StringSplitOptions.RemoveEmptyEntries);
+			var data = json.Split(new[] {"</npc>"}, StringSplitOptions.RemoveEmptyEntries);
 			for (int i = 0; i < data.Length; i++)
 			{
 				var prefab = Resources.Load(assetFile);

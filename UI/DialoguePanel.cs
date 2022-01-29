@@ -18,7 +18,7 @@ namespace UI
 		private DialogueNodeGraph nodeGraph;
 		private List<Node> nextNodes;
 
-		private void Awake()
+		private void Start()
 		{
 			if (instance != null)
 			{
@@ -41,8 +41,7 @@ namespace UI
 		private IEnumerator StartDialogue(string assetPath)
 		{
 			yield return null;
-			Player.Player.disableMovement = true;
-			Time.timeScale = 0;
+			PlayerCharacter.LockInput();
 			instance.nodeGraph = Resources.Load<DialogueNodeGraph>(assetPath);
 			// Start reading at the first inputless node
 			instance.ReadNode(instance.nodeGraph.nodes.Find(x => x.Inputs.All(y => !y.IsConnected)));
@@ -50,9 +49,8 @@ namespace UI
 
 		private void EndDialogue()
 		{
-			Time.timeScale = 1;
+			PlayerCharacter.UnlockInput();
 			gameObject.SetActive(false);
-			Player.Player.disableMovement = false;
 		}
 
 		private void OnNodeEnded(int choice)

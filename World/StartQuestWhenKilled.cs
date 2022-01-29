@@ -17,7 +17,7 @@ namespace World
 
         private void OnDeath()
         {
-            SystemContainer.GetSystem<Player.Player>().StartQuest(quest);
+            SystemContainer.GetSystem<Player.PlayerCharacter>().StartQuest(quest);
         }
     }
 }

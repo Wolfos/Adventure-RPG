@@ -9,21 +9,22 @@ namespace UI
 {
     public class PlayerMenu : MonoBehaviour
     {
-        private static PlayerMenu instance;
+        private static PlayerMenu _instance;
         [SerializeField] private Button[] topPanelButtons;
-        private int currentButton;
-        public static bool isActive;
+        private int _currentButton;
+        public static bool IsActive;
 
         public static void ToggleActive()
         {
-            instance.gameObject.SetActive(!instance.gameObject.activeSelf);
-            isActive = instance.gameObject.activeSelf;
-            Time.timeScale = instance.gameObject.activeSelf ? 0 : 1;
+            var gameObject = _instance.gameObject;
+            gameObject.SetActive(!gameObject.activeSelf);
+            IsActive = gameObject.activeSelf;
+            Time.timeScale = gameObject.activeSelf ? 0 : 1;
         }
 
         private void Awake()
         {
-            instance = this;
+            _instance = this;
             gameObject.SetActive(false);
         }
 
@@ -36,10 +37,10 @@ namespace UI
         {
             if (!InputMapper.usingController) return;
             
-            int i = 0;
-            foreach (Button button in topPanelButtons)
+            var i = 0;
+            foreach (var button in topPanelButtons)
             {
-                if (i == currentButton)
+                if (i == _currentButton)
                 {
                     var colors = button.colors;
                     colors.normalColor = button.colors.highlightedColor;
@@ -57,25 +58,25 @@ namespace UI
 
         private void OnDestroy()
         {
-            isActive = false;
+            IsActive = false;
         }
 
         private void Update()
         {
             if (InputMapper.MenuLeft())
             {
-                currentButton --;
-                if (currentButton < 0) currentButton = topPanelButtons.Length - 1;
+                _currentButton --;
+                if (_currentButton < 0) _currentButton = topPanelButtons.Length - 1;
                 
-                topPanelButtons[currentButton].onClick.Invoke();
+                topPanelButtons[_currentButton].onClick.Invoke();
                 SetActiveButtonColor();
             }
             if (InputMapper.MenuRight())
             {
-                currentButton ++;
-                if (currentButton >= topPanelButtons.Length) currentButton = 0;
+                _currentButton ++;
+                if (_currentButton >= topPanelButtons.Length) _currentButton = 0;
                 
-                topPanelButtons[currentButton].onClick.Invoke();
+                topPanelButtons[_currentButton].onClick.Invoke();
                 SetActiveButtonColor();
             }
         }

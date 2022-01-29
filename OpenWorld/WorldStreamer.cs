@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEditor.Experimental.SceneManagement;
 #endif
 
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -15,8 +16,9 @@ namespace OpenWorld
     public class WorldStreamer : MonoBehaviour
     {
         [SerializeField] private OpenWorldManager data;
-        private List<Chunk> currentChunks = new List<Chunk>();
-        private bool bakingMode;
+        private readonly List<Chunk> _currentChunks = new List<Chunk>();
+        private bool _bakingMode;
+        private bool _dungeonMode;
         private static WorldStreamer _instance;
 
         private void Start()
@@ -32,18 +34,18 @@ namespace OpenWorld
             SceneManager.LoadScene("Terrains", LoadSceneMode.Additive);
         }
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         private bool UnloadUnnecessaryScenes()
         {
             bool sceneWasUnloaded = false;
-            for (int i = 0; i < EditorSceneManager.sceneCount; i++)
+            for (int i = 0; i < SceneManager.sceneCount; i++)
             {
-               
-                var scene = EditorSceneManager.GetSceneAt(i);
+
+                var scene = SceneManager.GetSceneAt(i);
                 if (scene.isDirty) continue;
                 if (scene.name.Contains("Chunk"))
                 {
-                    if (currentChunks.All(chunk => chunk.Name != scene.name))
+                    if (_currentChunks.All(chunk => chunk.Name != scene.name))
                     {
                         EditorSceneManager.CloseScene(scene, true);
                         sceneWasUnloaded = true;
@@ -51,10 +53,12 @@ namespace OpenWorld
                 }
 
             }
+
             return sceneWasUnloaded;
         }
 
         private Transform selectedObject;
+
         private void UpdateSelectionChunks()
         {
             selectedObject = Selection.activeTransform;
@@ -85,17 +89,18 @@ namespace OpenWorld
         public static void ToggleBakingMode()
         {
             if (EditorApplication.isPlaying) return;
-            
-            _instance.bakingMode = !_instance.bakingMode;
-            if (_instance.bakingMode)
+
+            _instance._bakingMode = !_instance._bakingMode;
+            if (_instance._bakingMode)
             {
                 foreach (var chunk in _instance.data.chunks)
                 {
-                    if (!_instance.currentChunks.Contains(chunk))
+                    if (!_instance._currentChunks.Contains(chunk))
                     {
-                        _instance.currentChunks.Add(chunk);
-                        
-                        EditorSceneManager.OpenScene($"Assets/Scenes/Chunks/{chunk.Name}.unity", OpenSceneMode.Additive);
+                        _instance._currentChunks.Add(chunk);
+
+                        EditorSceneManager.OpenScene($"Assets/Scenes/Chunks/{chunk.Name}.unity",
+                            OpenSceneMode.Additive);
                         _instance.SelectPrevious();
                     }
                 }
@@ -105,11 +110,39 @@ namespace OpenWorld
                 _instance.UnloadUnnecessaryScenes();
             }
         }
-        #endif
+#endif
+
+        public static void EnterDungeon(string sceneName)
+        {
+            _instance.StartCoroutine(_instance.EnterDungeonCoroutine(sceneName));
+        }
+
+        private IEnumerator EnterDungeonCoroutine(string sceneName)
+        {
+            var sceneLoad = SceneManager.LoadSceneAsync(sceneName);
+            _dungeonMode = true;
+            while (sceneLoad.isDone == false)
+            {
+                // TODO: Show loading screen
+                yield return null;
+            }
+            
+            foreach (var chunk in _currentChunks)
+            {
+                SceneManager.UnloadSceneAsync(chunk.Name);
+            }
+
+            _currentChunks.Clear();
+        }
+
+        public static void ExitDungeon()
+        {
+            _instance._dungeonMode = false;
+        }
         
         private void Update()
         {
-            if (bakingMode) return;
+            if (_bakingMode || _dungeonMode) return;
             
             var mainCamera = Camera.main;
             #if UNITY_EDITOR
@@ -130,7 +163,7 @@ namespace OpenWorld
             var cameraPos = mainCamera.transform.position;
             var chunks = data.GetChunkAndAdjacent(cameraPos.x, cameraPos.z);
             var toRemove = new List<Chunk>();
-            foreach (var chunk in currentChunks)
+            foreach (var chunk in _currentChunks)
             {
                 if (!chunks.Contains(chunk))
                 {
@@ -152,14 +185,14 @@ namespace OpenWorld
 
             foreach (var chunk in toRemove)
             {
-                currentChunks.Remove(chunk);
+                _currentChunks.Remove(chunk);
             }
             
             foreach (var chunk in chunks)
             {
-                if (!currentChunks.Contains(chunk))
+                if (!_currentChunks.Contains(chunk))
                 {
-                    currentChunks.Add(chunk);
+                    _currentChunks.Add(chunk);
                     #if UNITY_EDITOR
                     if (!EditorApplication.isPlaying)
                     {

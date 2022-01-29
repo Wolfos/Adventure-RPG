@@ -8,7 +8,7 @@ public class AddPlayerInteractionToCloth : MonoBehaviour
     {
         var cloth = GetComponent<Cloth>();
         var capsuleColliders = cloth.capsuleColliders.ToList();
-        var player = SystemContainer.GetSystem<Player.Player>();
+        var player = SystemContainer.GetSystem<Player.PlayerCharacter>();
         capsuleColliders.Add(player.GetComponent<CapsuleCollider>());
         cloth.capsuleColliders = capsuleColliders.ToArray();
     }

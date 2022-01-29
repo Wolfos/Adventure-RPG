@@ -17,7 +17,7 @@ namespace World
 		
 		private void OnTriggerEnter(Collider other)
 		{
-			if (other.tag == "LocalPlayer")
+			if (other.CompareTag("LocalPlayer"))
 			{
 				if (fadeIn) StartCoroutine(FadeIn());
 				else audioSource.volume = 1;

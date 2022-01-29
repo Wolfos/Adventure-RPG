@@ -1,3 +1,4 @@
+using System;
 using Items;
 using UnityEngine;
 
@@ -43,6 +44,20 @@ namespace Character
 			switch (item.type)
 			{
 				case ItemType.Consumable:
+					foreach (var effect in item.effects)
+					{
+						switch (effect.type)
+						{
+							case ItemEffectType.AddHealth:
+								_characterBase.SetHealth(_characterBase.data.health + effect.amount);
+								break;
+							case ItemEffectType.AddMana:
+								break;
+							default:
+								throw new ArgumentOutOfRangeException();
+						}
+					}
+					_characterBase.inventory.DestroyItem(item.slot);
 					break;
 				case ItemType.RangedWeapon:
 					if (rightHandEquipped)

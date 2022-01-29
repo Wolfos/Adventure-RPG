@@ -19,7 +19,6 @@ namespace Character
 		public CharacterData data = new CharacterData();
 		public Transform graphic;
 		[SerializeField] protected Animator animator;
-		[SerializeField] private Renderer[] renderers;
 		[SerializeField] private float startHealth;
 		[SerializeField] private float healthOffset = 80;
 		[SerializeField] protected float headOffset;
@@ -29,6 +28,7 @@ namespace Character
 		[SerializeField] private Damage unarmedDamage;
 		[SerializeField] private Collider collider;
 		[SerializeField] private AudioClip hitSound;
+		[SerializeField] private CharacterAnimationEvents animationEvents;
 
 		private List<CharacterBase> currentTargets;
 		private Collider currentInteraction;
@@ -36,14 +36,17 @@ namespace Character
 		private HealthDisplay healthDisplay;
 		protected Action<Damage> onDamaged;
 		protected CharacterEquipment equipment;
+		private static readonly int Recoil = Animator.StringToHash("HitRecoil");
+		protected bool IsInHitRecoil => animator.GetBool(Recoil);
 		
 		protected void Awake()
 		{
-			if (SaveGameManager.newGame)
+			if (SaveGameManager.NewGame)
 			{
 				data.characterId = CharacterPool.Register(this).ToString();
 			}
 			equipment = GetComponent<CharacterEquipment>();
+			animationEvents.onHit += MeleeHitCallback;
 		}
 
 		protected void Start()
@@ -76,7 +79,7 @@ namespace Character
 
 		protected void Update()
 		{
-			if (data.health < startHealth && data.health > 0 && !PlayerMenu.isActive && !PauseMenu.isActive)
+			if (data.health < startHealth && data.health > 0 && !PlayerMenu.IsActive && !PauseMenu.isActive)
 			{
 				healthDisplay.gameObject.SetActive(true);
 				healthDisplay.CurrentHealth = data.health;
@@ -129,29 +132,37 @@ namespace Character
 				}
 			}
 		}
-		
 
 		protected void Attack()
 		{
-			bool willAttack = false;
+			if (IsInHitRecoil) return;
+			
+			var willAttack = false;
 			if (equipment.currentWeapon)
 			{
 				equipment.currentWeapon.baseDamage.source = data.characterId;
-				if (equipment.currentWeapon is RangedWeapon) (equipment.currentWeapon as RangedWeapon).ammunition = GetAmmo();
+				if (equipment.currentWeapon is RangedWeapon weapon)
+				{
+					weapon.ammunition = GetAmmo();
+				}
 				willAttack = equipment.currentWeapon.Attack(graphic.forward, currentTargets, attackLayerMask);
 			}
 			else // Unarmed attack
 			{
-				foreach (var target in currentTargets)
-				{
-					unarmedDamage.source = data.characterId;
-					target.TakeDamage(unarmedDamage, transform.position);
-				}
-
 				willAttack = true;
+				// Wait for hit callback to apply damage
 			}
 			
 			if(willAttack) animator.SetTrigger("Attack");
+		}
+
+		private void MeleeHitCallback()
+		{
+			foreach (var target in currentTargets)
+			{
+				unarmedDamage.source = data.characterId;
+				target.TakeDamage(unarmedDamage, transform.position);
+			}
 		}
 		
 		#endregion
@@ -198,26 +209,28 @@ namespace Character
 		}
 		#endregion
 
-		public void SetHealth(float health)
+		public bool SetHealth(float health)
 		{
 			data.health = health;
 
 			if (health <= 0)
 			{
 				Die();
+				return true;
 			}
+
+			return false;
 		}
 
 		public void Die()
 		{
 			StopAllCoroutines();
 			collider.enabled = false;
-			ResetColours();
 			data.isDead = true;
 			DeathAnimationStarted();
 			if(healthDisplay != null) healthDisplay.gameObject.SetActive(false);
 			animator.SetTrigger("Death");
-
+			
 			StartCoroutine(DeathAnimation());
 		}
 
@@ -228,66 +241,23 @@ namespace Character
 		{
 			yield return new WaitForSeconds(deathAnimationLength);
 			DeathAnimationFinished();
-			ResetColours();
 		}
 
 		public void TakeDamage(Damage damage, Vector3 point)
 		{
+			if (data.isDead) return;
+
 			onDamaged?.Invoke(damage);
 			SFXPlayer.PlaySound(hitSound, 0.2f);
-			
-			var knockback = (transform.position - point).normalized * (damage.knockback * 20);
-			StartCoroutine(HitFlash());
-			StartCoroutine(Knockback(knockback));
-			
-			SetHealth(data.health - damage.amount);
-		}
 
-		private void ResetColours()
-		{
-			foreach (Renderer r in renderers)
+			//var knockback = (transform.position - point).normalized * (damage.knockback * 20);
+
+			if (SetHealth(data.health - damage.amount) == false)
 			{
-				foreach (Material m in r.materials)
-				{
-					m.SetColor("_Color", Color.white);
-				}
+				animator.SetTrigger("Hit");
 			}
 		}
 
-		private IEnumerator HitFlash()
-		{
-			List<Material> materials = new List<Material>();
-			foreach (Renderer r in renderers)
-			{
-				foreach (Material m in r.materials)
-				{
-					materials.Add(m);
-				}
-			}
-
-			for (float t = 0; t < 1; t += Time.deltaTime * 4)
-			{
-				foreach (Material m in materials)
-				{
-					m.SetColor("_Color", m.GetColor("_Color") * (1 + Mathf.Sin(t * 10) * 0.15f));
-				}
-				yield return null;
-			}
-			
-			foreach (Material m in materials)
-			{
-				m.SetColor("_Color", Color.white);
-			}
-		}
-
-		private IEnumerator Knockback(Vector3 direction)
-		{
-			for (float t = 0; t < 1; t += Time.deltaTime * 8)
-			{
-				transform.Translate(direction * Time.deltaTime, Space.World);
-				yield return null;
-			}
-		}
 
 		/// <summary>
 		/// Returns the currently equipped ammunition. If none is equipped, returns the first instead and equips that.

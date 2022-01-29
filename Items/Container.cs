@@ -15,29 +15,34 @@ namespace Items
 
 		[SerializeField] private Item[] addOnGameStart;
 
-		public delegate void Event(Item item);
-		public Event onItemAdded; // Called when an item is added to this container or moved to a different slot
-		public Event onItemRemoved; // Called when an item is removed from this container, or moved to a different slot
-		public Event onItemEquipped;
-		public Event onItemUnequipped;
+		public delegate void AddRemoveEvent(Item item, int slot);
+		public delegate void EquipEvent(Item item);
+		public AddRemoveEvent onItemAdded; // Called when an item is added to this container or moved to a different slot
+		public AddRemoveEvent onItemRemoved; // Called when an item is removed from this container, or moved to a different slot
+		public EquipEvent onItemEquipped;
+		public EquipEvent onItemUnequipped;
 
 		public int slots;
 
 		void Awake()
 		{
-			items = new List<Item>();
-
-			for (int i = 0; i < slots; i++)
-			{
-				items.Add(null);
-			}
-
+			Clear();
 			if (addOnGameStart != null)
 			{
 				foreach (var item in addOnGameStart)
 				{
 					AddItem(item.id);
 				}
+			}
+		}
+
+		public void Clear()
+		{
+			items = new List<Item>();
+
+			for (int i = 0; i < slots; i++)
+			{
+				items.Add(null);
 			}
 		}
 
@@ -65,7 +70,7 @@ namespace Items
 					if (slottedItem)
 					{
 						slottedItem.quantity++;
-						onItemAdded?.Invoke(slottedItem);
+						onItemAdded?.Invoke(slottedItem, i);
 						Destroy(item.gameObject);
 						return true;
 					}
@@ -78,7 +83,7 @@ namespace Items
 							item.AddedToInventory(this, i);
 							item.transform.parent = transform;
 						}
-						onItemAdded?.Invoke(item);
+						onItemAdded?.Invoke(item, i);
 						return true;
 					}
 				}
@@ -91,7 +96,7 @@ namespace Items
 						item.AddedToInventory(this, i);
 						item.transform.parent = transform;
 					}
-                    onItemAdded?.Invoke(item);
+                    onItemAdded?.Invoke(item, i);
                     return true;
 				}
 			}
@@ -130,7 +135,7 @@ namespace Items
 					item.transform.parent = transform;
 				}
 
-				onItemAdded?.Invoke(item);
+				onItemAdded?.Invoke(item, slot);
 				return true;
 			}
 			else return false;
@@ -180,11 +185,14 @@ namespace Items
 		{
 			if (target == null) target = this;
 
-			Item item = items[slot];
-			onItemRemoved?.Invoke(item);
-			bool result = target.AddItem(item);
-			if(result) item = null;
-			return result;
+			var item = items[slot];
+			var result = target.AddItem(item);
+			if (result == false) return false;
+			
+			onItemRemoved?.Invoke(item, slot);
+			items[slot] = null;
+
+			return true;
 		}
 
 		/// <summary>
@@ -210,11 +218,11 @@ namespace Items
 			Item item = items[slot];
 			Item targetItem = target.items[targetSlot];
 
-			if (targetItem != null) target.onItemRemoved?.Invoke(targetItem);
+			if (targetItem != null) target.onItemRemoved?.Invoke(targetItem, slot);
 
 			if (item != null)
 			{
-				onItemRemoved?.Invoke(item);
+				onItemRemoved?.Invoke(item, slot);
 				target.AddItem(item, targetSlot, true);
 			}
 			else
@@ -242,7 +250,7 @@ namespace Items
 			item.onEquipped = null;
 			item.onUnEquipped = null;
 
-            onItemRemoved?.Invoke(item);
+            onItemRemoved?.Invoke(item, slot);
             Destroy(item.gameObject);
             
 			items[slot] = null; // You never know with these GC languages
@@ -261,7 +269,7 @@ namespace Items
 			item.Equipped = false;
 			item.Drop();
 
-			onItemRemoved?.Invoke(item);
+			onItemRemoved?.Invoke(item, slot);
 			items[slot] = null; // You never know with these GC languages
 			
 			return true;

@@ -44,6 +44,10 @@ namespace Player
 				input.x = -Input.GetAxis("Mouse X");
 				input.y = Input.GetAxis("Mouse Y");
 			}
+			else
+			{
+				input *= Time.deltaTime;
+			}
 
 			return input;
 		}
@@ -60,6 +64,16 @@ namespace Player
 			}
 
 			return input;
+		}
+
+		public static float GetZoom()
+		{
+			return Input.mouseScrollDelta.y;
+		}
+
+		public static bool DodgeButton()
+		{
+			return Input.GetButtonDown("Dodge");
 		}
 
 		public static bool InventoryButton()
@@ -143,6 +157,14 @@ namespace Player
 				usingController = false;
 				return true;
 			}
+
+			return false;
+		}
+
+		public static bool DialogueNext()
+		{
+			if (InteractionButton()) return true;
+			if (Input.GetMouseButtonDown(0)) return true;
 
 			return false;
 		}

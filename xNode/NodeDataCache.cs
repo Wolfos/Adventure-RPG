@@ -48,7 +48,7 @@ namespace XNode {
             portDataCache = new PortDataCache();
             System.Type baseType = typeof(Node);
             List<System.Type> nodeTypes = new List<System.Type>();
-            System.Reflection.Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+            Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
             Assembly selfAssembly = Assembly.GetAssembly(baseType);
             if (selfAssembly.FullName.StartsWith("Assembly-CSharp") && !selfAssembly.FullName.Contains("-firstpass")) {
                 // If xNode is not used as a DLL, check only CSharp (fast)
@@ -69,18 +69,18 @@ namespace XNode {
         }
 
         public static List<FieldInfo> GetNodeFields(System.Type nodeType) {
-            List<System.Reflection.FieldInfo> fieldInfo = new List<System.Reflection.FieldInfo>(nodeType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
+            List<FieldInfo> fieldInfo = new List<FieldInfo>(nodeType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
 
             // GetFields doesnt return inherited private fields, so walk through base types and pick those up
             System.Type tempType = nodeType;
-            while ((tempType = tempType.BaseType) != typeof(XNode.Node)) {
+            while ((tempType = tempType.BaseType) != typeof(Node)) {
                 fieldInfo.AddRange(tempType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance));
             }
             return fieldInfo;
         }
 
         private static void CachePorts(System.Type nodeType) {
-            List<System.Reflection.FieldInfo> fieldInfo = GetNodeFields(nodeType);
+            List<FieldInfo> fieldInfo = GetNodeFields(nodeType);
 
             for (int i = 0; i < fieldInfo.Count; i++) {
 
@@ -116,13 +116,13 @@ namespace XNode {
 
             // load dictionary from lists
             public void OnAfterDeserialize() {
-                this.Clear();
+                Clear();
 
                 if (keys.Count != values.Count)
                     throw new System.Exception(string.Format("there are {0} keys and {1} values after deserialization. Make sure that both key and value types are serializable."));
 
                 for (int i = 0; i < keys.Count; i++)
-                    this.Add(keys[i], values[i]);
+                    Add(keys[i], values[i]);
             }
         }
     }

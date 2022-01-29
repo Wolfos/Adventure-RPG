@@ -33,11 +33,18 @@ namespace Character
 		[HideInInspector] public Bounds bounds;
 		[HideInInspector] public bool respawn = false;
 
-		private NPCRoutine currentRoutine;
+		private NPCRoutine _currentRoutine;
+		private float _movementSpeed;
 
 		public Action OnDeath;
 
-		private Player.Player player;
+		private Player.PlayerCharacter _playerCharacter;
+
+		private new void Awake()
+		{
+			base.Awake();
+			_movementSpeed = agent.speed;
+		}
 
 		private new void OnEnable()
 		{
@@ -78,7 +85,7 @@ namespace Character
 			}
 			equipment.CheckEquipment();
 
-			player = SystemContainer.GetSystem<Player.Player>();
+			_playerCharacter = SystemContainer.GetSystem<Player.PlayerCharacter>();
 			base.Start();
 		}
 
@@ -108,7 +115,7 @@ namespace Character
 		{
 			StopAllCoroutines();
 
-			currentRoutine = routine;
+			_currentRoutine = routine;
 			data.routine = routine;
 			switch (routine)
 			{
@@ -127,11 +134,21 @@ namespace Character
 
 		private void Update()
 		{
+			if (IsInHitRecoil)
+			{
+				agent.speed = 0;
+			}
+			else
+			{
+				agent.speed = _movementSpeed;
+			}
+			
 			animator.SetFloat("Speed", agent.velocity.magnitude);
 
 			data.position = transform.position;
 			data.rotation = transform.rotation;
 			data.velocity = agent.velocity;
+			
 
 			base.Update();
 		}
@@ -141,7 +158,7 @@ namespace Character
 			if (!string.IsNullOrEmpty(damage.source))
 			{
 				data.currentTarget = damage.source;
-				if (currentRoutine != NPCRoutine.Combat)
+				if (_currentRoutine != NPCRoutine.Combat)
 				{
 					ActivateRoutine(NPCRoutine.Combat);
 				}
@@ -242,9 +259,9 @@ namespace Character
 				{
 					if (demeanor == NPCDemeanor.Hostile)
 					{
-						if (Vector3.SqrMagnitude(transform.position - player.transform.position) < startChaseDistance * startChaseDistance)
+						if (Vector3.SqrMagnitude(transform.position - _playerCharacter.transform.position) < startChaseDistance * startChaseDistance)
 						{
-							data.currentTarget = player.data.characterId;
+							data.currentTarget = _playerCharacter.data.characterId;
 							ActivateRoutine(NPCRoutine.Combat);
 						}
 					}

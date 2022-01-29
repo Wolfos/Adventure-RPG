@@ -26,7 +26,7 @@ namespace UI
         private void OnEnable()
         {
             buttons = new List<Button>();
-            quests = SystemContainer.GetSystem<Player.Player>().data.quests;
+            quests = SystemContainer.GetSystem<PlayerCharacter>().data.quests;
             CreateQuestButtons();
         }
 

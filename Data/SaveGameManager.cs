@@ -12,38 +12,57 @@ namespace Data
 {
 	public class SaveGameManager : MonoBehaviour
 	{
-		private Dictionary<string, SaveableObject> saveableObjects;
-		private List<string> saveData;
+		private Dictionary<string, SaveableObject> _activeSaveableObjects;
+		private Dictionary<string, string> _saveData;
 
-		public static bool newGame = true;
-		public static float timeSinceLoad;
-		private static float lastLoadTime;
+		public static bool NewGame = true;
+		public static float TimeSinceLoad;
+		private static float _lastLoadTime;
+		
+		public bool IsLoading { get; set; }
 		
 		private void Awake()
 		{
-			lastLoadTime = Time.time;
+			_lastLoadTime = Time.time;
 			if(SceneManager.sceneCount == 1) SceneManager.LoadSceneAsync("MainMenu", LoadSceneMode.Additive);
 			SystemContainer.Register(this);
-			saveableObjects = new Dictionary<string, SaveableObject>();
+			_activeSaveableObjects = new Dictionary<string, SaveableObject>();
+			_saveData = new Dictionary<string, string>();
+			NewGame = true;
 		}
 
 		private void Update()
 		{
-			timeSinceLoad = Time.time - lastLoadTime;
+			TimeSinceLoad = Time.time - _lastLoadTime;
 		}
 
-		public void Register(SaveableObject objectToRegister)
+		public void Register(SaveableObject saveableObject)
 		{
-			saveableObjects.Add(objectToRegister.id, objectToRegister);
+			_activeSaveableObjects.Add(saveableObject.id, saveableObject);
+		}
+		
+		public void Unregister(SaveableObject saveableObject)
+		{
+			_activeSaveableObjects.Remove(saveableObject.id);
+			
+			if (_saveData.ContainsKey(saveableObject.id)) _saveData.Remove(saveableObject.id);
+			_saveData.Add(saveableObject.id, saveableObject.Save());
 		}
 
 		public void Save()
 		{
-			string allData = "";
-			foreach (var o in saveableObjects)
+			// Save all currently active objects
+			foreach (var o in _activeSaveableObjects)
 			{
-				allData += o.Value.id + ";";
-				allData += o.Value.Save() + ";\n";
+				if (_saveData.ContainsKey(o.Key)) _saveData.Remove(o.Key);
+				_saveData.Add(o.Key, o.Value.Save());
+			}
+
+			var allData = "";
+			foreach (var data in _saveData)
+			{
+				allData += data.Key + ";";
+				allData += data.Value + ";\n";
 			}
 
 			if (Debug.isDebugBuild)
@@ -56,6 +75,17 @@ namespace Data
 				file.Write(allData);
 			}
 		}
+
+		public string GetData(SaveableObject saveableObject)
+		{
+			if (_saveData.ContainsKey(saveableObject.id))
+			{
+				return _saveData[saveableObject.id];
+			}
+
+			return string.Empty;
+		}
+
 
 		public void LoadSaveGame()
 		{
@@ -75,7 +105,7 @@ namespace Data
 		private IEnumerator LoadMainMenuRoutine()
 		{
 			CharacterPool.Clear();
-			saveableObjects.Clear();
+			_activeSaveableObjects.Clear();
 			AsyncOperation async;
 			
 			// Unload scenes
@@ -116,46 +146,50 @@ namespace Data
 
 		private IEnumerator LoadSaveRoutine()
 		{
+			IsLoading = true;
 			CharacterPool.Clear();
-			newGame = false;
+			NewGame = false;
 			
 			// Remove all non-global objects from the list. They will be destroyed
 			var toRemove = (
-				from obj in saveableObjects 
+				from obj in _activeSaveableObjects 
 				where !obj.Value.global 
 				select obj.Key).ToList();
 
 			foreach (var key in toRemove)
 			{
-				saveableObjects.Remove(key);
+				_activeSaveableObjects.Remove(key);
 			}
 
 
 			yield return StartCoroutine(LoadGameRoutine());
 
-			lastLoadTime = Time.time;
+			_lastLoadTime = Time.time;
 			yield return null; // SaveableObjects will re-register themselves during this frame
 			
-			string allData = File.ReadAllText(Application.persistentDataPath + "/Save.json");
+			var allData = File.ReadAllText(Application.persistentDataPath + "/Save.json");
 			allData = allData.Replace("\n", "");
-			string[] data = allData.Split(';');
+			var data = allData.Split(';');
 
-			for(int i = 0; i < data.Length; i++)
+			_saveData.Clear();
+			for(int i = 0; i < data.Length - 1; i++)
 			{
-				if (!string.IsNullOrEmpty(data[i]))
-				{
-					try
-					{
-						saveableObjects[data[i]].Load(data[++i]);
-					}
-					catch (KeyNotFoundException e)
-					{
-						Debug.LogWarning("Savegame data did not find object: " + data[i]);
-					}
-				}
+				_saveData.Add(data[i], data[++i]);
 			}
 
-			yield return null;
+			foreach (var (key, value) in _activeSaveableObjects)
+			{
+				try
+				{
+					value.Load(_saveData[key]);
+				}
+				catch(KeyNotFoundException)
+				{
+					Debug.LogWarning($"Data for {key} was not found");
+				}
+			}
+			
+			IsLoading = false;
 		}
 	}
 }

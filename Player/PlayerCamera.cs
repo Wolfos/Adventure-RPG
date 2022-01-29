@@ -1,6 +1,4 @@
-﻿using System;
-using DotLiquid.Tags;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using Utility;
 
@@ -12,6 +10,9 @@ namespace Player
 		[SerializeField] private float rotationSpeed;
 		[SerializeField] private Transform verticalPivot;
 		[SerializeField] private Range verticalClamp;
+		[SerializeField] private Transform camera;
+		[SerializeField] private Range cameraDistance;
+		[SerializeField] private float zoomSpeed;
 		private MeshRenderer[] disabledMeshRenderers;
 		private Transform targetTransform;
 		private Vector3 offset;
@@ -29,7 +30,7 @@ namespace Player
 		private void Start()
 		{
 			Camera.main.depthTextureMode = DepthTextureMode.Depth;
-			targetTransform = SystemContainer.GetSystem<Player>().transform;
+			targetTransform = SystemContainer.GetSystem<PlayerCharacter>().transform;
 			offset = targetTransform.position - transform.position;
 		}
 
@@ -46,10 +47,12 @@ namespace Player
 				disabledMeshRenderers = null;
 			}
 
+			if (PlayerCharacter.inputActive == false) return;
+			
 			// Rotation
 			var input = InputMapper.GetCameraMovement();
-			transform.Rotate(Vector3.up, -input.x * rotationSpeed * Time.deltaTime);
-			verticalPivot.Rotate(Vector3.right, -input.y * rotationSpeed * Time.deltaTime);
+			transform.Rotate(Vector3.up, -input.x * rotationSpeed);
+			verticalPivot.Rotate(Vector3.right, -input.y * rotationSpeed);
 
 			var eulerAngles = verticalPivot.rotation.eulerAngles;
 			if (eulerAngles.x > 180 && eulerAngles.x < verticalClamp.start) eulerAngles.x = verticalClamp.start;
@@ -57,22 +60,28 @@ namespace Player
 			eulerAngles.y = 0;
 			eulerAngles.z = 0;
 			verticalPivot.localRotation = Quaternion.Euler(eulerAngles);
+			
+			// Zoom
+			var position = camera.localPosition;
+			position.z += InputMapper.GetZoom() * zoomSpeed;
+			position.z = Mathf.Clamp(position.z, cameraDistance.start, cameraDistance.end);
+			camera.localPosition = position;
 
 			// Hide roofs
-			var ray = Camera.main.ScreenPointToRay(new Vector2(Screen.width, Screen.height) / 2);
-			RaycastHit hit;
-			if (Physics.Raycast(ray, out hit))
-			{
-				if (hit.transform.CompareTag("Roof"))
-				{
-					disabledMeshRenderers = hit.transform.GetComponentsInChildren<MeshRenderer>();
-					foreach (var r in disabledMeshRenderers)
-					{
-						r.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
-						r.gameObject.layer = 10;
-					}
-				}
-			}
+			// var ray = Camera.main.ScreenPointToRay(new Vector2(Screen.width, Screen.height) / 2);
+			// RaycastHit hit;
+			// if (Physics.Raycast(ray, out hit))
+			// {
+			// 	if (hit.transform.CompareTag("Roof"))
+			// 	{
+			// 		disabledMeshRenderers = hit.transform.GetComponentsInChildren<MeshRenderer>();
+			// 		foreach (var r in disabledMeshRenderers)
+			// 		{
+			// 			r.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+			// 			r.gameObject.layer = 10;
+			// 		}
+			// 	}
+			// }
 		}
 		
 		private void LateUpdate()

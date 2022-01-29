@@ -1,50 +1,69 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Character;
 using UnityEngine;
 using Data;
+using Items;
 using UI;
-using Utility;
+using UnityEngine.Scripting;
 
 public class Chest : SaveableObject
 {
-	// TODO: This should be saved	
+	// TODO: This should be saved
 	private bool isOpen;
-	[SerializeField] private List<int> items;
-	[SerializeField] private List<int> quantity;
 	[SerializeField] private Animator animator;
-	[SerializeField] private GameObject itemAnimationPrefab;
-	[SerializeField] private Transform itemSpawn;
+	[SerializeField] private Container container;
+
+	[Serializable]
+	private class ChestData
+	{
+		public List<int> itemIds;
+		public List<int> itemQuantities;
+
+		public ChestData()
+		{
+			itemIds = new List<int>();
+			itemQuantities = new List<int>();
+		}
+	}
+
 
 	public override string Save()
 	{
-		return "";
+		var data = new ChestData();
+		foreach (var item in container.items.Where(item => item != null))
+		{
+			data.itemIds.Add(item.id);
+			data.itemQuantities.Add(item.quantity);
+		}
+		var json = JsonUtility.ToJson(data);
+		return json;
 	}
 
 	public override void Load(string json)
 	{
+		container.Clear();
+		var data = JsonUtility.FromJson<ChestData>(json);
+		for(var i = 0; i < data.itemIds.Count; i++)
+		{
+			for (var ii = 0; ii < data.itemQuantities[i]; ii++)
+			{
+				container.AddItem(data.itemIds[i]);
+			}
+		}
 	}
 
+	[Preserve]
 	private void OnCanInteract()
 	{
 		Tooltip.Activate(isOpen ? "Close" : "Open", transform, Vector3.zero);
 	}
-
+	
+	[Preserve]
 	private void OnInteract(CharacterBase character)
 	{
-		int i = 0;
-		foreach (int item in items)
-		{
-			for (int j = 0; j < quantity[i]; j++)
-			{
-				character.inventory.AddItem(item);
-			}
-
-			GameObject itemAnim = Instantiate(itemAnimationPrefab, itemSpawn.position, itemAnimationPrefab.transform.rotation);
-			itemAnim.GetComponent<SpriteRenderer>().sprite = Database.GetDatabase<ItemDatabase>().items[item].icon;
-			i++;
-		}
-
-		items.Clear();
+		ItemContainerMenu.Enable(container);
 
 		if (isOpen)
 		{
@@ -58,6 +77,7 @@ public class Chest : SaveableObject
 		isOpen = !isOpen;
 	}
 
+	[Preserve]
 	private void OnEndInteract()
 	{
 		Tooltip.DeActivate();

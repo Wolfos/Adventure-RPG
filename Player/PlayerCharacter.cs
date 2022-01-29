@@ -12,19 +12,21 @@ using Utility;
 
 namespace Player
 {
-	public class Player : CharacterBase
+	public class PlayerCharacter : CharacterBase
 	{	
 		[HideInInspector] public CharacterController characterController;
 		
 		[Space(30)] [SerializeField] private float movementSpeed;
 		[SerializeField] private float jumpSpeed;
+		[SerializeField] private AnimationCurve dodgeSpeed;
 		[SerializeField] private float gravity;
 		[SerializeField] private Texture2D defaultCursor, aimCursor;
 
 		private PlayerCamera playerCamera;
-		public static bool disableMovement = true;
+		public static bool inputActive = true;
 		private Vector3 velocity;
 		private static readonly int CanWalk = Animator.StringToHash("CanWalk");
+		private bool _dodging;
 
 		private void Awake()
 		{
@@ -47,7 +49,7 @@ namespace Player
 
 		private void OnDestroy()
 		{
-			SystemContainer.UnRegister<Player>();
+			SystemContainer.UnRegister<PlayerCharacter>();
 		}
 
 		public void StartQuest(Quest quest)
@@ -68,17 +70,16 @@ namespace Player
 		private IEnumerator EnableMovement()
 		{
 			yield return new WaitForSeconds(1);
-			disableMovement = false;
+			inputActive = true;
 		}
 
 		private void Update()
 		{
-			if (!disableMovement)
+			if (inputActive && !_dodging && !IsInHitRecoil)
 			{
 				Actions();
 				Movement();
 				Rotation();
-				SetCursor();
 			}
 
 			Menus();
@@ -93,6 +94,7 @@ namespace Player
 			
 			if (characterController.isGrounded)
 			{
+				animator.SetBool("Jumping", false);
 				var input = InputMapper.GetMovement();
 				input = Vector3.ClampMagnitude(input, 1);
 
@@ -103,16 +105,34 @@ namespace Player
 				right *= input.x;
 
 				velocity = (forward + right) * movementSpeed;
-				animator.SetFloat("Speed", velocity.magnitude);
-				if (InputMapper.JumpButton()) velocity.y = jumpSpeed;
+				
+				if (InputMapper.JumpButton())
+				{
+					Jump();
+					animator.SetBool("Jumping", true);
+				}
 			}
 			else
 			{
 				animator.SetFloat("Speed", 0);
 			}
-			
+
+			var horizontalVelocity = new Vector3(velocity.x, 0, velocity.z);
+			animator.SetFloat("Speed", horizontalVelocity.magnitude);
 			velocity.y -= gravity * Time.deltaTime;
 			characterController.Move(velocity * Time.deltaTime);
+		}
+
+		private void Jump()
+		{
+			velocity.y = jumpSpeed;
+		}
+
+		public static void SetInputActive(bool enable)
+		{
+			inputActive = enable;
+			Cursor.visible = !enable;
+			Cursor.lockState = enable ? CursorLockMode.Locked : CursorLockMode.None;
 		}
 
 		private void Menus()
@@ -120,18 +140,14 @@ namespace Player
 			// Open or close inventory
 			if (InputMapper.InventoryButton())
 			{
-				disableMovement = !disableMovement;
-				Cursor.visible = disableMovement;
-				Cursor.lockState = Cursor.visible ? CursorLockMode.None : CursorLockMode.Locked;
+				SetInputActive(!inputActive);
 				PlayerMenu.ToggleActive();
 			}
 			
 			// Open or close pause menu
 			if (InputMapper.PauseButton())
 			{
-				disableMovement = !disableMovement;
-				Cursor.visible = disableMovement;
-				Cursor.lockState = Cursor.visible ? CursorLockMode.None : CursorLockMode.Locked;
+				SetInputActive(!inputActive);
 				PauseMenu.ToggleActive();
 			}
 		}
@@ -140,19 +156,19 @@ namespace Player
 
 		protected override void DeathAnimationStarted()
 		{
-			disableMovement = true;
+			inputActive = false;
 		}
 
 		protected override void DeathAnimationFinished()
 		{
-			disableMovement = false;
+			inputActive = true;
 			SystemContainer.GetSystem<SaveGameManager>().LoadSaveGame();
 		}
 
 		private void Actions()
 		{
 			// Attack
-			if (InputMapper.AttackButton())
+			if (InputMapper.AttackButton() && characterController.isGrounded)
 			{
 				Attack();
 			}
@@ -163,60 +179,62 @@ namespace Player
 				Interact();
 			}
 
+			// Dodge
+			if (InputMapper.DodgeButton() && !_dodging && characterController.isGrounded)
+			{
+				StartCoroutine(Dodge());
+			}
+		}
+		
+
+		private IEnumerator Dodge()
+		{
+			_dodging = true;
+			animator.SetTrigger("Dodge");
+			
+			const float duration = 0.5f;
+			var forward = graphic.forward;
+			for (float t = 0; t < duration; t += Time.deltaTime)
+			{
+				velocity = forward * movementSpeed * dodgeSpeed.Evaluate(t);
+				velocity.y -= gravity * Time.deltaTime;
+				characterController.Move(velocity * Time.deltaTime);
+				yield return null;
+			}
+			_dodging = false;
+
 		}
 
-		private void SetCursor()
+		public static void LockInput()
 		{
-//			if(Input.GetButton("Aim"))
-//			{
-//				Cursor.SetCursor(aimCursor, new Vector2(aimCursor.width / 2, aimCursor.height / 2), CursorMode.Auto);
-//			}
-//			else if (Input.GetButtonUp("Aim"))
-//			{
-//				Cursor.SetCursor(defaultCursor, Vector2.zero, CursorMode.Auto);
-//			}
+			Cursor.visible = true;
+			Cursor.lockState = CursorLockMode.None;
+			inputActive = false;
+			Time.timeScale = 0;
+		}
+		
+		public static void UnlockInput()
+		{
+			Cursor.visible = false;
+			Cursor.lockState = CursorLockMode.Locked;
+			inputActive = true;
+			Time.timeScale = 1;
 		}
 
 		private void Rotation()
 		{
-			if(InputMapper.AimButtonHeld())
+			var input = InputMapper.GetMovement();
+			if (input.magnitude > 0.1f)
 			{
-				float angle = 0;
-				if (InputMapper.usingController)
-				{
-					var input = InputMapper.GetRightStick();
-					angle = Mathf.Atan2(input.y, -input.x) * Mathf.Rad2Deg;
-
-					if (input.sqrMagnitude < 0.1f)
-					{
-						var input2 = InputMapper.GetMovement();
-						angle = Mathf.Atan2(input2.x, input2.z) * Mathf.Rad2Deg;
-					}
-				}
-				else
-				{
-					Vector2 screenPos = Camera.main.WorldToScreenPoint(transform.position);
-					Vector2 relative = (Vector2) Input.mousePosition - screenPos;
-					angle = Mathf.Atan2(relative.x, relative.y) * Mathf.Rad2Deg;
-				}
-
+				var cameraTransform = playerCamera.transform;
+				var forward = cameraTransform.forward;
+				var right = cameraTransform.right;
+				forward *= input.z;
+				right *= input.x;
+				var direction = forward + right;
+				
+				float angle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
 				graphic.rotation = Quaternion.Euler(new Vector3(0, angle, 0));
-			}
-			else
-			{
-				var input = InputMapper.GetMovement();
-				if (input.magnitude > 0.1f)
-				{
-					var cameraTransform = playerCamera.transform;
-					var forward = cameraTransform.forward;
-					var right = cameraTransform.right;
-					forward *= input.z;
-					right *= input.x;
-					var direction = forward + right;
-					
-					float angle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-					graphic.rotation = Quaternion.Euler(new Vector3(0, angle, 0));
-				}
 			}
 		}
 	}
