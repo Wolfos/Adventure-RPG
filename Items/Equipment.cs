@@ -22,7 +22,7 @@ namespace Items
 
 		private void Start()
 		{
-			if(Equipped) OnEquipped(this);
+			if(IsEquipped) OnEquipped(this);
 		}
 
 		private void OnDestroy()

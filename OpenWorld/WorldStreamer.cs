@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEditor.Experimental.SceneManagement;
 #endif
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,31 +17,47 @@ namespace OpenWorld
     public class WorldStreamer : MonoBehaviour
     {
         [SerializeField] private OpenWorldManager data;
-        private readonly List<Chunk> _currentChunks = new List<Chunk>();
+        private readonly List<Chunk> _currentChunks = new();
         private bool _bakingMode;
-        private bool _dungeonMode;
+        private bool _streamingDisabled;
         private static WorldStreamer _instance;
 
         private void Start()
         {
             _instance = this;
+            
+            // Load terrain scene if not currently loaded
 #if UNITY_EDITOR
+            EditorApplication.wantsToQuit += OnQuit;
             if (!EditorApplication.isPlaying)
             {
-                EditorSceneManager.OpenScene($"Assets/Scenes/Terrains.unity", OpenSceneMode.Additive);
+                foreach (var sceneSetup in EditorSceneManager.GetSceneManagerSetup())
+                {
+                    if (sceneSetup.isLoaded && sceneSetup.path.Contains("Terrains.unity"))
+                    {
+                        return;
+                    }
+                }
+                EditorSceneManager.OpenScene("Assets/Scenes/Terrains.unity", OpenSceneMode.Additive);
                 return;
             }
 #endif
+            if (SceneManager.GetSceneByName("Terrains").isLoaded) return;
+            
             SceneManager.LoadScene("Terrains", LoadSceneMode.Additive);
         }
 
 #if UNITY_EDITOR
+        private void OnDestroy()
+        {
+            EditorApplication.wantsToQuit -= OnQuit;
+        }
+        
         private bool UnloadUnnecessaryScenes()
         {
             bool sceneWasUnloaded = false;
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
-
                 var scene = SceneManager.GetSceneAt(i);
                 if (scene.isDirty) continue;
                 if (scene.name.Contains("Chunk"))
@@ -68,9 +85,16 @@ namespace OpenWorld
             {
                 var oldScene = selectedObject.gameObject.scene;
                 var chunk = data.GetChunkByPosition(selectedObject.position.x, selectedObject.position.z);
-                chunk?.AddObject(selectedObject.gameObject);
+                if (chunk == null || chunk.Name == string.Empty)
+                {
+                    var chunkPosition = data.WorldToChunkPosition(selectedObject.position.x, selectedObject.position.z);
+                    chunk = data.AddChunk(chunkPosition.X, chunkPosition.Z);
+                    return;
+                }
+                
                 if (chunk.scene != oldScene)
                 {
+                    chunk?.AddObject(selectedObject.gameObject);
                     EditorSceneManager.MarkSceneDirty(chunk.scene);
                     EditorSceneManager.MarkSceneDirty(oldScene);
                 }
@@ -85,7 +109,7 @@ namespace OpenWorld
             }
         }
 
-        [MenuItem("Game/Toggle baking mode")]
+        [MenuItem("eeStudio/Toggle baking mode")]
         public static void ToggleBakingMode()
         {
             if (EditorApplication.isPlaying) return;
@@ -120,7 +144,7 @@ namespace OpenWorld
         private IEnumerator EnterDungeonCoroutine(string sceneName)
         {
             var sceneLoad = SceneManager.LoadSceneAsync(sceneName);
-            _dungeonMode = true;
+            _streamingDisabled = true;
             while (sceneLoad.isDone == false)
             {
                 // TODO: Show loading screen
@@ -137,12 +161,12 @@ namespace OpenWorld
 
         public static void ExitDungeon()
         {
-            _instance._dungeonMode = false;
+            _instance._streamingDisabled = false;
         }
         
         private void Update()
         {
-            if (_bakingMode || _dungeonMode) return;
+            if (_bakingMode || _streamingDisabled) return;
             
             var mainCamera = Camera.main;
             #if UNITY_EDITOR
@@ -192,16 +216,38 @@ namespace OpenWorld
             {
                 if (!_currentChunks.Contains(chunk))
                 {
-                    _currentChunks.Add(chunk);
+                    
                     #if UNITY_EDITOR
                     if (!EditorApplication.isPlaying)
                     {
-                        EditorSceneManager.OpenScene($"Assets/Scenes/Chunks/{chunk.Name}.unity", OpenSceneMode.Additive);
+                        var sceneIsLoaded = false;
+                        for (var i = 0; i < EditorSceneManager.sceneCount; i++)
+                        {
+                            var scene = EditorSceneManager.GetSceneAt(i);
+                            if (scene.name == chunk.Name)
+                            {
+                                sceneIsLoaded = true;
+                            }
+                        }
+
+                        if (!sceneIsLoaded)
+                        {
+                            EditorSceneManager.OpenScene($"Assets/Scenes/Chunks/{chunk.Name}.unity", OpenSceneMode.Additive);
+                            _currentChunks.Add(chunk);
+                        }
                         SelectPrevious();
                         continue;
                     }
-                    #endif
+                    else
+                    {
+                        _currentChunks.Add(chunk);
+                        SceneManager.LoadSceneAsync(chunk.Name, LoadSceneMode.Additive);
+                    }
+                    #else
+                    _currentChunks.Add(chunk);
                     SceneManager.LoadSceneAsync(chunk.Name, LoadSceneMode.Additive);
+                    #endif
+                    
                     
                 }
             }
@@ -213,26 +259,27 @@ namespace OpenWorld
             // Draws a blue line from this transform to the target
             //Gizmos.color = Color.blue;
             //Gizmos.DrawLine(transform.position, new Vector3(500, 0, 500));
-            int minX = -(data.chunksX / 2) * data.chunkWidth;
-            int minZ = -(data.chunksZ / 2) * data.chunkDepth;
-            for (int x = 0; x < data.chunksX; x++)
+            foreach (var chunk in data.chunks)
             {
-                for (int z = 0; z < data.chunksZ; z++)
-                {
-                    var chunkMin = new Vector3(minX + x * data.chunkWidth, 0, minZ + z * data.chunkDepth);
-                    var chunkMax = new Vector3(chunkMin.x + data.chunkWidth, 0, chunkMin.z + data.chunkDepth);
-
-                    var topLeft = new Vector3(chunkMin.x, 25, chunkMin.z);
-                    var bottomLeft = new Vector3(chunkMin.x, 25, chunkMax.z);
-                    var topRight = new Vector3(chunkMax.x, 25, chunkMin.z);
-                    var bottomRight = new Vector3(chunkMax.x, 25, chunkMax.z);
+                var chunkMin = chunk.min;
+                var chunkMax = chunk.max;
+                
+                var topLeft = new Vector3(chunkMin.x, 25, chunkMin.z);
+                var bottomLeft = new Vector3(chunkMin.x, 25, chunkMax.z);
+                var topRight = new Vector3(chunkMax.x, 25, chunkMin.z);
+                var bottomRight = new Vector3(chunkMax.x, 25, chunkMax.z);
                     
-                    Gizmos.DrawLine(topLeft, bottomLeft);
-                    Gizmos.DrawLine(bottomLeft, bottomRight);
-                    Gizmos.DrawLine(topRight, bottomRight);
-                    Gizmos.DrawLine(topRight, topLeft);
-                }
+                Gizmos.DrawLine(topLeft, bottomLeft);
+                Gizmos.DrawLine(bottomLeft, bottomRight);
+                Gizmos.DrawLine(topRight, bottomRight);
+                Gizmos.DrawLine(topRight, topLeft);
             }
+        }
+
+        private bool OnQuit()
+        {
+            _streamingDisabled = true;
+            return true;
         }
     }
 }

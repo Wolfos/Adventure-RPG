@@ -1,11 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using XNode;
 
 namespace Dialogue
 {
-	[CreateAssetMenu]
+	[CreateAssetMenu(menuName = "eeStudio/Dialogue node graph")]
 	public class DialogueNodeGraph : NodeGraph
 	{
 

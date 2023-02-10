@@ -1,18 +1,23 @@
 ﻿using System.Collections;
 using Character;
+using Interface;
 using UnityEngine;
 
 namespace World
 {
 
-	public class Examine : MonoBehaviour
+	public class Examine : MonoBehaviour, IInteractable
 	{
 		[SerializeField] private string text;
 		[SerializeField] private Renderer renderer;
 
 		private bool panelVisible;
-		
-		private void OnInteract(CharacterBase character)
+
+		public void OnCanInteract(CharacterBase characterBase)
+		{
+		}
+
+		public void OnInteract(CharacterBase character)
 		{
 			if (!panelVisible)
 			{
@@ -25,6 +30,10 @@ namespace World
 			}
 
 			panelVisible = !panelVisible;
+		}
+
+		public void OnEndInteract(CharacterBase characterBase)
+		{
 		}
 
 		private IEnumerator WasInteracted(Transform iTransform)

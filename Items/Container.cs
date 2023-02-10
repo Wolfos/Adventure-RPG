@@ -10,7 +10,7 @@ namespace Items
 	/// </summary>
 	public class Container : MonoBehaviour
 	{
-		[HideInInspector]
+		//[HideInInspector]
 		public List<Item> items;
 
 		[SerializeField] private Item[] addOnGameStart;
@@ -69,7 +69,7 @@ namespace Items
 					var slottedItem = GetItemByID(item.id);
 					if (slottedItem)
 					{
-						slottedItem.quantity++;
+						slottedItem.Quantity++;
 						onItemAdded?.Invoke(slottedItem, i);
 						Destroy(item.gameObject);
 						return true;
@@ -77,7 +77,7 @@ namespace Items
 					else if (items[i] == null)
 					{
 						items[i] = item;
-						item.quantity = 1;
+						item.Quantity = 1;
 						if (item != null)
 						{
 							item.AddedToInventory(this, i);
@@ -92,7 +92,7 @@ namespace Items
 					items[i] = item;
 					if (item != null)
 					{
-						item.quantity = 1;
+						item.Quantity = 1;
 						item.AddedToInventory(this, i);
 						item.transform.parent = transform;
 					}
@@ -106,11 +106,11 @@ namespace Items
 		/// <summary>
 		/// Add a new item to the first available slot in this inventory
 		/// </summary>
-		/// <param name="item">The item number, from the ItemList.items List</param>
+		/// <param name="itemId">The item number, from the ItemList.items List</param>
 		/// <returns>False if inventory is full</returns>
-		public bool AddItem(int item)
+		public bool AddItem(int itemId)
 		{
-			GameObject i = Instantiate(Database.GetDatabase<ItemDatabase>().items[item].gameObject);
+			GameObject i = Instantiate(Database.GetDatabase<ItemDatabase>().items[itemId].gameObject);
 			bool added = AddItem(i.GetComponent<Item>());
 			if (!added) Destroy(i);
 			return added;
@@ -144,13 +144,13 @@ namespace Items
 		/// <summary>
 		/// Adds a new item to a specific slot
 		/// </summary>
-		/// <param name="item">The new item</param>
+		/// <param name="itemId">The new item</param>
 		/// <param name="slot">The item number, from the ItemList.items List</param>
 		/// <param name="overwrite">Whether to override if there's already an item in that slot</param>
 		/// <returns>False if the item slot was full and overwrite was false</returns>
-		public bool AddItem(int item, int slot, bool overwrite = false)
+		public bool AddItem(int itemId, int slot, bool overwrite = false)
 		{
-			GameObject i = Instantiate(Database.GetDatabase<ItemDatabase>().items[item].gameObject);
+			GameObject i = Instantiate(Database.GetDatabase<ItemDatabase>().items[itemId].gameObject);
 			return AddItem(i.GetComponent<Item>(), slot, overwrite);
 		}
 
@@ -180,17 +180,34 @@ namespace Items
 		/// </summary>
 		/// <param name="slot">What slot is the item in?</param>
 		/// <param name="target">The target container. Default = this</param>
+		/// <param name="quantity">Item quantity. Default = 1</param>
 		/// <returns>False if the target container was full</returns>
 		public bool MoveItem(int slot, Container target = null)
 		{
 			if (target == null) target = this;
 
 			var item = items[slot];
-			var result = target.AddItem(item);
+			bool result;
+			if (item.Quantity > 1)
+			{
+				result = target.AddItem(item.id);
+			}
+			else
+			{
+				result = target.AddItem(item);
+			}
+
 			if (result == false) return false;
-			
-			onItemRemoved?.Invoke(item, slot);
-			items[slot] = null;
+
+			if (item.Quantity > 1)
+			{
+				item.Quantity--;
+			}
+			else
+			{
+				onItemRemoved?.Invoke(item, slot);
+				items[slot] = null;
+			}
 
 			return true;
 		}
@@ -201,7 +218,7 @@ namespace Items
 		/// <param name="item">The item whose 'equipped' status was changed</param>
 		public void EquipStatusChanged(Item item)
 		{
-			if(item.Equipped) onItemEquipped?.Invoke(item);
+			if(item.IsEquipped) onItemEquipped?.Invoke(item);
 			else onItemUnequipped?.Invoke(item);
 		}
 
@@ -245,7 +262,7 @@ namespace Items
 			var item = items[slot];
 			if (item == null) return;
 
-			item.Equipped = false;
+			item.IsEquipped = false;
 			
 			item.onEquipped = null;
 			item.onUnEquipped = null;
@@ -266,7 +283,7 @@ namespace Items
 			var item = items[slot];
 			if (item == null) return false;
 
-			item.Equipped = false;
+			item.IsEquipped = false;
 			item.Drop();
 
 			onItemRemoved?.Invoke(item, slot);

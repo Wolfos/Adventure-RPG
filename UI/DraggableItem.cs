@@ -1,67 +1,69 @@
-﻿using UnityEngine;
+﻿using Player;
+using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace UI
 {
 	public class DraggableItem : MonoBehaviour
 	{
-		[HideInInspector]
-		public Inventory inventory;
-		[HideInInspector]
-		public int slot;
-
-		private Transform startParent;
-		private Vector3 startPosition;
-		private Vector2 startDifference;
-
-		private bool dragging = false;
-
-		private RectTransform rectTransform;
-
-		private Button button;
+		public InventoryView InventoryView { get; set; }
+		public int Slot { get; set; }
+		public bool IsDragable { get; set; }
+		
+		[SerializeField] private Canvas canvas;
+		
+		private Vector2 _startPosition;
+		private Vector2 _startDifference;
+		private bool _dragging;
+		private Button _button;
 
 		void Start()
 		{
-			rectTransform = GetComponent<RectTransform>();
-			button = transform.parent.GetComponent<Button>();
+			_button = transform.parent.GetComponent<Button>();
 		}
 
 		public void Click()
 		{
-			if (!dragging) button.OnSubmit(null);
+			if (!_dragging) _button.OnSubmit(null);
 		}
 
 		public void BeginDrag()
 		{
-			if (inventory.container.GetItemBySlot(slot) == null) return;
+			if (!IsDragable) return;
+			if (InventoryView.container.GetItemBySlot(Slot) == null) return;
 
-			startParent = transform.parent;
-			startPosition = transform.position;
-			startDifference = Input.mousePosition - startPosition;
-			transform.SetParent(transform.parent.parent.parent);
+			_startPosition = transform.position;
+			_startDifference = InputMapper.MousePosition - _startPosition;
+			
+			canvas.overrideSorting = true;
+			canvas.sortingOrder = 10;
 
-			dragging = true;
+			_dragging = true;
 		}
 
 		public void EndDrag()
 		{
-			if (dragging)
+			if (!IsDragable) return;
+			if (_dragging)
 			{
-				transform.SetParent(startParent);
-				transform.position = startPosition;
+				transform.position = _startPosition;
 
-				inventory.ItemDropped(slot);
+				InventoryView.ItemDropped(Slot);
 
-				dragging = false;
+				canvas.overrideSorting = false;
+
+				_dragging = false;
 			}
 		}
 
 		public void Drag()
 		{
+			if (!IsDragable) return;
 			Vector3 position = new Vector3();
-			position.x = Input.mousePosition.x - startDifference.x;
-			position.y = Input.mousePosition.y - startDifference.y;
-			if (dragging)
+			position.x = InputMapper.MousePosition.x - _startDifference.x;
+			position.y = InputMapper.MousePosition.y - _startDifference.y;
+			if (_dragging)
 			{
 				transform.position = position;
 				transform.Translate(Vector3.forward);

@@ -23,7 +23,7 @@ namespace Data
 		 }
 	 }
 	 
-	 [CreateAssetMenu(fileName = "Data", menuName = "ScriptableObjects/Quest", order = 1)]
+	 [CreateAssetMenu(fileName = "Data", menuName = "eeStudio/Quest", order = 1)]
 	 public class Quest : ScriptableObject
 	 {
 		 public string questName;

@@ -17,6 +17,7 @@ public class TimeManager
 	
 	public const float timeScale = 0.01f;
 	public float time = 12.0f;
+	public static int Day { get; set; }
 	
 	public static float Time
 	{
@@ -27,7 +28,11 @@ public class TimeManager
 	public static void UpdateTime(float interval)
 	{
 		Time += interval;
-		if (Time > 24) Time -= 24;
+		if (Time > 24)
+		{
+			Time -= 24;
+			Day++;
+		}
 	}
 
 	public TimeManager(float time)

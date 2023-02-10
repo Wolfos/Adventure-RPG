@@ -15,6 +15,7 @@ namespace Character
 		[SerializeField] private GameObject[] nakedObjects;
 		[SerializeField] private Transform rootBone;
 		[SerializeField] private SkinnedMeshRenderer bonesSource;
+		[SerializeField] private bool skipAttackAnticipation = false;
 		
 		private Item rightHandEquipped;
 		private Item leftHandEquipped;
@@ -33,7 +34,7 @@ namespace Character
 		{
 			foreach (var item in _characterBase.inventory.items)
 			{
-				if(item != null && item.Equipped) ItemEquipped(item);
+				if(item != null && item.IsEquipped) ItemEquipped(item);
 			}
 		}
 
@@ -63,19 +64,19 @@ namespace Character
 					if (rightHandEquipped)
 					{
 						replaceEquippedItem = true;
-						rightHandEquipped.Equipped = false;
+						rightHandEquipped.IsEquipped = false;
 					}
 
 					if (leftHandEquipped)
 					{
 						replaceEquippedItem = true;
-						leftHandEquipped.Equipped = false;
+						leftHandEquipped.IsEquipped = false;
 					}
 					
 					if (twoHandEquipped && twoHandEquipped != item)
 					{
 						replaceEquippedItem = true;
-						twoHandEquipped.Equipped = false;
+						twoHandEquipped.IsEquipped = false;
 					}
 
 					t.parent = leftHand;
@@ -83,6 +84,7 @@ namespace Character
 					t.localRotation = Quaternion.identity;
 
 					animator.runtimeAnimatorController = item.animationSet;
+					animator.SetBool("SkipAttackAnticipation", skipAttackAnticipation);
 					twoHandEquipped = item;
 					currentWeapon = item as Weapon;
 					break;
@@ -90,13 +92,13 @@ namespace Character
 					if (rightHandEquipped && rightHandEquipped != item)
 					{
 						replaceEquippedItem = true;
-						rightHandEquipped.Equipped = false;
+						rightHandEquipped.IsEquipped = false;
 					}
 					
 					if (twoHandEquipped)
 					{
 						replaceEquippedItem = true;
-						twoHandEquipped.Equipped = false;
+						twoHandEquipped.IsEquipped = false;
 					}
 					
 					t.parent = rightHand;
@@ -104,6 +106,7 @@ namespace Character
 					t.localRotation = Quaternion.identity;
 
 					animator.runtimeAnimatorController = item.animationSet;
+					animator.SetBool("SkipAttackAnticipation", skipAttackAnticipation);
 					rightHandEquipped = item;
 					currentWeapon = item as Weapon;
 					break;

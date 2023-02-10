@@ -3,8 +3,16 @@ using System.Collections;
 using Data;
 using UnityEngine;
 
+
 public class TimeUpdater : SaveableObject
 {
+    [Serializable]
+    private class TimeData
+    {
+        public float Time;
+        public int Day;
+    }
+    
     private void Awake()
     {
         global = true;
@@ -17,11 +25,20 @@ public class TimeUpdater : SaveableObject
 
     public override string Save()
     {
-        return TimeManager.Time.ToString();
+        var data = new TimeData
+        {
+            Time = TimeManager.Time,
+            Day = TimeManager.Day
+        };
+        var json = JsonUtility.ToJson(data);
+        return json;
     }
 
     public override void Load(string json)
     {
-        TimeManager.Time = float.Parse(json);
+        var data = JsonUtility.FromJson<TimeData>(json);
+        TimeManager.Time = data.Time;
+        TimeManager.Day = data.Day;
+
     }
 }

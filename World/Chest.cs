@@ -4,38 +4,27 @@ using System.Linq;
 using Character;
 using UnityEngine;
 using Data;
+using Interface;
 using Items;
+using Models;
 using UI;
 using UnityEngine.Scripting;
 
-public class Chest : SaveableObject
+public class Chest : SaveableObject, IInteractable
 {
 	// TODO: This should be saved
 	private bool isOpen;
 	[SerializeField] private Animator animator;
 	[SerializeField] private Container container;
 
-	[Serializable]
-	private class ChestData
-	{
-		public List<int> itemIds;
-		public List<int> itemQuantities;
-
-		public ChestData()
-		{
-			itemIds = new List<int>();
-			itemQuantities = new List<int>();
-		}
-	}
-
 
 	public override string Save()
 	{
-		var data = new ChestData();
+		var data = new ContainerData();
 		foreach (var item in container.items.Where(item => item != null))
 		{
 			data.itemIds.Add(item.id);
-			data.itemQuantities.Add(item.quantity);
+			data.itemQuantities.Add(item.Quantity);
 		}
 		var json = JsonUtility.ToJson(data);
 		return json;
@@ -44,7 +33,7 @@ public class Chest : SaveableObject
 	public override void Load(string json)
 	{
 		container.Clear();
-		var data = JsonUtility.FromJson<ChestData>(json);
+		var data = JsonUtility.FromJson<ContainerData>(json);
 		for(var i = 0; i < data.itemIds.Count; i++)
 		{
 			for (var ii = 0; ii < data.itemQuantities[i]; ii++)
@@ -55,15 +44,16 @@ public class Chest : SaveableObject
 	}
 
 	[Preserve]
-	private void OnCanInteract()
+	public void OnCanInteract(CharacterBase character)
 	{
 		Tooltip.Activate(isOpen ? "Close" : "Open", transform, Vector3.zero);
 	}
 	
 	[Preserve]
-	private void OnInteract(CharacterBase character)
+	public void OnInteract(CharacterBase character)
 	{
-		ItemContainerMenu.Enable(container);
+		ItemContainerWindow.SetData(container);
+		WindowManager.Open<ItemContainerWindow>();
 
 		if (isOpen)
 		{
@@ -78,7 +68,7 @@ public class Chest : SaveableObject
 	}
 
 	[Preserve]
-	private void OnEndInteract()
+	public void OnEndInteract(CharacterBase character)
 	{
 		Tooltip.DeActivate();
 	}

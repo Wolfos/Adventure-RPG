@@ -32,6 +32,14 @@ namespace Utility
             if (system == null) Debug.LogError("System of type " + typeof(T) + " was not found");
             return (T)system;
         }
+        
+        // Same as GetSystem, just doesn't throw an error if it goes wrong
+        public static T TryGetSystem<T>()
+        {
+            object system;
+            instance.systems.TryGetValue(typeof(T), out system);
+            return (T)system;
+        }
 
         public static void UnRegister<T>()
         {

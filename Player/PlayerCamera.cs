@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using Utility;
 
@@ -13,9 +14,11 @@ namespace Player
 		[SerializeField] private Transform camera;
 		[SerializeField] private Range cameraDistance;
 		[SerializeField] private float zoomSpeed;
-		private MeshRenderer[] disabledMeshRenderers;
-		private Transform targetTransform;
-		private Vector3 offset;
+		
+		private Transform _targetTransform;
+		private Vector3 _offset;
+		private Vector2 _movementInput;
+		private float _zoomInput;
 
 		private void Awake()
 		{
@@ -26,68 +29,72 @@ namespace Player
 		{
 			SystemContainer.UnRegister<PlayerCamera>();
 		}
+		
+		private void OnEnable()
+		{
+			EventManager.OnCameraMove += OnCameraMove;
+			EventManager.OnCameraZoom += OnCameraZoom;
+		}
+
+		private void OnDisable()
+		{
+			EventManager.OnCameraMove -= OnCameraMove;
+			EventManager.OnCameraZoom -= OnCameraZoom;
+		}
+
 
 		private void Start()
 		{
 			Camera.main.depthTextureMode = DepthTextureMode.Depth;
-			targetTransform = SystemContainer.GetSystem<PlayerCharacter>().transform;
-			offset = targetTransform.position - transform.position;
+			_targetTransform = SystemContainer.GetSystem<PlayerCharacter>().transform;
+			_offset = _targetTransform.position - transform.position;
 		}
 
 		private void Update()
 		{
-			if (disabledMeshRenderers != null)
-			{
-				foreach (var r in disabledMeshRenderers)
-				{
-					r.shadowCastingMode = ShadowCastingMode.On;
-					r.gameObject.layer = 0;
-				}
-
-				disabledMeshRenderers = null;
-			}
-
-			if (PlayerCharacter.inputActive == false) return;
+			if (PlayerControls.InputActive == false) return;
 			
 			// Rotation
-			var input = InputMapper.GetCameraMovement();
-			transform.Rotate(Vector3.up, -input.x * rotationSpeed);
-			verticalPivot.Rotate(Vector3.right, -input.y * rotationSpeed);
+			transform.Rotate(Vector3.up, -_movementInput.x * rotationSpeed);
+			verticalPivot.Rotate(Vector3.right, -_movementInput.y * rotationSpeed);
 
 			var eulerAngles = verticalPivot.rotation.eulerAngles;
-			if (eulerAngles.x > 180 && eulerAngles.x < verticalClamp.start) eulerAngles.x = verticalClamp.start;
-			else if (eulerAngles.x < 180 && eulerAngles.x > verticalClamp.end) eulerAngles.x = verticalClamp.end;
+			if (eulerAngles.x > 180 && eulerAngles.x < verticalClamp.start)
+			{
+				eulerAngles.x = verticalClamp.start;
+			}
+			else if (eulerAngles.x < 180 && eulerAngles.x > verticalClamp.end)
+			{
+				eulerAngles.x = verticalClamp.end;
+			}
 			eulerAngles.y = 0;
 			eulerAngles.z = 0;
 			verticalPivot.localRotation = Quaternion.Euler(eulerAngles);
 			
 			// Zoom
 			var position = camera.localPosition;
-			position.z += InputMapper.GetZoom() * zoomSpeed;
+			position.z += _zoomInput * zoomSpeed;
 			position.z = Mathf.Clamp(position.z, cameraDistance.start, cameraDistance.end);
 			camera.localPosition = position;
-
-			// Hide roofs
-			// var ray = Camera.main.ScreenPointToRay(new Vector2(Screen.width, Screen.height) / 2);
-			// RaycastHit hit;
-			// if (Physics.Raycast(ray, out hit))
-			// {
-			// 	if (hit.transform.CompareTag("Roof"))
-			// 	{
-			// 		disabledMeshRenderers = hit.transform.GetComponentsInChildren<MeshRenderer>();
-			// 		foreach (var r in disabledMeshRenderers)
-			// 		{
-			// 			r.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
-			// 			r.gameObject.layer = 10;
-			// 		}
-			// 	}
-			// }
 		}
 		
 		private void LateUpdate()
 		{
-			var targetPosition = targetTransform.position - offset;
+			var targetPosition = _targetTransform.position - _offset;
 			transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * followSpeed);
 		}
+		
+		#region Input
+
+		public void OnCameraMove(InputAction.CallbackContext context)
+		{
+			_movementInput = context.ReadValue<Vector2>();
+		}
+		
+		public void OnCameraZoom(InputAction.CallbackContext context)
+		{
+			_zoomInput = context.ReadValue<float>();
+		}
+		#endregion
 	}
 }

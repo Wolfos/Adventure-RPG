@@ -51,7 +51,7 @@ namespace UI
                 buttons.Add(button);
                 go.GetComponentInChildren<Text>().text = quest.questName;
             }
-            if(InputMapper.usingController && buttons.Count > 0) buttons[0].Select();
+            if(InputMapper.UsingController && buttons.Count > 0) buttons[0].Select();
         }
         
         private void ButtonPressed(GameObject button)
@@ -95,7 +95,7 @@ namespace UI
                 stages.text = stageText;
                 
                 // Scrolling the list for gamepads
-                if(!InputMapper.usingController) continue;
+                if(!InputMapper.UsingController) continue;
                 
                 var scrollRectTransform = scrollRect.transform as RectTransform;
                 var buttonTransform = buttons[0].transform as RectTransform;

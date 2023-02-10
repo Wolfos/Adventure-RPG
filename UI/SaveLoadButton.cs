@@ -18,7 +18,7 @@ namespace UI
 
 		private void OnEnable()
 		{
-			if(selectedByDefault && InputMapper.usingController) GetComponent<Button>().Select();
+			if(selectedByDefault && InputMapper.UsingController) GetComponent<Button>().Select();
 			if (isLoadButton && !File.Exists(Application.persistentDataPath + "/Save.json"))
 			{
 				GetComponent<Button>().interactable = false;
@@ -27,9 +27,8 @@ namespace UI
 
 		private void Update()
 		{
-			InputMapper.GetMovement();
-			if(!lastControllerValue && InputMapper.usingController && selectedByDefault) GetComponent<Button>().Select();
-			lastControllerValue = InputMapper.usingController;
+			if(!lastControllerValue && InputMapper.UsingController && selectedByDefault) GetComponent<Button>().Select();
+			lastControllerValue = InputMapper.UsingController;
 		}
 
 		public void LoadMainMenu()

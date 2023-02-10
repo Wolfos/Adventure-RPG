@@ -2,273 +2,102 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Users;
+using Utility;
 
 namespace Player
 {
-	public static class InputMapper
+	public class InputMapper: MonoBehaviour
 	{
-		public static bool usingController;
+		private PlayerInput _playerInput;
 
-		public static Vector3 GetMovement()
+		public static bool UsingController { get; private set; }
+
+		private void Awake()
 		{
-			Vector3 input = Vector3.zero;
-			input.x = Input.GetAxis("HorizontalX");
-			input.z = Input.GetAxis("VerticalX");
-
-			bool controller = true;
-			if (Mathf.Approximately(input.sqrMagnitude, 0))
+			_playerInput = GetComponent<PlayerInput>();
+			UsingController = _playerInput.currentControlScheme.ToLower().Contains("gamepad");
+			InputUser.onChange += (_, change, _) =>
 			{
-				input.x = Input.GetAxis("Horizontal");
-				input.z = Input.GetAxis("Vertical");
-				controller = false;
-			}
-			else
-			{
-				usingController = true;
-			}
-
-			if (!controller && !Mathf.Approximately(input.sqrMagnitude, 0))
-			{
-				usingController = false;
-			}
-
-			return input;
+				if (change is InputUserChange.ControlSchemeChanged)
+				{
+					UsingController = _playerInput.currentControlScheme.ToLower().Contains("gamepad");
+				}
+			};
 		}
 
-		public static Vector2 GetCameraMovement()
+		// TODO: Cache for performance
+		public static Vector2 MousePosition => Mouse.current.position.ReadValue();
+		
+		public void OnMove(InputAction.CallbackContext context)
 		{
-			var input = Vector2.zero;
-			input = GetRightStick();
-			if (usingController == false)
-			{
-				input.x = -Input.GetAxis("Mouse X");
-				input.y = Input.GetAxis("Mouse Y");
-			}
-			else
-			{
-				input *= Time.deltaTime;
-			}
-
-			return input;
+			EventManager.OnMove?.Invoke(context);
 		}
 
-		public static Vector2 GetRightStick()
+		public void OnJump(InputAction.CallbackContext context)
 		{
-			var input = Vector2.zero;
-			input.x = Input.GetAxis("RightStickX");
-			input.y = Input.GetAxis("RightStickY");
-
-			if (!Mathf.Approximately(input.sqrMagnitude, 0))
-			{
-				usingController = true;
-			}
-
-			return input;
-		}
-
-		public static float GetZoom()
-		{
-			return Input.mouseScrollDelta.y;
-		}
-
-		public static bool DodgeButton()
-		{
-			return Input.GetButtonDown("Dodge");
-		}
-
-		public static bool InventoryButton()
-		{
-			if (Input.GetButtonDown("InventoryX"))
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButtonDown("Inventory"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
+			EventManager.OnJump?.Invoke(context);
 		}
 		
-		public static bool InventoryButtonHeld()
+		public void OnCameraMove(InputAction.CallbackContext context)
 		{
-			if (Input.GetButton("InventoryX"))
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButton("Inventory"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
+			EventManager.OnCameraMove?.Invoke(context);
 		}
 		
-		public static bool PauseButton()
+		public void OnCameraZoom(InputAction.CallbackContext context)
 		{
-			if (Input.GetButtonDown("PauseX"))
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButtonDown("Pause"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
+			EventManager.OnCameraZoom?.Invoke(context);
 		}
 
-		public static bool JumpButton()
+		public void OnDodge(InputAction.CallbackContext context)
 		{
-			if (Input.GetButtonDown("JumpX"))
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButtonDown("Jump"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
-		}
-
-		public static bool InteractionButton()
-		{
-			if (Input.GetButtonDown("InteractionX"))
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButtonDown("Interaction"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
-		}
-
-		public static bool DialogueNext()
-		{
-			if (InteractionButton()) return true;
-			if (Input.GetMouseButtonDown(0)) return true;
-
-			return false;
-		}
-
-		public static bool InteractionButtonHeld()
-		{
-			if (Input.GetButton("InteractionX"))
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButton("Interaction"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
+			EventManager.OnDodge?.Invoke(context);
 		}
 		
-		public static bool DropButton()
+		public void OnInteract(InputAction.CallbackContext context)
 		{
-			if (Input.GetButtonDown("DropX"))
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButtonDown("Drop"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
+			EventManager.OnInteract?.Invoke(context);
 		}
 		
-		public static bool DropButtonHeld()
+		public void OnAttack(InputAction.CallbackContext context)
 		{
-			if (Input.GetButton("DropX"))
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButton("Drop"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
+			EventManager.OnAttack?.Invoke(context);
+		}
+		
+		public void OnBlock(InputAction.CallbackContext context)
+		{
+			EventManager.OnBlock?.Invoke(context);
 		}
 
-		public static bool AimButtonHeld()
+		public void OnPlayerMenu(InputAction.CallbackContext context)
 		{
-			if(Input.GetAxis("AimX") > 0.5f)
-			{
-				usingController = true;
-				return true;
-			}
-			
-			if (Input.GetButton("Aim"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
+			EventManager.OnPlayerMenu?.Invoke(context);
 		}
 
-		private static bool hasAttacked;
-		public static bool AttackButton()
+		public void OnPauseMenu(InputAction.CallbackContext context)
 		{
-			if (hasAttacked && Input.GetAxis("AttackX") < 0.1f)
-			{
-				hasAttacked = false;
-			}
-			
-			if(!hasAttacked && Input.GetAxis("AttackX") > 0.5f)
-			{
-				usingController = true;
-				hasAttacked = true;
-				return true;
-			}
-			
-			if (Input.GetButtonDown("Attack"))
-			{
-				usingController = false;
-				return true;
-			}
-
-			return false;
+			EventManager.OnPauseMenu?.Invoke(context);
 		}
 
-		public static bool MenuLeft()
+		public void OnDrop(InputAction.CallbackContext context)
 		{
-			return Input.GetKeyDown("joystick button 4");
+			EventManager.OnDrop?.Invoke(context);
 		}
-
-		public static bool MenuRight()
+		
+		public void OnMenuLeft(InputAction.CallbackContext context)
 		{
-			return Input.GetKeyDown("joystick button 5");
+			EventManager.OnMenuLeft?.Invoke(context);
+		}
+		
+		public void OnMenuRight(InputAction.CallbackContext context)
+		{
+			EventManager.OnMenuRight?.Invoke(context);
+		}
+		
+		public void OnDialogueNext(InputAction.CallbackContext context)
+		{
+			EventManager.OnDialogueNext?.Invoke(context);
 		}
 	}
 }

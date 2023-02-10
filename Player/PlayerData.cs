@@ -18,6 +18,7 @@ public class PlayerData : SaveableObject
 		playerCharacter.characterController.enabled = false;
 		transform.position = data.position;
 		playerCharacter.graphic.rotation = data.rotation;
+		playerCharacter.SetHealth(data.health);
 
 		for (int i = 0; i < playerCharacter.inventory.slots; i++)
 		{
@@ -31,7 +32,7 @@ public class PlayerData : SaveableObject
 				playerCharacter.inventory.AddItem(data.items[i]);
 			}
 
-			playerCharacter.inventory.items[i].Equipped = data.equipped[i];
+			playerCharacter.inventory.items[i].IsEquipped = data.equipped[i];
 		}
 		
 		
@@ -49,8 +50,8 @@ public class PlayerData : SaveableObject
 			if (item != null)
 			{
 				items.Add(item.id);
-				equipped.Add(item.Equipped);
-				quantities.Add(item.quantity);
+				equipped.Add(item.IsEquipped);
+				quantities.Add(item.Quantity);
 			}
 		}
 

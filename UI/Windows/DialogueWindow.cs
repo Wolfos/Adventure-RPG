@@ -1,73 +1,70 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Character;
 using Dialogue;
 using Player;
 using UnityEngine;
-using UnityEngine.UI;
 using XNode;
 
 namespace UI
 {
-	public class DialoguePanel : MonoBehaviour
+	public class DialogueWindow : Window
 	{
-		private static DialoguePanel instance = null;
 		[SerializeField] private DialogueTextDisplay textDisplay;
 		[SerializeField] private DialogueResponseDisplay responseDisplay;
 
-		private DialogueNodeGraph nodeGraph;
-		private List<Node> nextNodes;
-
-		private void Start()
-		{
-			if (instance != null)
-			{
-				Destroy(gameObject);
-				return;
-			}
-
-			instance = this;
-			
-			gameObject.SetActive(false);
-		}
+		private List<Node> _nextNodes;
 		
+		private static DialogueNodeGraph _nodeGraph;
+		private static NPC _dialogueNpc;
 
-		public static void Activate(string assetPath)
+
+		public static void SetData(DialogueNodeGraph asset, NPC dialogueNpc)
 		{
-			instance.gameObject.SetActive(true);
-			instance.StartCoroutine(instance.StartDialogue(assetPath));
+			_dialogueNpc = dialogueNpc;
+			_nodeGraph = asset;
 		}
 
-		private IEnumerator StartDialogue(string assetPath)
+		private void OnEnable()
+		{
+			StartCoroutine(StartDialogue(_nodeGraph));
+			ShopMenuWindow.OnShoppingDone += () => OnNodeEnded(0);
+		}
+
+		private void OnDisable()
+		{
+			ShopMenuWindow.OnShoppingDone -= () => OnNodeEnded(0);
+		}
+
+		private IEnumerator StartDialogue(DialogueNodeGraph asset)
 		{
 			yield return null;
-			PlayerCharacter.LockInput();
-			instance.nodeGraph = Resources.Load<DialogueNodeGraph>(assetPath);
 			// Start reading at the first inputless node
-			instance.ReadNode(instance.nodeGraph.nodes.Find(x => x.Inputs.All(y => !y.IsConnected)));
+			ReadNode(_nodeGraph.nodes.Find(x => x.Inputs.All(y => !y.IsConnected)));
 		}
 
 		private void EndDialogue()
 		{
-			PlayerCharacter.UnlockInput();
-			gameObject.SetActive(false);
+			WindowManager.Close(this);
 		}
 
 		private void OnNodeEnded(int choice)
 		{
-			if (nextNodes.Count == 0)
+			if (_nextNodes.Count <= choice)
 			{
 				EndDialogue();
 				return;
 			}
 			
-			ReadNode(nextNodes[choice]);
+			ReadNode(_nextNodes[choice]);
 		}
 		
 		private void ReadNode(Node node)
 		{
-			nextNodes = new List<Node>();
-			textDisplay.DeActivate();
+			_nextNodes = new();
+			textDisplay?.DeActivate();
 			responseDisplay.DeActivate();
 
 			if (node == null)
@@ -84,7 +81,7 @@ namespace UI
 
 					var port = tn.GetOutputPort("next");
 				
-					if(port.IsConnected) nextNodes.Add(port.Connection.node);
+					if(port.IsConnected && port.Connection != null) _nextNodes.Add(port.Connection.node);
 
 					break;
 				}
@@ -94,7 +91,7 @@ namespace UI
 					responseDisplay.Activate(rn.answers, OnNodeEnded);
 					foreach (var np in rn.Outputs)
 					{
-						if(np.IsConnected) nextNodes.Add(np.Connection.node);
+						if(np.IsConnected) _nextNodes.Add(np.Connection.node);
 					}
 					
 					break;
@@ -105,7 +102,7 @@ namespace UI
 					qn.Execute();
 					var port = qn.GetOutputPort("next");
 				
-					if(port.IsConnected) nextNodes.Add(port.Connection.node);
+					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
 					
 					OnNodeEnded(0);
 					break;
@@ -117,7 +114,7 @@ namespace UI
 					EndDialogue();
 					var port = qn.GetOutputPort("next");
 					
-					if(port.IsConnected) nextNodes.Add(port.Connection.node);
+					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
 					
 					OnNodeEnded(0);
 					break;
@@ -126,7 +123,7 @@ namespace UI
 				case GetQuestStageNode qn:
 				{
 					var n = qn.GetNextNode();
-					nextNodes.Add(n);
+					_nextNodes.Add(n);
 					OnNodeEnded(0);
 					break;
 				}
@@ -136,20 +133,25 @@ namespace UI
 					gin.Execute();
 					var port = gin.GetOutputPort("next");
 				
-					if(port.IsConnected) nextNodes.Add(port.Connection.node);
+					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
 					
 					OnNodeEnded(0);
+					break;
+				}
+
+				case OpenShopNode osn:
+				{
+					var port = osn.GetOutputPort("next");
+					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
+
+					_dialogueNpc?.OpenShop();
+					
 					break;
 				}
 
 				default:
 					throw new System.NotImplementedException();
 			}
-		}
-
-		public static void DeActivate()
-		{
-			instance.gameObject.SetActive(false);
 		}
 	}
 }

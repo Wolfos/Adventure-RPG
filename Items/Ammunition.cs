@@ -8,18 +8,17 @@ namespace Items
 {
 	public class Ammunition : Item
 	{
+		[Header("Ammunition")]
 		[SerializeField] private List<Damage> damage;
 		private bool wasFired = false;
 		private CharacterBase firedBy;
 
 		private void OnEnable()
 		{
-			CheckCollider();
-			CheckRigidbody();
 			if (wasFired)
 			{
-				quantity = 1;
-				GetComponent<Collider>().enabled = true;
+				Quantity = 1;
+				Collider.enabled = true;
 				gameObject.layer = 0;
 			}
 		}
@@ -55,7 +54,7 @@ namespace Items
 			
 			if (!other.gameObject.CompareTag("NoArrowPenetration"))
 			{
-				rigidbody.isKinematic = true;
+				Rigidbody.isKinematic = true;
 				transform.Translate(Vector3.down * 0.2f);
 				if (other.gameObject.layer != 11) // Interactable layer
 				{
@@ -64,8 +63,8 @@ namespace Items
 			}
 			else
 			{
-				rigidbody.collisionDetectionMode = CollisionDetectionMode.Continuous;
-				rigidbody.useGravity = true;
+				Rigidbody.collisionDetectionMode = CollisionDetectionMode.Continuous;
+				Rigidbody.useGravity = true;
 			}
 
 			wasFired = false;
@@ -73,7 +72,7 @@ namespace Items
 
 		public void Fire(Vector3 direction, float force, Damage weaponDamage, CharacterBase firedBy)
 		{
-			GameObject go = Instantiate(gameObject);
+			var go = Instantiate(gameObject);
 			
 			var ammo = go.GetComponent<Ammunition>();
 			ammo.damage.Add(weaponDamage);
@@ -89,8 +88,8 @@ namespace Items
 			rigidbody.AddForce(direction * force);
 			
 			
-			quantity--;
-			if(quantity <= 0) container.DestroyItem(slot);
+			Quantity--;
+			if(Quantity <= 0) container.DestroyItem(slot);
 		}
 	}
 }

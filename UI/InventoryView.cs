@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using Data;
 using Items;
 using Player;
+using UnityEngine.InputSystem;
 using Utility;
 
 namespace UI
@@ -12,52 +15,69 @@ namespace UI
 	public enum SelectItemBehaviour
 	{
 		Use,
-		Transfer
+		Transfer,
+		Buy,
+		Sell
+	}
+
+	public enum InventoryViewType
+	{
+		Normal,
+		Buy,
+		Sell
 	}
 	/// <summary>
-	/// An inventory menu
+	/// A view that displays a list of items
 	/// </summary>
-	public class Inventory : MonoBehaviour
+	public class InventoryView : MonoBehaviour
 	{
-		private static Inventory instance;
+		private static InventoryView instance;
 		
 		public Container container;
 		public Container otherContainer;
-
-		[SerializeField] private GameObject itemButton;
+		
+		[SerializeField] private InventoryViewType type;
+		[SerializeField] private InventoryItemButtonView itemButton;
 		[SerializeField] private Color emptyColor;
 		[SerializeField] private Sprite emptySprite;
 		[SerializeField] private RectTransform itemsContainer;
 		[SerializeField] private Text moneyAmount;
 		[SerializeField] private SelectItemBehaviour selectItemBehaviour;
 
-		private List<Button> _buttons;
-		private bool _firstRun = true;
+		public float PriceMultiplier { get; set; }
+
+		private List<InventoryItemButtonView> _buttons;
+
+		private void Awake()
+		{
+			var itemDatabase = Database.GetDatabase<ItemDatabase>();
+			switch (type)
+			{
+				case InventoryViewType.Normal:
+					PriceMultiplier = 1;
+					break;
+				case InventoryViewType.Buy:
+					PriceMultiplier = itemDatabase.buyPriceMultiplier;
+					break;
+				case InventoryViewType.Sell:
+					PriceMultiplier = itemDatabase.sellPriceMultiplier;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		}
+		
 
 		private void OnEnable()
 		{
-			if (_firstRun)
-			{
-				_firstRun = false;
-				return;
-			}
-
-			var player = SystemContainer.GetSystem<PlayerCharacter>();
-			if (container == null)
-			{
-				container = player.inventory;
-			}
-
-			container.onItemAdded += ItemAdded;
-			container.onItemRemoved += ItemRemoved;
-			moneyAmount.text = player.data.money.ToString("N0");
-			
-			AddButtons();
-			AddAllItems();
+			EventManager.OnDrop += OnDrop;
+			StartCoroutine(Enable());
 		}
-
+		
 		private void OnDisable()
 		{
+			EventManager.OnDrop -= OnDrop;
+			
 			if (container == null) return;
 			
 			ClearButtons();
@@ -71,10 +91,29 @@ namespace UI
 				item.onUnEquipped -= ItemUnEquipped;
 			}
 		}
-
-		private void Update()
+		
+		
+		private IEnumerator Enable()
 		{
-			if (InputMapper.DropButton())
+			// Wait a frame to allow container to be set by other scripts
+			yield return null;
+			if (container == null)
+			{
+				var player = SystemContainer.GetSystem<PlayerCharacter>();
+				container = player.inventory;
+			}
+			UpdateMoney();
+
+			container.onItemAdded += ItemAdded;
+			container.onItemRemoved += ItemRemoved;
+			
+			AddButtons();
+			AddAllItems();
+		}
+
+		private void OnDrop(InputAction.CallbackContext context)
+		{
+			if (context.phase == InputActionPhase.Canceled)
 			{
 				for (int i = 0; i < _buttons.Count; i++)
 				{
@@ -86,27 +125,32 @@ namespace UI
 			}
 		}
 
+		private void UpdateMoney()
+		{
+			var player = SystemContainer.GetSystem<PlayerCharacter>();
+			moneyAmount.text = player.data.money.ToString("N0");
+		}
+		
 		private void AddButtons()
 		{
-			_buttons = new List<Button>();
+			_buttons = new();
 			for (int i = 0; i < container.slots; i++)
 			{
-				var button = Instantiate(itemButton);
+				var button = Instantiate(itemButton, itemsContainer.transform, false);
 				button.name = "ItemButton " + i;
-				button.transform.SetParent(itemsContainer.transform, false);
-				int iterator = i;
-				button.GetComponent<Button>().onClick.AddListener(delegate { ButtonClicked(iterator); });
-				if(i == 0 && InputMapper.usingController) button.GetComponent<Button>().Select();
-				button.GetComponentInChildren<DraggableItem>().inventory = this;
-				button.GetComponentInChildren<DraggableItem>().slot = iterator;
-				var quantityText = button.GetComponentInChildren<Text>();
-				quantityText.text = "";
+
+				var slot = i;
+
+				if (i == 0 && InputMapper.UsingController) button.Select();
+
+				var quantity = 0;
 				if (container.items[i] != null)
 				{
-					int quantity = container.items[i].quantity;
-					if (quantity > 1) quantityText.text = quantity.ToString();
+					quantity = container.items[i].Quantity;
 				}
-				_buttons.Add(button.GetComponent<Button>());
+				button.Initialize(this, slot, quantity, () => {ButtonClicked(slot);}, 
+					type == InventoryViewType.Normal);
+				_buttons.Add(button);
 			}
 		}
 
@@ -138,9 +182,9 @@ namespace UI
 			item.onEquipped += ItemEquipped;
 			item.onUnEquipped += ItemUnEquipped;
 
-			Button button = _buttons[slot];
-			button.transform.Find("Image").GetComponent<Image>().sprite = item.icon;
-			button.image.color = item.Equipped ? item.equippedInventoryBackgroundColor : item.inventoryBackgroundColor;
+			var button = _buttons[slot];
+			button.SetItem(item);
+			UpdateMoney();
 		}
 
 		private void ItemRemoved(Item item, int slot)
@@ -148,16 +192,16 @@ namespace UI
 			item.onEquipped -= ItemEquipped;
 			item.onUnEquipped -= ItemUnEquipped;
 
-			Button button = _buttons[slot];
-			button.image.color = emptyColor;
-			button.transform.Find("Image").GetComponent<Image>().sprite = emptySprite;
+			var button = _buttons[slot];
+			button.SetItem(null);
+			UpdateMoney();
 		}
 
 		private void ItemEquipped(Item item)
 		{
-			Button button = _buttons[item.slot];
+			var button = _buttons[item.slot];
 			if (!button) return;
-			button.image.color = item.equippedInventoryBackgroundColor;
+			button.EquipStatusChanged(item, true);
 		}
 
 		private void ItemUnEquipped(Item item)
@@ -166,7 +210,7 @@ namespace UI
 			
 			var button = _buttons[item.slot];
 			if (!button) return;
-			button.image.color = item.inventoryBackgroundColor;
+			button.EquipStatusChanged(item, false);
 		}
 
 		private void ButtonClicked(int button)
@@ -176,11 +220,31 @@ namespace UI
 			switch(selectItemBehaviour)
 			{
 				case SelectItemBehaviour.Use:
-					item.Equipped = !item.Equipped;
+					item.IsEquipped = !item.IsEquipped;
 					break;
 				case SelectItemBehaviour.Transfer:
 					container.MoveItem(button, otherContainer);
 					break;
+				case SelectItemBehaviour.Buy:
+				{
+					var player = SystemContainer.GetSystem<PlayerCharacter>();
+					var cost = Mathf.CeilToInt(item.basePrice * PriceMultiplier);
+					if (player.data.money >= cost)
+					{
+						player.data.money -= cost;
+						container.MoveItem(button, otherContainer);
+					}
+
+					break;
+				}
+				case SelectItemBehaviour.Sell:
+				{
+					var player = SystemContainer.GetSystem<PlayerCharacter>();
+					player.data.money += Mathf.CeilToInt(item.basePrice * PriceMultiplier);
+					UpdateMoney();
+					container.MoveItem(button, otherContainer);
+					break;
+				}
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
@@ -193,7 +257,7 @@ namespace UI
 		public void ItemDropped(int slot)
 		{
 			var pointer = new PointerEventData(EventSystem.current);
-			pointer.position = Input.mousePosition;
+			pointer.position = InputMapper.MousePosition;
 			var results = new List<RaycastResult>();
 
 			EventSystem.current.RaycastAll(pointer, results);
@@ -204,7 +268,7 @@ namespace UI
 
 				if (target != null)
 				{
-					container.SwapItem(slot, target.slot, target.inventory.container);
+					container.SwapItem(slot, target.Slot, target.InventoryView.container);
 					break;
 				}
 			}

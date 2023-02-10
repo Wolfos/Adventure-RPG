@@ -11,14 +11,16 @@ namespace OpenWorld
         public string Name;
         public Vector3 min;
         public Vector3 max;
+        public int x;
+        public int z;
 
         public Scene scene => SceneManager.GetSceneByName(Name);
 
         public bool FitsInChunk(Transform transform)
         {
-            var x = transform.position.x;
-            var z = transform.position.z;
-            if (x > min.x && x <= max.x && z > min.z && z <= max.z)
+            var xPos = transform.position.x;
+            var zPos = transform.position.z;
+            if (xPos > min.x && xPos <= max.x && zPos > min.z && zPos <= max.z)
             {
                 return true;
             }

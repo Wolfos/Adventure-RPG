@@ -1,5 +1,6 @@
 ﻿using System;
 using Character;
+using Interface;
 using UI;
 using UnityEngine;
 
@@ -22,34 +23,51 @@ namespace Items
 		public float amount;
 	}
 	
-	public class Item : MonoBehaviour
+	public class Item : MonoBehaviour, IInteractable
 	{
-		[HideInInspector] public int id;
+		public int id;
+		
+		[Header("Item base")]
 		public Color inventoryBackgroundColor = Color.white;
 		public Color equippedInventoryBackgroundColor = Color.yellow;
 		public string friendlyName;
+		public float basePrice;
 
 		public delegate void Event(Item item);
 		public Event onEquipped;
 		public Event onUnEquipped;
+		public Event onQuantityChanged;
 		
 		public ItemType type;
 		public RuntimeAnimatorController animationSet;
-		[HideInInspector] public int quantity = 1;
+
+		private int _quantity = 1;
+		public int Quantity
+		{
+			get
+			{
+				return _quantity;
+			}
+			set
+			{
+				_quantity = value;
+				onQuantityChanged?.Invoke(this);
+			}
+		}
 		public bool stackable = false;
 
 		[HideInInspector]
 		public int slot;
-		private bool _equipped;
+		private bool _isEquipped;
 
 		public ItemEffect[] effects;
 
-		public bool Equipped
+		public bool IsEquipped
 		{
-			get => _equipped;
+			get => _isEquipped;
 			set
 			{
-				_equipped = value;
+				_isEquipped = value;
 				if (value) onEquipped?.Invoke(this);
 				else
 				{
@@ -63,27 +81,45 @@ namespace Items
 		public Container container;
 		public Sprite icon;
 		
-		protected Rigidbody rigidbody;
-		protected Collider collider;
+		private Rigidbody _rigidbody;
+		private Collider _collider;
+
+		protected Rigidbody Rigidbody
+		{
+			get
+			{
+				if (_rigidbody == null) _rigidbody = GetComponent<Rigidbody>();
+				return _rigidbody;
+			}
+		}
+		
+		protected Collider Collider
+		{
+			get
+			{
+				if (_collider == null) _collider = GetComponent<Collider>();
+				return _collider;
+			}
+		}
 
 		public void AddedToInventory(Container container, int slot)
 		{
 			this.slot = slot;
 			if (this.container != container)
 			{
-				Equipped = false;
+				IsEquipped = false;
 			}
 			this.container = container;
 			
-			if (CheckRigidbody())
+			if (Rigidbody != null)
 			{
-				rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
-				rigidbody.isKinematic = true;
+				Rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
+				Rigidbody.isKinematic = true;
 			}
 
-			if (CheckCollider())
+			if (Collider != null)
 			{
-				collider.enabled = false;
+				Collider.enabled = false;
 			}
 			
 			gameObject.SetActive(false);
@@ -94,48 +130,36 @@ namespace Items
 			transform.parent = null;
 			gameObject.SetActive(true);
 			
-			if (CheckRigidbody())
+			if (Rigidbody != null)
 			{
-				rigidbody.isKinematic = false;
-				rigidbody.useGravity = true;
-				rigidbody.collisionDetectionMode = CollisionDetectionMode.Continuous;
+				Rigidbody.isKinematic = false;
+				Rigidbody.useGravity = true;
+				Rigidbody.collisionDetectionMode = CollisionDetectionMode.Continuous;
 			}
 			
-			if (CheckCollider())
+			if (Collider != null)
 			{
-				collider.enabled = true;
+				Collider.enabled = true;
 			}
 
 			transform.position = container.transform.position + container.transform.forward;
 
 			container = null;
 		}
-
-		protected bool CheckRigidbody()
-		{
-			if(rigidbody == null) rigidbody = GetComponent<Rigidbody>();
-			return rigidbody != null;
-		}
-
-		protected bool CheckCollider()
-		{
-			if (collider == null) collider = GetComponent<Collider>();
-			return collider != null;
-		}
 		
-		private void OnCanInteract()
+		public void OnCanInteract(CharacterBase character)
 		{
-			Tooltip.Activate(friendlyName + (quantity > 1 ? " (" + quantity + ")" : ""), transform, Vector3.zero);
+			Tooltip.Activate(friendlyName + (Quantity > 1 ? " (" + Quantity + ")" : ""), transform, Vector3.zero);
 		}
 
-		private void OnInteract(CharacterBase character)
+		public void OnInteract(CharacterBase character)
 		{
 			character.inventory.AddItem(this);
 			Tooltip.DeActivate();
-			character.SendMessage("InteractionTriggerExit", collider);
+			character.SendMessage("InteractionTriggerExit", Collider);
 		}
 		
-		private void OnEndInteract()
+		public void OnEndInteract(CharacterBase character)
 		{
 			Tooltip.DeActivate();
 		}

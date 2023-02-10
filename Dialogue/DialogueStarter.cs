@@ -2,28 +2,30 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Character;
+using Interface;
 using UI;
 
 namespace Dialogue
 {
 
-    public class DialogueStarter : MonoBehaviour
+    public class DialogueStarter : MonoBehaviour, IInteractable
     {
-        [SerializeField] private string conversationAsset;
+        [SerializeField] private DialogueNodeGraph dialogueAsset;
         [SerializeField] private string friendlyName;
         [SerializeField] private float tooltipOffset;
         
-        private void OnCanInteract()
+        public void OnCanInteract(CharacterBase character)
         {
             Tooltip.Activate(friendlyName, transform, transform.up * tooltipOffset);
         }
 
-        private void OnInteract(CharacterBase character)
+        public void OnInteract(CharacterBase character)
         {
-            DialoguePanel.Activate(conversationAsset);
+            DialogueWindow.SetData(dialogueAsset, GetComponent<NPC>());
+            WindowManager.Open<DialogueWindow>();
         }
 		
-        private void OnEndInteract()
+        public void OnEndInteract(CharacterBase character)
         {
             Tooltip.DeActivate();
         }

@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using Player;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Utility;
 
 public class BlinkWhileButtonIsHeld : MonoBehaviour
 {
@@ -22,29 +24,48 @@ public class BlinkWhileButtonIsHeld : MonoBehaviour
 		graphic = GetComponent<Graphic>();
 	}
 
-	private void Update()
+	private void OnEnable()
 	{
-		bool buttonHeld = false;
 		switch (button)
 		{
 			case Button.InteractionButton:
-				buttonHeld = InputMapper.InteractionButtonHeld();
+				EventManager.OnInteract += InputCallback;
 				break;
 			case Button.DropButton:
-				buttonHeld = InputMapper.DropButtonHeld();
+				EventManager.OnDrop += InputCallback;
 				break;
 			case Button.InventoryButton:
-				buttonHeld = InputMapper.InventoryButtonHeld();
+				EventManager.OnPlayerMenu += InputCallback;
 				break;
 		}
-		
-		if (buttonHeld)
+	}
+
+	private void OnDisable()
+	{
+		switch (button)
 		{
-			graphic.color = blinkColor;
+			case Button.InteractionButton:
+				EventManager.OnInteract -= InputCallback;
+				break;
+			case Button.DropButton:
+				EventManager.OnDrop -= InputCallback;
+				break;
+			case Button.InventoryButton:
+				EventManager.OnPlayerMenu -= InputCallback;
+				break;
 		}
-		else
+	}
+
+	private void InputCallback(InputAction.CallbackContext context)
+	{
+		switch (context.phase)
 		{
-			graphic.color = Color.white;
+			case InputActionPhase.Started:
+				graphic.color = blinkColor;
+				break;
+			case InputActionPhase.Canceled:
+				graphic.color = Color.white;
+				break;
 		}
 	}
 }

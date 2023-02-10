@@ -29,7 +29,7 @@ namespace UI
                 b.onClick.AddListener(delegate { callback(iterator); });
                 buttons.Add(button);
 
-                if (InputMapper.usingController && i == 0)
+                if (InputMapper.UsingController && i == 0)
                 {
                     b.Select();
                 }

@@ -31,7 +31,7 @@ namespace UI
 
 		private void Update()
 		{
-			if(Input.GetMouseButtonUp(0) || PlayerMenu.IsActive || PauseMenu.isActive) gameObject.SetActive(false);
+			if(WindowManager.IsAnyWindowOpen(false)) gameObject.SetActive(false);
 		}
 
 

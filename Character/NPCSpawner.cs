@@ -8,7 +8,7 @@ namespace Character
 {
 	public class NPCSpawner : SaveableObject
 	{
-		[SerializeField] private string assetFile;
+		[SerializeField] private GameObject prefab;
 		[SerializeField] private int maxAmount;
 		[SerializeField] private float respawnTime = 120;
 		[SerializeField] private string npcName;
@@ -42,12 +42,18 @@ namespace Character
 			{
 				Destroy(npc.gameObject);
 			}
+
 			npcs.Clear();
+			StartCoroutine(LoadRoutine(json));
+		}
+
+		private IEnumerator LoadRoutine(string json)
+		{
+			yield return null;
 			var data = json.Split(new[] {"</npc>"}, StringSplitOptions.RemoveEmptyEntries);
 			for (int i = 0; i < data.Length; i++)
 			{
-				var prefab = Resources.Load(assetFile);
-				var newNPC = Instantiate(prefab, transform, false) as GameObject;
+				var newNPC = Instantiate(prefab, transform, false);
 				var npc = newNPC.GetComponent<NPC>();
 				newNPC.name = npcName;
 				var d = JsonUtility.FromJson<CharacterData>(data[i]);
@@ -58,7 +64,6 @@ namespace Character
 					newNPC.SetActive(false);
 				}
 				npcs.Add(npc);
-				
 			}
 		}
 
@@ -66,14 +71,8 @@ namespace Character
 		{
 			for (int i = 0; i < maxAmount; i++)
 			{
-				var prefab = Resources.Load(assetFile);
-				var npc = Instantiate(prefab, transform, false) as GameObject;
+				var npc = Instantiate(prefab, transform, false);
 				npc.name = npcName;
-
-				if (npc == null)
-				{
-					Debug.LogError("Could not find asset file " + assetFile);
-				}
 				
 				// Position
 				var randomPosition = bounds.RandomPos();

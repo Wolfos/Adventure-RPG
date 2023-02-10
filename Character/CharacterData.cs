@@ -13,6 +13,7 @@ namespace Character
 		public Quaternion rotation;
 		public bool isDead;
 		public float health;
+		public float maxHealth;
 		public Vector3 destination;
 		public NPCRoutine routine;
 		public Vector3 velocity;

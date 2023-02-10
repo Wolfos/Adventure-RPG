@@ -1,15 +1,19 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 #if UNITY_EDITOR
+using System.IO;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace OpenWorld
 {
-    [CreateAssetMenu(menuName = "Open World Manager")]
+    [CreateAssetMenu(menuName = "eeStudio/Open World Manager")]
     public class OpenWorldManager : ScriptableObject
     {
         public int chunkWidth, chunkDepth;
@@ -17,18 +21,56 @@ namespace OpenWorld
         public List<Chunk> chunks;
 
         public Object worldScene;
+        
+        // Chunks sorted by position. Contains empty chunk when there's no chunk at said position
+        private Chunk[] _sortedChunks;
+
+        public struct ChunkPosition
+        {
+            public ChunkPosition(int x, int z)
+            {
+                X = x;
+                Z = z;
+            }
+            public int X, Z;
+        }
+
+        public ChunkPosition WorldToChunkPosition(float x, float z)
+        {
+            var chunkX = Mathf.FloorToInt(x / chunkWidth) +(chunksX / 2);
+            var chunkZ = Mathf.FloorToInt(z / chunkDepth) +(chunksZ / 2);
+
+            return new ChunkPosition(chunkX, chunkZ);
+        }
 
         public Chunk GetChunkByPosition(float x, float z)
         {
-            int chunkX = Mathf.FloorToInt(x / chunkWidth) +(chunksX / 2);
-            int chunkZ = Mathf.FloorToInt(z / chunkDepth) +(chunksZ / 2);
+            var chunkPosition = WorldToChunkPosition(x, z);
 
-            return GetChunkByChunkPosition(chunkX, chunkZ);
+            return GetChunkByChunkPosition(chunkPosition.X, chunkPosition.Z);
+        }
+
+        private void SortChunks()
+        {
+            // Get total width / depth
+            foreach (var chunk in chunks)
+            {
+                if (chunk.x > chunksX) chunksX = chunk.x;
+                if (chunk.z > chunksZ) chunksZ = chunk.z;
+            }
+            
+            _sortedChunks = new Chunk[chunksX * chunksZ];
+
+            foreach (var chunk in chunks)
+            {
+                _sortedChunks[chunk.z + chunk.x * chunksX] = chunk;
+            }
         }
         
         private Chunk GetChunkByChunkPosition(int x, int z)
         {
-            return chunks[z + x * chunksX];
+            if(_sortedChunks == null || _sortedChunks.Length == 0) SortChunks();
+            return _sortedChunks[z + x * chunksX];
         }
 
         public List<Chunk> GetChunkAndAdjacent(float x, float z)
@@ -37,21 +79,46 @@ namespace OpenWorld
             int chunkX = Mathf.FloorToInt(x / chunkWidth) +(chunksX / 2);
             int chunkZ = Mathf.FloorToInt(z / chunkDepth) +(chunksZ / 2);
 
-            ret.Add(GetChunkByChunkPosition(chunkX, chunkZ));
-            ret.Add(GetChunkByChunkPosition(chunkX-1, chunkZ-1));
-            ret.Add(GetChunkByChunkPosition(chunkX, chunkZ-1));
-            ret.Add(GetChunkByChunkPosition(chunkX-1, chunkZ));
-            ret.Add(GetChunkByChunkPosition(chunkX+1, chunkZ));
-            ret.Add(GetChunkByChunkPosition(chunkX+1, chunkZ+1));
-            ret.Add(GetChunkByChunkPosition(chunkX, chunkZ+1));
-            ret.Add(GetChunkByChunkPosition(chunkX-1, chunkZ+1));
-            ret.Add(GetChunkByChunkPosition(chunkX+1, chunkZ-1));
+            void AddIfNotNullOrEmpty(Chunk chunk)
+            {
+                if(chunk != null && chunk.Name != string.Empty) ret.Add(chunk);
+            }
+            
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX, chunkZ));
+            
+            // Directly adjacent
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX-1, chunkZ-1));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX, chunkZ-1));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX-1, chunkZ));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX+1, chunkZ));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX+1, chunkZ+1));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX, chunkZ+1));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX-1, chunkZ+1));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX+1, chunkZ-1));
+            
+            // Distance of two chunks
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX - 2, chunkZ -1));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX - 2, chunkZ));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX - 2, chunkZ + 1));
+            
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX - 1, chunkZ - 2));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX, chunkZ - 2));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX + 1, chunkZ - 2));
+            
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX + 2, chunkZ - 1));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX + 2, chunkZ));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX + 2, chunkZ + 1));
+            
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX - 1, chunkZ + 2));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX, chunkZ + 2));
+            AddIfNotNullOrEmpty(GetChunkByChunkPosition(chunkX + 1, chunkZ + 2));
             
             return ret;
         }
         
 #if UNITY_EDITOR
-        [Button("Generate Chunks")]
+        //[Button("Generate Chunks")]
+        [Obsolete("Chunks are now created dynamically when needed")]
         public void GenerateChunks()
         {
             // TODO: Maybe make it work on additional runs?
@@ -119,16 +186,32 @@ namespace OpenWorld
             }
         }
 
+        public Chunk AddChunk(int x, int z)
+        {
+            var chunk = CreateNewChunk("Chunk", x, z);
+            //AssetDatabase.ImportAsset($"Assets/Scenes/Chunks/{chunk.Name}.unity", ImportAssetOptions.ForceSynchronousImport);
+            chunks.Add(chunk);
+            SortChunks();
+            EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssets();
+            return chunk;
+        }
+
+        // [Button("Test")]
+        // public void Test()
+        // {
+        //     CreateNewChunk("a", 0, 0);
+        // }
+        
         private Chunk CreateNewChunk(string name, int x, int z)
         {
             var chunkName = $"{name} {x}, {z}";
             var chunkScene = SceneManager.GetSceneByPath($"Assets/Scenes/Chunks/{chunkName}.unity");
-            bool isNew = false;
             if (!chunkScene.IsValid())
             {
                 chunkScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
                 chunkScene.name = chunkName;
-                isNew = true;
+                EditorSceneManager.SaveScene(chunkScene, $"Assets/Scenes/Chunks/{chunkName}.unity");
             }
 
             var chunk = new Chunk();
@@ -137,13 +220,45 @@ namespace OpenWorld
             int minZ = -(chunksZ / 2) * chunkDepth;
             chunk.min = new Vector3(minX + x * chunkWidth, 0, minZ + z * chunkDepth);
             chunk.max = new Vector3(chunk.min.x + chunkWidth, 0, chunk.min.z + chunkDepth);
+            chunk.x = x;
+            chunk.z = z;
+            
+            return chunk;
+        }
 
-            if (isNew)
+        [Button("Clear empty chunks")]
+        public void DeleteEmptyChunks()
+        {
+            var toDelete = new List<Chunk>();
+            foreach (var chunk in chunks)
             {
-                EditorSceneManager.SaveScene(chunk.scene, $"Assets/Scenes/Chunks/{chunk.Name}.unity");
+                if (chunk.scene.rootCount == 0)
+                {
+                    toDelete.Add(chunk);
+                }
             }
 
-            return chunk;
+            foreach (var chunk in toDelete)
+            {
+                chunks.Remove(chunk);
+            }
+            
+            
+            var currentScenes = EditorBuildSettings.scenes;
+            
+            foreach(var scene in currentScenes)
+            {
+                var filename = Path.GetFileNameWithoutExtension(scene.path);
+                if (!chunks.Exists(c => c.Name == filename))
+                {
+                    File.Delete(scene.path);
+                }
+            }
+
+            var filteredScenes = currentScenes.Where(ebss => File.Exists(ebss.path)).ToArray();
+            EditorBuildSettings.scenes = filteredScenes;
+            
+            SortChunks();
         }
 
         private void OnDrawGizmosSelected()
@@ -153,23 +268,20 @@ namespace OpenWorld
             //Gizmos.DrawLine(transform.position, new Vector3(500, 0, 500));
             int minX = -(chunksX / 2) * chunkWidth;
             int minZ = -(chunksZ / 2) * chunkDepth;
-            for (int x = 0; x < chunksX; x++)
+            foreach(var chunk in chunks)
             {
-                for (int z = 0; z < chunksZ; z++)
-                {
-                    var chunkMin = new Vector3(minX + x * chunkWidth, 0, minZ + z * chunkDepth);
-                    var chunkMax = new Vector3(chunkMin.x + chunkWidth, 0, chunkMin.z + chunkDepth);
+                var chunkMin = new Vector3(minX + chunk.x * chunkWidth, 0, minZ + chunk.z * chunkDepth);
+                var chunkMax = new Vector3(chunkMin.x + chunkWidth, 0, chunkMin.z + chunkDepth);
 
-                    var topLeft = new Vector3(chunkMin.x, 10, chunkMin.z);
-                    var bottomLeft = new Vector3(chunkMin.x, 10, chunkMax.z);
-                    var topRight = new Vector3(chunkMax.x, 10, chunkMin.z);
-                    var bottomRight = new Vector3(chunkMax.x, 10, chunkMax.z);
-                    
-                    Gizmos.DrawLine(topLeft, bottomLeft);
-                    Gizmos.DrawLine(bottomLeft, bottomRight);
-                    Gizmos.DrawLine(topRight, bottomRight);
-                    Gizmos.DrawLine(topRight, topLeft);
-                }
+                var topLeft = new Vector3(chunkMin.x, 10, chunkMin.z);
+                var bottomLeft = new Vector3(chunkMin.x, 10, chunkMax.z);
+                var topRight = new Vector3(chunkMax.x, 10, chunkMin.z);
+                var bottomRight = new Vector3(chunkMax.x, 10, chunkMax.z);
+                
+                Gizmos.DrawLine(topLeft, bottomLeft);
+                Gizmos.DrawLine(bottomLeft, bottomRight);
+                Gizmos.DrawLine(topRight, bottomRight);
+                Gizmos.DrawLine(topRight, topLeft);
             }
         }
         #endif

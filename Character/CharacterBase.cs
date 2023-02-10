@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Combat;
 using Data;
+using Interface;
 using Items;
 using UI;
 using UnityEngine;
@@ -26,18 +27,20 @@ namespace Character
 		[SerializeField] private CollisionCallbacks interactionTrigger, meleeAttackTrigger;
 		[SerializeField] private LayerMask interactionLayerMask, attackLayerMask;
 		[SerializeField] private Damage unarmedDamage;
-		[SerializeField] private Collider collider;
 		[SerializeField] private AudioClip hitSound;
-		[SerializeField] private CharacterAnimationEvents animationEvents;
+		[SerializeField] public CharacterAnimationEvents animationEvents;
 
 		private List<CharacterBase> currentTargets;
 		private Collider currentInteraction;
-
-		private HealthDisplay healthDisplay;
+		
 		protected Action<Damage> onDamaged;
-		protected CharacterEquipment equipment;
+		public CharacterEquipment equipment;
 		private static readonly int Recoil = Animator.StringToHash("HitRecoil");
+		private static readonly int Blocking = Animator.StringToHash("Blocking");
 		protected bool IsInHitRecoil => animator.GetBool(Recoil);
+		protected bool IsBlocking;
+
+		private Weapon Weapon => equipment.currentWeapon;
 		
 		protected void Awake()
 		{
@@ -51,8 +54,6 @@ namespace Character
 
 		protected void Start()
 		{
-			healthDisplay = UIBase.GetHealthDisplay();
-			healthDisplay.MaxHealth = startHealth;
 
 			if (meleeAttackTrigger != null)
 			{
@@ -72,25 +73,12 @@ namespace Character
 
 		protected void OnEnable()
 		{
+			data.maxHealth = startHealth;
 			SetHealth(startHealth);
-			if(healthDisplay != null) healthDisplay.gameObject.SetActive(false);
-			collider.enabled = true;
 		}
 
 		protected void Update()
 		{
-			if (data.health < startHealth && data.health > 0 && !PlayerMenu.IsActive && !PauseMenu.isActive)
-			{
-				healthDisplay.gameObject.SetActive(true);
-				healthDisplay.CurrentHealth = data.health;
-				var headPos = transform.position;
-				headPos.y += headOffset;
-				var screenPos = Camera.main.WorldToScreenPoint(headPos);
-				screenPos.y += healthOffset;
-				healthDisplay.transform.position = screenPos;
-			}
-			else healthDisplay.gameObject.SetActive(false);
-			
 			CheckTargetsAlive();
 		}
 		
@@ -100,7 +88,7 @@ namespace Character
 			List<CharacterBase> toRemove = new List<CharacterBase>();
 			foreach (var target in currentTargets)
 			{
-				if (target.data.health <= 0)
+				if (target == null || target.data.health <= 0)
 				{
 					toRemove.Add(target);
 				}
@@ -133,19 +121,34 @@ namespace Character
 			}
 		}
 
-		protected void Attack()
+		public void StartBlock()
 		{
-			if (IsInHitRecoil) return;
+			IsBlocking = true;
+			animator.SetBool(Blocking, true);
+			if(Weapon != null) Weapon.StartBlock();
+		}
+
+		public void EndBlock()
+		{
+			IsBlocking = false;
+			animator.SetBool(Blocking, false);
+			if(Weapon != null) Weapon.EndBlock();
+		}
+
+		public virtual void Attack()
+		{
+			if (IsInHitRecoil || IsBlocking) return;
 			
-			var willAttack = false;
-			if (equipment.currentWeapon)
+			bool willAttack;
+			if (Weapon)
 			{
-				equipment.currentWeapon.baseDamage.source = data.characterId;
-				if (equipment.currentWeapon is RangedWeapon weapon)
+				Weapon.baseDamage.source = data.characterId;
+				if (Weapon is RangedWeapon rangedWeapon)
 				{
-					weapon.ammunition = GetAmmo();
+					rangedWeapon.ammunition = GetAmmo();
 				}
-				willAttack = equipment.currentWeapon.Attack(graphic.forward, currentTargets, attackLayerMask);
+
+				willAttack = Weapon.CanAttack();
 			}
 			else // Unarmed attack
 			{
@@ -158,22 +161,42 @@ namespace Character
 
 		private void MeleeHitCallback()
 		{
-			foreach (var target in currentTargets)
+			// Unarmed
+			if (Weapon == null)
 			{
-				unarmedDamage.source = data.characterId;
-				target.TakeDamage(unarmedDamage, transform.position);
+				foreach (var target in currentTargets)
+				{
+					unarmedDamage.source = data.characterId;
+					target.TakeDamage(unarmedDamage, transform.position);
+				}
+			}
+			//Armed
+			else
+			{
+				Weapon.Attack(graphic.forward, attackLayerMask, OnStagger);
 			}
 		}
-		
+
+		private void OnStagger()
+		{
+			animator.SetTrigger("Hit");
+		}
 		#endregion
 
 		#region Interaction
 
-		protected void Interact()
+		public void Interact()
 		{
 			if (currentInteraction != null)
 			{
-				if (currentInteraction.enabled) currentInteraction.transform.SendMessage("OnInteract", this);
+				if (currentInteraction.enabled)
+				{
+					var interactables = currentInteraction.GetComponents<IInteractable>();
+					foreach (var interactable in interactables)
+					{
+						interactable.OnInteract(this);
+					}
+				}
 				else currentInteraction = null;
 			}
 		}
@@ -195,7 +218,11 @@ namespace Character
 		{
 			if (other == currentInteraction)
 			{
-				other.transform.SendMessage("OnCanInteract", SendMessageOptions.DontRequireReceiver);
+				var interactables = other.GetComponents<IInteractable>();
+				foreach (var interactable in interactables)
+				{
+					interactable.OnCanInteract(this);
+				}
 			}
 		}
 
@@ -203,13 +230,17 @@ namespace Character
 		{
 			if (other == currentInteraction)
 			{
-				other.transform.SendMessage("OnEndInteract", SendMessageOptions.DontRequireReceiver);
+				var interactables = other.GetComponents<IInteractable>();
+				foreach (var interactable in interactables)
+				{
+					interactable.OnEndInteract(this);
+				}
 				currentInteraction = null;
 			}
 		}
 		#endregion
 
-		public bool SetHealth(float health)
+		public virtual bool SetHealth(float health)
 		{
 			data.health = health;
 
@@ -225,10 +256,8 @@ namespace Character
 		public void Die()
 		{
 			StopAllCoroutines();
-			collider.enabled = false;
 			data.isDead = true;
 			DeathAnimationStarted();
-			if(healthDisplay != null) healthDisplay.gameObject.SetActive(false);
 			animator.SetTrigger("Death");
 			
 			StartCoroutine(DeathAnimation());
@@ -245,8 +274,9 @@ namespace Character
 
 		public void TakeDamage(Damage damage, Vector3 point)
 		{
+			if(Weapon != null) Weapon.InterruptAttack();
 			if (data.isDead) return;
-
+			
 			onDamaged?.Invoke(damage);
 			SFXPlayer.PlaySound(hitSound, 0.2f);
 
@@ -269,11 +299,11 @@ namespace Character
 			{
 				if (item != null && item.type == ItemType.Ammunition)
 				{
-					if (ammo == null || item.Equipped) ammo = item;
+					if (ammo == null || item.IsEquipped) ammo = item;
 				}
 			}
 
-			if (ammo != null && !ammo.Equipped) ammo.Equipped = true;
+			if (ammo != null && !ammo.IsEquipped) ammo.IsEquipped = true;
 			return ammo as Ammunition;
 		}
 

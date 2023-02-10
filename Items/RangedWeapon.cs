@@ -1,4 +1,5 @@
-﻿using Character;
+﻿using System;
+using Character;
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -7,14 +8,17 @@ namespace Items
 	public class RangedWeapon : Weapon
 	{
 		[HideInInspector] public Ammunition ammunition;
-		public override bool Attack(Vector3 direction, List<CharacterBase> targets, LayerMask attackLayerMask)
+		
+		public override bool CanAttack()
 		{
-			if (ammunition == null) return false;
-			base.Attack(direction, targets, attackLayerMask);
+			return ammunition != null;
+		}
+		
+		public override void Attack(Vector3 direction, LayerMask attackLayerMask, Action onStagger)
+		{
+			base.Attack(direction, attackLayerMask, onStagger);
 
 			ammunition.Fire(direction, 100, baseDamage, container.GetComponent<CharacterBase>());
-			
-			return true;
 		}
 	}
 }

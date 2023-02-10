@@ -2,6 +2,8 @@
 using System.Collections;
 using Combat;
 using Data;
+using Items;
+using UI;
 using UnityEngine;
 using UnityEngine.AI;
 using Utility;
@@ -32,6 +34,8 @@ namespace Character
 		
 		[HideInInspector] public Bounds bounds;
 		[HideInInspector] public bool respawn = false;
+		
+		[SerializeField] private Container shopInventory;
 
 		private NPCRoutine _currentRoutine;
 		private float _movementSpeed;
@@ -81,7 +85,7 @@ namespace Character
 			for (int i = 0; i < startingInventory.Length; i++)
 			{
 				inventory.AddItem(startingInventory[i]);
-				inventory.items[i].Equipped = true;
+				inventory.items[i].IsEquipped = true;
 			}
 			equipment.CheckEquipment();
 
@@ -110,6 +114,12 @@ namespace Character
 			respawn = true;
 			gameObject.SetActive(false);
 		}
+
+		public void OpenShop()
+		{
+			ShopMenuWindow.SetData(shopInventory);
+			WindowManager.Open<ShopMenuWindow>();
+		}
 		
 		private void ActivateRoutine(NPCRoutine routine, bool delayed = false, bool proceed = false)
 		{
@@ -134,14 +144,15 @@ namespace Character
 
 		private void Update()
 		{
-			if (IsInHitRecoil)
-			{
-				agent.speed = 0;
-			}
-			else
-			{
+			// TODO: Fix when hit recoil is not present on animator
+			// if (IsInHitRecoil)
+			// {
+			// 	agent.speed = 0;
+			// }
+			//else
+			//{
 				agent.speed = _movementSpeed;
-			}
+			//}
 			
 			animator.SetFloat("Speed", agent.velocity.magnitude);
 
