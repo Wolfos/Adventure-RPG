@@ -84,7 +84,7 @@ namespace OpenWorld
                 selectedObject.gameObject.scene.name.Contains("Chunk"))
             {
                 var oldScene = selectedObject.gameObject.scene;
-                var chunk = data.GetChunkByPosition(selectedObject.position.x, selectedObject.position.z);
+                var chunk = data.GetChunkByWorldPosition(selectedObject.position.x, selectedObject.position.z);
                 if (chunk == null || chunk.Name == string.Empty)
                 {
                     var chunkPosition = data.WorldToChunkPosition(selectedObject.position.x, selectedObject.position.z);
@@ -123,7 +123,7 @@ namespace OpenWorld
                     {
                         _instance._currentChunks.Add(chunk);
 
-                        EditorSceneManager.OpenScene($"Assets/Scenes/Chunks/{chunk.Name}.unity",
+                        EditorSceneManager.OpenScene($"Assets/Scenes/Chunk/s{chunk.Name}.unity",
                             OpenSceneMode.Additive);
                         _instance.SelectPrevious();
                     }
@@ -133,6 +133,32 @@ namespace OpenWorld
             {
                 _instance.UnloadUnnecessaryScenes();
             }
+        }
+
+        [MenuItem("eeStudio/Setup World Streamer")]
+        public static void SetupWorldStreamer()
+        {
+            if (EditorApplication.isPlaying) return;
+
+            if (_instance.data.chunks != null && _instance.data.chunks.Count > 0)
+            {
+                Debug.LogError("Data already has chunks, setup cancelled");
+                return;
+            }
+
+            _instance.data.chunks = new();
+
+            _instance._bakingMode = true;
+
+            AssetDatabase.CreateFolder("Assets/Scenes", "Chunks");
+            AssetDatabase.Refresh();
+
+            var sceneCamera = SceneView.lastActiveSceneView.camera;
+            var cameraPos = sceneCamera.transform.position;
+            var chunkPosition = _instance.data.WorldToChunkPosition(cameraPos.x, cameraPos.z);
+            _instance.data.AddChunk(chunkPosition.X, chunkPosition.Z);
+            
+            _instance._bakingMode = false;
         }
 #endif
 
@@ -166,6 +192,8 @@ namespace OpenWorld
         
         private void Update()
         {
+            _instance = this;
+            
             if (_bakingMode || _streamingDisabled) return;
             
             var mainCamera = Camera.main;
@@ -259,6 +287,7 @@ namespace OpenWorld
             // Draws a blue line from this transform to the target
             //Gizmos.color = Color.blue;
             //Gizmos.DrawLine(transform.position, new Vector3(500, 0, 500));
+            Gizmos.color = Color.yellow;
             foreach (var chunk in data.chunks)
             {
                 var chunkMin = chunk.min;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 #if UNITY_EDITOR
 using System.IO;
-using Sirenix.OdinInspector;
+//using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
@@ -43,7 +43,7 @@ namespace OpenWorld
             return new ChunkPosition(chunkX, chunkZ);
         }
 
-        public Chunk GetChunkByPosition(float x, float z)
+        public Chunk GetChunkByWorldPosition(float x, float z)
         {
             var chunkPosition = WorldToChunkPosition(x, z);
 
@@ -158,7 +158,7 @@ namespace OpenWorld
                 foreach (Transform child in obj.transform)
                 {
                     //var chunk = chunks.FirstOrDefault(c => c.FitsInChunk(child));
-                    var chunk = GetChunkByPosition(child.position.x, child.position.z);
+                    var chunk = GetChunkByWorldPosition(child.position.x, child.position.z);
                     if (chunk == null)
                     {
                         Debug.LogError($"{child.name} was outside of scene");
@@ -186,6 +186,12 @@ namespace OpenWorld
             }
         }
 
+        /// <summary>
+        /// Add a new chunk to the asset
+        /// </summary>
+        /// <param name="x">Chunk position in chunk coordinates</param>
+        /// <param name="z">Chunk position in chunk coordinates</param>
+        /// <returns></returns>
         public Chunk AddChunk(int x, int z)
         {
             var chunk = CreateNewChunk("Chunk", x, z);
@@ -226,7 +232,7 @@ namespace OpenWorld
             return chunk;
         }
 
-        [Button("Clear empty chunks")]
+        //[Button("Clear empty chunks")]
         public void DeleteEmptyChunks()
         {
             var toDelete = new List<Chunk>();
