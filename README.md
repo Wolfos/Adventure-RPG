@@ -6,5 +6,6 @@ This is only the C# code as many of the assets used are proprietary. Sorry about
 
 ## WolfRPG
 This game is powered by
-[WolfRPG.Core](https://github.com/Wolfos/WolfRPG.Core)
-[WolfRPG.Inventory](https://github.com/Wolfos/WolfRPG.Inventory)
+
+- [WolfRPG.Core](https://github.com/Wolfos/WolfRPG.Core)
+- [WolfRPG.Inventory](https://github.com/Wolfos/WolfRPG.Inventory)
