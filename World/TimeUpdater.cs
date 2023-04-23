@@ -1,8 +1,18 @@
 ﻿using System;
-using System.Collections;
 using Data;
 using UnityEngine;
+using WolfRPG.Core.CommandConsole;
 
+public class SetTimeCommand : IConsoleCommand
+{
+    public string Word => "settime";
+    public ConsoleArgumentType[] Arguments { get; } = { ConsoleArgumentType.Int };
+    public void Execute(object[] arguments, Action<string> onError)
+    {
+        var newTime = (int)arguments[0];
+        TimeManager.Time = newTime;
+    }
+}
 
 public class TimeUpdater : SaveableObject
 {
@@ -16,6 +26,11 @@ public class TimeUpdater : SaveableObject
     private void Awake()
     {
         global = true;
+    }
+
+    private void Start()
+    {
+        CommandConsole.RegisterCommand(new SetTimeCommand());
     }
 
     private void Update()
