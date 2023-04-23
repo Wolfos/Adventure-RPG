@@ -99,5 +99,10 @@ namespace Player
 		{
 			EventManager.OnDialogueNext?.Invoke(context);
 		}
+
+		public void OnToggleCommandConsole(InputAction.CallbackContext context)
+		{
+			EventManager.OnToggleCommandConsole?.Invoke(context);
+		}
 	}
 }

@@ -25,5 +25,6 @@ namespace Utility
 		public static Action<InputAction.CallbackContext> OnMenuLeft;
 		public static Action<InputAction.CallbackContext> OnMenuRight;
 		public static Action<InputAction.CallbackContext> OnDialogueNext;
+		public static Action<InputAction.CallbackContext> OnToggleCommandConsole;
 	}
 }

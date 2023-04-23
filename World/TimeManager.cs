@@ -1,6 +1,17 @@
-﻿using Models;
-using UnityEditor;
-using Utility;
+﻿using System;
+using Models;
+using WolfRPG.Core.CommandConsole;
+
+public class SetTimeCommand : IConsoleCommand
+{
+	public string Word => "settime";
+	public ConsoleArgumentType[] Arguments { get; } = { ConsoleArgumentType.Int };
+	public void Execute(object[] arguments, Action<string> onError)
+	{
+		var newTime = (int)arguments[0];
+		TimeManager.Time = newTime;
+	}
+}
 
 public class TimeManager
 {
@@ -40,6 +51,8 @@ public class TimeManager
 		if(_instance == null) _instance = this;
 
 		Time = time;
+		
+		CommandConsole.RegisterCommand(new SetTimeCommand());
 	}
 
 	public static float RealTime()
