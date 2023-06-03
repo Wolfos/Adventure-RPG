@@ -2,107 +2,118 @@ using System;
 using Items;
 using UnityEngine;
 using UnityEngine.UI;
+using WolfRPG.Inventory;
 
 namespace UI
 {
 	public class InventoryItemButtonView: MonoBehaviour
 	{
-		public Item Item { get; private set; }
+		public ItemData Item { get; private set; }
+
+		[SerializeField] private Text itemNameText;
+		[SerializeField] private Text typeText;
+		[SerializeField] private Text weightText;
+		[SerializeField] private Text valueText;
 		
-		[SerializeField] private ItemDetailsPanel detailsPanel;
-		[SerializeField] private Image image;
-		[SerializeField] private Image backgroundImage;
-		[SerializeField] private DraggableItem draggableItem;
-		[SerializeField] private Button button;
-		[SerializeField] private Text quantityText;
-		[SerializeField] private Color emptyColor;
-		[SerializeField] private Sprite emptySprite;
+		// [SerializeField] private ItemDetailsPanel detailsPanel;
+		// [SerializeField] private Image image;
+		// [SerializeField] private Image backgroundImage;
+		// [SerializeField] private DraggableItem draggableItem;
+		// [SerializeField] private Button button;
+		// [SerializeField] private Text quantityText;
+		// [SerializeField] private Color emptyColor;
+		// [SerializeField] private Sprite emptySprite;
 
 		private InventoryView _inventoryView;
 		
 
 		private void Awake()
 		{
-			detailsPanel.gameObject.SetActive(false);
+			//detailsPanel.gameObject.SetActive(false);
 		}
 
 		public void Initialize(InventoryView inventoryView, int slot, int quantity, Action onClick, bool isDragable)
 		{
 			_inventoryView = inventoryView;
 			
-			draggableItem.InventoryView = inventoryView;
-			draggableItem.Slot = slot;
-			draggableItem.IsDragable = isDragable;
-			button.onClick.AddListener(() => {onClick?.Invoke();});
+			// draggableItem.InventoryView = inventoryView;
+			// draggableItem.Slot = slot;
+			// draggableItem.IsDragable = isDragable;
+			// button.onClick.AddListener(() => {onClick?.Invoke();});
 			SetQuantity(quantity);
 		}
 
 		public void Select()
 		{
-			button.Select();
+			//button.Select();
 		}
 
 		public void EquipStatusChanged(Item item, bool newStatus)
 		{
-			backgroundImage.color =
-				newStatus ? item.equippedInventoryBackgroundColor : item.inventoryBackgroundColor;
+			// backgroundImage.color =
+			// 	newStatus ? item.equippedInventoryBackgroundColor : item.inventoryBackgroundColor;
 		}
 
 		private void SetQuantity(int quantity)
 		{
-			quantityText.text = "";
-			if (quantity > 1)
-			{
-				quantityText.text = quantity.ToString();
-			}
+			// quantityText.text = "";
+			// if (quantity > 1)
+			// {
+			// 	quantityText.text = quantity.ToString();
+			// }
 		}
-
-		public void SetItem(Item item)
+		
+		public void SetItem(ItemData item, int quantity)
 		{
 			if (Item != null)
 			{
-				Item.onQuantityChanged -= OnQuantityChanged;
+				//Item.onQuantityChanged -= OnQuantityChanged;
 			}
 			
 			Item = item;
 			if (item != null)
 			{
-				image.sprite = item.icon;
-				EquipStatusChanged(item, item.IsEquipped);
-				SetQuantity(item.Quantity);
-				Item.onQuantityChanged += OnQuantityChanged;
+				var text = quantity > 1 ? $"{item.Name.Get()} ({quantity})" : item.Name.Get();
+				itemNameText.text = text;
+				typeText.text = item.Type.ToString(); // TODO: Localize
+				weightText.text = item.Weight.ToString("0.0");
+				valueText.text = item.BaseValue.ToString();
+				// image.sprite = item.icon;
+				// EquipStatusChanged(item, item.IsEquipped);
+				// SetQuantity(item.Quantity);
+				// Item.onQuantityChanged += OnQuantityChanged;
 			}
 			else
 			{
-				image.sprite = emptySprite;
-				backgroundImage.color = emptyColor;
-				SetQuantity(0);
+				// image.sprite = emptySprite;
+				// backgroundImage.color = emptyColor;
+				// SetQuantity(0);
 			}
 			
-			detailsPanel.SetItem(item, _inventoryView.PriceMultiplier);
+			//detailsPanel.SetItem(item, _inventoryView.PriceMultiplier);
 		}
 
-		private void OnQuantityChanged(Item item)
+		private void OnQuantityChanged(ItemData item)
 		{
-			SetQuantity(item.Quantity);
+			//SetQuantity(item.Quantity);
 		}
 
 		public void OnPointerEnter()
 		{
 			if (Item != null)
 			{
-				detailsPanel.gameObject.SetActive(true);
+				//detailsPanel.gameObject.SetActive(true);
 			}
 		}
 		
 		public void OnPointerExit()
 		{
-			detailsPanel.gameObject.SetActive(false);
+			//detailsPanel.gameObject.SetActive(false);
 		}
 
 		private void OnDisable()
 		{
-			detailsPanel.gameObject.SetActive(false);
+			//detailsPanel.gameObject.SetActive(false);
 		}
 	}
 }

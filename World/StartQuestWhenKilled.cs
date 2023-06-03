@@ -8,7 +8,7 @@ namespace World
     [RequireComponent(typeof(Character.NPC))]
     public class StartQuestWhenKilled : MonoBehaviour
     {
-        [SerializeField] private Quest quest;
+        //[SerializeField] private Quest quest;
 
         private void Start()
         {
@@ -17,7 +17,7 @@ namespace World
 
         private void OnDeath()
         {
-            SystemContainer.GetSystem<Player.PlayerCharacter>().StartQuest(quest);
+            //SystemContainer.GetSystem<Player.PlayerCharacter>().StartQuest(quest);
         }
     }
 }

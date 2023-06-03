@@ -6,23 +6,25 @@ using Combat;
 using Data;
 using Interface;
 using Items;
-using UI;
 using UnityEngine;
 using Utility;
+using WolfRPG.Character;
+using WolfRPG.Core;
+using WolfRPG.Core.Quests;
+using WolfRPG.Inventory;
 
 namespace Character
 {
-	[RequireComponent(typeof(Container))]
 	[RequireComponent(typeof(CharacterEquipment))]
 	public abstract class CharacterBase : MonoBehaviour
 	{
-		public Container inventory;
-		public CharacterData data = new CharacterData();
+		public ItemContainer Inventory => _loadoutComponent.ItemContainer;
+
+		[SerializeField] protected RPGObjectReference characterObjectRef;
+		public CharacterComponent CharacterComponent => Data.CharacterComponent;
+		public CharacterData Data { get; private set; }
 		public Transform graphic;
 		[SerializeField] protected Animator animator;
-		[SerializeField] private float startHealth;
-		[SerializeField] private float healthOffset = 80;
-		[SerializeField] protected float headOffset;
 		[SerializeField] private float deathAnimationLength;
 		[SerializeField] private CollisionCallbacks interactionTrigger, meleeAttackTrigger;
 		[SerializeField] private LayerMask interactionLayerMask, attackLayerMask;
@@ -30,8 +32,9 @@ namespace Character
 		[SerializeField] private AudioClip hitSound;
 		[SerializeField] public CharacterAnimationEvents animationEvents;
 
-		private List<CharacterBase> currentTargets;
-		private Collider currentInteraction;
+		private List<CharacterBase> _currentTargets = new();
+		private Collider _currentInteraction;
+		private LoadoutComponent _loadoutComponent;
 		
 		protected Action<Damage> onDamaged;
 		public CharacterEquipment equipment;
@@ -44,9 +47,20 @@ namespace Character
 		
 		protected void Awake()
 		{
+			Data = new CharacterData(
+				characterObjectRef.GetComponent<CharacterAttributes>(),
+				characterObjectRef.GetComponent<CharacterSkills>(),
+				characterObjectRef.GetComponent<CharacterComponent>(),
+				characterObjectRef.GetComponent<NpcComponent>()); // Can be null
+
+			_loadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
+			_loadoutComponent.ItemContainer = new();
+
+			CharacterComponent.CharacterId = characterObjectRef.GetObject().Guid;
+			
 			if (SaveGameManager.NewGame)
 			{
-				data.characterId = CharacterPool.Register(this).ToString();
+				//data.characterId = CharacterPool.Register(this).ToString();
 			}
 			equipment = GetComponent<CharacterEquipment>();
 			animationEvents.onHit += MeleeHitCallback;
@@ -54,7 +68,12 @@ namespace Character
 
 		protected void Start()
 		{
-
+			for (int i = 0; i < _loadoutComponent.StartingInventory.Length; i++)
+			{
+				Inventory.AddItem(RPGDatabase.GetObject(_loadoutComponent.StartingInventory[i]));
+				//inventory.items[i].IsEquipped = true;
+			}
+			
 			if (meleeAttackTrigger != null)
 			{
 				meleeAttackTrigger.onTriggerEnter += TargetTriggerEnter;
@@ -68,13 +87,13 @@ namespace Character
 				interactionTrigger.onTriggerExit += InteractionTriggerExit;
 			}
 
-			currentTargets = new List<CharacterBase>();
+			_currentTargets = new List<CharacterBase>();
 		}
 
 		protected void OnEnable()
 		{
-			data.maxHealth = startHealth;
-			SetHealth(startHealth);
+			//data.maxHealth = startHealth;
+			//SetHealth();
 		}
 
 		protected void Update()
@@ -85,18 +104,14 @@ namespace Character
 		#region Combat
 		private void CheckTargetsAlive()
 		{
-			List<CharacterBase> toRemove = new List<CharacterBase>();
-			foreach (var target in currentTargets)
+			// Iterate in reverse for safe removal
+			for (int i = _currentTargets.Count - 1; i >= 0; i--)
 			{
-				if (target == null || target.data.health <= 0)
+				var target = _currentTargets[i];
+				if (target == null || target.CharacterComponent.Health <= 0)
 				{
-					toRemove.Add(target);
+					_currentTargets.RemoveAt(i);
 				}
-			}
-
-			foreach (var removal in toRemove)
-			{
-				currentTargets.Remove(removal);
 			}
 		}
 
@@ -105,7 +120,7 @@ namespace Character
 			if (((1<<other.gameObject.layer) & attackLayerMask) != 0)
 			{
 				var character = other.GetComponent<CharacterBase>();
-				if(character != this) currentTargets.Add(character);
+				if(character != this) _currentTargets.Add(character);
 			}
 		}
 
@@ -114,9 +129,9 @@ namespace Character
 			if (((1 << other.gameObject.layer) & attackLayerMask) != 0)
 			{
 				var character = other.GetComponent<CharacterBase>();
-				if (currentTargets.Contains(character))
+				if (_currentTargets.Contains(character))
 				{
-					currentTargets.Remove(character);
+					_currentTargets.Remove(character);
 				}
 			}
 		}
@@ -142,10 +157,10 @@ namespace Character
 			bool willAttack;
 			if (Weapon)
 			{
-				Weapon.baseDamage.source = data.characterId;
+				Weapon.baseDamage.source = CharacterComponent.CharacterId;
 				if (Weapon is RangedWeapon rangedWeapon)
 				{
-					rangedWeapon.ammunition = GetAmmo();
+					//rangedWeapon.ammunition = GetAmmo();
 				}
 
 				willAttack = Weapon.CanAttack();
@@ -164,9 +179,9 @@ namespace Character
 			// Unarmed
 			if (Weapon == null)
 			{
-				foreach (var target in currentTargets)
+				foreach (var target in _currentTargets)
 				{
-					unarmedDamage.source = data.characterId;
+					unarmedDamage.source = CharacterComponent.CharacterId;
 					target.TakeDamage(unarmedDamage, transform.position);
 				}
 			}
@@ -187,36 +202,36 @@ namespace Character
 
 		public void Interact()
 		{
-			if (currentInteraction != null)
+			if (_currentInteraction != null)
 			{
-				if (currentInteraction.enabled)
+				if (_currentInteraction.enabled)
 				{
-					var interactables = currentInteraction.GetComponents<IInteractable>();
+					var interactables = _currentInteraction.GetComponents<IInteractable>();
 					foreach (var interactable in interactables)
 					{
 						interactable.OnInteract(this);
 					}
 				}
-				else currentInteraction = null;
+				else _currentInteraction = null;
 			}
 		}
 		private void InteractionTriggerEnter(Collider other)
 		{
 			if (((1<<other.gameObject.layer) & interactionLayerMask) != 0)
 			{
-				if (currentInteraction != null)
+				if (_currentInteraction != null)
 				{
-					var currentDistance = Vector3.Distance(currentInteraction.transform.position, transform.position);
+					var currentDistance = Vector3.Distance(_currentInteraction.transform.position, transform.position);
 					var newDistance = Vector3.Distance(other.transform.position, transform.position);
 					if (newDistance > currentDistance) return;
 				}
-				currentInteraction = other;
+				_currentInteraction = other;
 			}
 		}
 
 		private void InteractionTriggerStay(Collider other)
 		{
-			if (other == currentInteraction)
+			if (other == _currentInteraction)
 			{
 				var interactables = other.GetComponents<IInteractable>();
 				foreach (var interactable in interactables)
@@ -228,21 +243,21 @@ namespace Character
 
 		private void InteractionTriggerExit(Collider other)
 		{
-			if (other == currentInteraction)
+			if (other == _currentInteraction)
 			{
 				var interactables = other.GetComponents<IInteractable>();
 				foreach (var interactable in interactables)
 				{
 					interactable.OnEndInteract(this);
 				}
-				currentInteraction = null;
+				_currentInteraction = null;
 			}
 		}
 		#endregion
 
 		public virtual bool SetHealth(float health)
 		{
-			data.health = health;
+			CharacterComponent.Health = health;
 
 			if (health <= 0)
 			{
@@ -256,7 +271,7 @@ namespace Character
 		public void Die()
 		{
 			StopAllCoroutines();
-			data.isDead = true;
+			CharacterComponent.IsDead = true;
 			DeathAnimationStarted();
 			animator.SetTrigger("Death");
 			
@@ -275,14 +290,14 @@ namespace Character
 		public void TakeDamage(Damage damage, Vector3 point)
 		{
 			if(Weapon != null) Weapon.InterruptAttack();
-			if (data.isDead) return;
+			if (CharacterComponent.IsDead) return;
 			
 			onDamaged?.Invoke(damage);
 			SFXPlayer.PlaySound(hitSound, 0.2f);
 
 			//var knockback = (transform.position - point).normalized * (damage.knockback * 20);
 
-			if (SetHealth(data.health - damage.amount) == false)
+			if (SetHealth(CharacterComponent.Health - damage.amount) == false)
 			{
 				animator.SetTrigger("Hit");
 			}
@@ -292,28 +307,29 @@ namespace Character
 		/// <summary>
 		/// Returns the currently equipped ammunition. If none is equipped, returns the first instead and equips that.
 		/// </summary>
-		protected Ammunition GetAmmo()
-		{
-			Item ammo = null;
-			foreach (var item in inventory.items)
-			{
-				if (item != null && item.type == ItemType.Ammunition)
-				{
-					if (ammo == null || item.IsEquipped) ammo = item;
-				}
-			}
-
-			if (ammo != null && !ammo.IsEquipped) ammo.IsEquipped = true;
-			return ammo as Ammunition;
-		}
+		///  TODO: Reimplement
+		// protected Ammunition GetAmmo()
+		// {
+		// 	Item ammo = null;
+		// 	foreach (var item in inventory.items)
+		// 	{
+		// 		if (item != null && item.type == ItemType.Ammunition)
+		// 		{
+		// 			if (ammo == null || item.IsEquipped) ammo = item;
+		// 		}
+		// 	}
+		//
+		// 	if (ammo != null && !ammo.IsEquipped) ammo.IsEquipped = true;
+		// 	return ammo as Ammunition;
+		// }
 
 		// My damage killed something
-		public void Killed(string kill)
+		public void Killed(string characterID)
 		{
-			var quest = data.quests.FirstOrDefault(q => q.stage.target == kill);
+			var quest = CharacterComponent.Quests.FirstOrDefault(q => q.CurrentStage.Target == characterID);
 			if (quest != null)
 			{
-				quest.Progress();
+				Quest.ProgressToNextStage(quest);
 			}
 		}
 	}

@@ -31,7 +31,7 @@ namespace UI
 		public void BeginDrag()
 		{
 			if (!IsDragable) return;
-			if (InventoryView.container.GetItemBySlot(Slot) == null) return;
+			if (InventoryView.Container.GetItemBySlot(Slot) == null) return;
 
 			_startPosition = transform.position;
 			_startDifference = InputMapper.MousePosition - _startPosition;

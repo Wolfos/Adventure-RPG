@@ -154,7 +154,7 @@ namespace Items
 
 		public void OnInteract(CharacterBase character)
 		{
-			character.inventory.AddItem(this);
+			//character.inventory.AddItem(this);
 			Tooltip.DeActivate();
 			character.SendMessage("InteractionTriggerExit", Collider);
 		}

@@ -6,6 +6,7 @@ using UI;
 using UnityEngine;
 using Character;
 using Utility;
+using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Player
 {
@@ -38,24 +39,24 @@ namespace Player
 			SystemContainer.UnRegister<PlayerCharacter>();
 		}
 
-		public void StartQuest(Quest quest)
-		{
-			if (HasQuest(quest)) return;
-			
-			var q = Instantiate(quest);
-			q.name = quest.name;
-			data.quests.Add(q);
-			data.questProgress.Add(quest.progress);
-		}
+		// public void StartQuest(Quest quest)
+		// {
+		// 	if (HasQuest(quest)) return;
+		// 	
+		// 	var q = Instantiate(quest);
+		// 	q.name = quest.name;
+		// 	data.quests.Add(q);
+		// 	data.questProgress.Add(quest.progress);
+		// }
 
-		public bool HasQuest(Quest quest)
-		{
-			return data.quests.Any(x => x.name == quest.name);
-		}
+		// public bool HasQuest(Quest quest)
+		// {
+		// 	return data.quests.Any(x => x.name == quest.name);
+		// }
 
 		public override bool SetHealth(float health)
 		{
-			EventManager.OnPlayerHealthChanged?.Invoke(health, data.maxHealth);
+			EventManager.OnPlayerHealthChanged?.Invoke(health, Data.GetAttributeValue(Attribute.MaxHealth));
 			return base.SetHealth(health);
 		}
 

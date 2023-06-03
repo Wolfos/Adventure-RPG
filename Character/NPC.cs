@@ -7,27 +7,15 @@ using UI;
 using UnityEngine;
 using UnityEngine.AI;
 using Utility;
+using WolfRPG.Character;
+using WolfRPG.Core;
 
 namespace Character
 {
-	public enum NPCDemeanor
-	{
-		Friendly, Neutral, Hostile
-	}
-
-	public enum NPCRoutine
-	{
-		Idle, Wandering, Combat
-	}
-	
 	public class NPC : CharacterBase
 	{
-		[Header("NPC settings")][SerializeField] private NPCDemeanor demeanor;
-		[SerializeField] private NPCRoutine defaultRoutine;
 		[SerializeField] private NavMeshAgent agent;
 
-		[SerializeField] private int[] startingInventory;
-		
 		[SerializeField] private float meleeAttackRange = 1;
 		[SerializeField] private float maxPursueDistance = 20;
 		[SerializeField] private float startChaseDistance = 10;
@@ -37,12 +25,13 @@ namespace Character
 		
 		[SerializeField] private Container shopInventory;
 
-		private NPCRoutine _currentRoutine;
 		private float _movementSpeed;
 
 		public Action OnDeath;
+		public NpcComponent NpcComponent => Data.NpcComponent;
 
 		private Player.PlayerCharacter _playerCharacter;
+		private static readonly int Speed = Animator.StringToHash("Speed");
 
 		private new void Awake()
 		{
@@ -62,7 +51,7 @@ namespace Character
 			}
 			else
 			{
-				ActivateRoutine(defaultRoutine, true);
+				ActivateRoutine(NpcComponent.DefaultRoutine, true);
 			}
 
 			onDamaged += OnDamaged;
@@ -74,34 +63,30 @@ namespace Character
 		{
 			yield return new WaitForSeconds(1);
 			
-			ActivateRoutine(defaultRoutine, true);
+			ActivateRoutine(NpcComponent.DefaultRoutine, true);
 		}
 
 		private void Start()
 		{
-			data.position = transform.position;
-			data.rotation = transform.rotation;
-
-			for (int i = 0; i < startingInventory.Length; i++)
-			{
-				inventory.AddItem(startingInventory[i]);
-				inventory.items[i].IsEquipped = true;
-			}
+			var transform1 = transform;
+			CharacterComponent.Position = transform1.position;
+			CharacterComponent.Rotation = transform1.rotation;
+			
 			equipment.CheckEquipment();
 
 			_playerCharacter = SystemContainer.GetSystem<Player.PlayerCharacter>();
 			base.Start();
 		}
 
-		public void UpdateData(CharacterData data)
-		{
-			this.data = data;
-			SetHealth(data.health);
-			transform.position = data.position;
-			transform.rotation = data.rotation;
-			CharacterPool.Register(data.characterId, this);
-			ActivateRoutine(data.routine, true, true);
-		}
+		// public void UpdateData(CharacterDataOld dataOld)
+		// {
+		// 	this.data = dataOld;
+		// 	SetHealth(dataOld.health);
+		// 	transform.position = dataOld.position;
+		// 	transform.rotation = dataOld.rotation;
+		// 	CharacterPool.Register(dataOld.characterId, this);
+		// 	ActivateRoutine(dataOld.routine, true, true);
+		// }
 
 		protected override void DeathAnimationStarted()
 		{
@@ -124,9 +109,8 @@ namespace Character
 		private void ActivateRoutine(NPCRoutine routine, bool delayed = false, bool proceed = false)
 		{
 			StopAllCoroutines();
-
-			_currentRoutine = routine;
-			data.routine = routine;
+			
+			NpcComponent.CurrentRoutine = routine;
 			switch (routine)
 			{
 				case NPCRoutine.Idle:
@@ -154,12 +138,12 @@ namespace Character
 				agent.speed = _movementSpeed;
 			//}
 			
-			animator.SetFloat("Speed", agent.velocity.magnitude);
+			animator.SetFloat(Speed, agent.velocity.magnitude);
 
-			data.position = transform.position;
-			data.rotation = transform.rotation;
-			data.velocity = agent.velocity;
-			
+			var transform1 = transform;
+			CharacterComponent.Position = transform1.position;
+			CharacterComponent.Rotation = transform1.rotation;
+			CharacterComponent.Velocity = agent.velocity;
 
 			base.Update();
 		}
@@ -168,14 +152,14 @@ namespace Character
 		{
 			if (!string.IsNullOrEmpty(damage.source))
 			{
-				data.currentTarget = damage.source;
-				if (_currentRoutine != NPCRoutine.Combat)
+				CharacterComponent.CurrentTarget = damage.source;
+				if (NpcComponent.CurrentRoutine != NPCRoutine.Combat)
 				{
 					ActivateRoutine(NPCRoutine.Combat);
 				}
 			}
 
-			if (data.health - damage.amount <= 0) // Dying
+			if (CharacterComponent.Health - damage.amount <= 0) // Dying
 			{
 				OnDeath?.Invoke();
 				CharacterPool.GetCharacter(damage.source)?.Killed(gameObject.name);
@@ -185,7 +169,7 @@ namespace Character
 
 		private CharacterBase GetTarget()
 		{
-			return CharacterPool.GetCharacter(data.currentTarget);
+			return CharacterPool.GetCharacter(CharacterComponent.CurrentTarget);
 		}
 
 		private IEnumerator CombatRoutine(bool delayed = false, bool proceed = false)
@@ -202,7 +186,7 @@ namespace Character
 			{
 				if (proceed) 
 				{
-					agent.velocity = data.velocity;
+					agent.velocity = CharacterComponent.Velocity;
 					yield return null;
 				}
 
@@ -211,7 +195,7 @@ namespace Character
 				Vector3 targetPos = GetTarget().transform.position;
 				Vector3 pos = transform.position;
 				
-				data.destination = targetPos;
+				NpcComponent.Destination = targetPos;
 				agent.destination = targetPos;
 				
 				float distance = Vector3.Distance(targetPos, pos);
@@ -221,12 +205,12 @@ namespace Character
 
 				if (distance > maxPursueDistance)
 				{
-					ActivateRoutine(defaultRoutine);
+					ActivateRoutine(NpcComponent.DefaultRoutine);
 				}
 				else if (distance < meleeAttackRange && Mathf.Abs(angle) < 10)
 				{
-					data.destination = transform.position;
-					agent.destination = data.destination;
+					NpcComponent.Destination = transform.position;
+					agent.destination = NpcComponent.Destination;
 					StartCoroutine(AttackRoutine());
 					yield return new WaitForSeconds(1);
 				}
@@ -259,20 +243,20 @@ namespace Character
 			
 			while (true)
 			{
-				if (proceed) agent.velocity = data.velocity;
-				else data.destination = bounds.RandomPos();
+				if (proceed) agent.velocity = CharacterComponent.Velocity;
+				else NpcComponent.Destination = bounds.RandomPos();
 
-				agent.destination = data.destination;
+				agent.destination = NpcComponent.Destination;
 
 				if (proceed) yield return null;
 
 				while (agent.hasPath)
 				{
-					if (demeanor == NPCDemeanor.Hostile)
+					if (NpcComponent.Demeanor == NPCDemeanor.Hostile)
 					{
 						if (Vector3.SqrMagnitude(transform.position - _playerCharacter.transform.position) < startChaseDistance * startChaseDistance)
 						{
-							data.currentTarget = _playerCharacter.data.characterId;
+							CharacterComponent.CurrentTarget = _playerCharacter.CharacterComponent.CurrentTarget;
 							ActivateRoutine(NPCRoutine.Combat);
 						}
 					}

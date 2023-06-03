@@ -13,22 +13,22 @@ namespace Dialogue
 	{
 		[Input(ShowBackingValue.Never)] public Node previous;
 		[Output] public Node next;
-		[SerializeField] private Quest quest;
+		//[SerializeField] private Quest quest;
 		[SerializeField] private int stage;
 
 		private void OnValidate()
 		{
-			stage = Mathf.Clamp(stage, 0, quest.stages.Length - 1);
+			//stage = Mathf.Clamp(stage, 0, quest.stages.Length - 1);
 		}
 
 		public void Execute()
 		{
-			var player = SystemContainer.GetSystem<Player.PlayerCharacter>();
-			if (player.HasQuest(quest))
-			{
-				var playerQuest = player.data.quests.First(q => q.name == quest.name);
-				playerQuest.SetStage(stage);
-			}
+			// var player = SystemContainer.GetSystem<Player.PlayerCharacter>();
+			// if (player.HasQuest(quest))
+			// {
+			// 	var playerQuest = player.data.quests.First(q => q.name == quest.name);
+			// 	playerQuest.SetStage(stage);
+			// }
 		}
 	}
 }

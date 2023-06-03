@@ -30,7 +30,7 @@ namespace Character
 
 			foreach (NPC npc in npcs)
 			{
-				allData += JsonUtility.ToJson(npc.data) + "</npc>";
+				//allData += JsonUtility.ToJson(npc.data) + "</npc>";
 			}
 
 			return allData;
@@ -56,13 +56,13 @@ namespace Character
 				var newNPC = Instantiate(prefab, transform, false);
 				var npc = newNPC.GetComponent<NPC>();
 				newNPC.name = npcName;
-				var d = JsonUtility.FromJson<CharacterData>(data[i]);
-				npc.UpdateData(d);
-				npc.bounds = bounds;
-				if (d.isDead)
-				{
-					newNPC.SetActive(false);
-				}
+				// var d = JsonUtility.FromJson<CharacterDataOld>(data[i]);
+				// npc.UpdateData(d);
+				// npc.bounds = bounds;
+				// if (d.isDead)
+				// {
+				// 	newNPC.SetActive(false);
+				// }
 				npcs.Add(npc);
 			}
 		}

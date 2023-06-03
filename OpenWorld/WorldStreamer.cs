@@ -1,10 +1,8 @@
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using UnityEditor.Experimental.SceneManagement;
 #endif
 
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,10 +20,11 @@ namespace OpenWorld
         private bool _streamingDisabled;
         private static WorldStreamer _instance;
 
+
         private void Start()
         {
             _instance = this;
-            
+
             // Load terrain scene if not currently loaded
 #if UNITY_EDITOR
             EditorApplication.wantsToQuit += OnQuit;
@@ -197,13 +196,14 @@ namespace OpenWorld
             if (_bakingMode || _streamingDisabled) return;
             
             var mainCamera = Camera.main;
-            #if UNITY_EDITOR
-            if (PrefabStageUtility.GetCurrentPrefabStage() != null)
+#if UNITY_EDITOR
+            if (EditorApplication.isPlaying == false)
             {
-                return;
-            }
-            if (!EditorApplication.isPlaying)
-            {
+                if (PrefabStageUtility.GetCurrentPrefabStage() != null)
+                {
+                    return;
+                }
+                
                 mainCamera = SceneView.lastActiveSceneView.camera;
                 if (UnloadUnnecessaryScenes())
                 {
@@ -211,16 +211,18 @@ namespace OpenWorld
                 }
                 UpdateSelectionChunks();
             }
-            #endif
+#endif
             var cameraPos = mainCamera.transform.position;
             var chunks = data.GetChunkAndAdjacent(cameraPos.x, cameraPos.z);
-            var toRemove = new List<Chunk>();
-            foreach (var chunk in _currentChunks)
+
+            // Iterate in reverse for safe removal
+            for (int i = _currentChunks.Count - 1; i >= 0; i--)
             {
-                if (!chunks.Contains(chunk))
+                var chunk = _currentChunks[i];
+                if (chunks.Contains(chunk) == false)
                 {
-                    toRemove.Add(chunk);
-                    #if UNITY_EDITOR
+                    _currentChunks.RemoveAt(i);
+#if UNITY_EDITOR
                     if (!EditorApplication.isPlaying)
                     {
                         if (!chunk.scene.isDirty)
@@ -230,15 +232,11 @@ namespace OpenWorld
                         }
                         continue;
                     }
-                    #endif
+#endif
                     SceneManager.UnloadSceneAsync(chunk.Name);
                 }
             }
-
-            foreach (var chunk in toRemove)
-            {
-                _currentChunks.Remove(chunk);
-            }
+            
             
             foreach (var chunk in chunks)
             {
@@ -257,7 +255,7 @@ namespace OpenWorld
                                 sceneIsLoaded = true;
                             }
                         }
-
+            
                         if (!sceneIsLoaded)
                         {
                             EditorSceneManager.OpenScene($"Assets/Scenes/Chunks/{chunk.Name}.unity", OpenSceneMode.Additive);

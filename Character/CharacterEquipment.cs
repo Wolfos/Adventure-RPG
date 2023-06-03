@@ -26,16 +26,16 @@ namespace Character
 		public void Awake()
 		{
 			_characterBase = GetComponent<CharacterBase>();
-			_characterBase.inventory.onItemEquipped += ItemEquipped;
-			_characterBase.inventory.onItemUnequipped += ItemUnequipped;
+			//_characterBase.Inventory.onItemEquipped += ItemEquipped;
+			//_characterBase.Inventory.onItemUnequipped += ItemUnequipped;
 		}
 		
 		public void CheckEquipment()
 		{
-			foreach (var item in _characterBase.inventory.items)
-			{
-				if(item != null && item.IsEquipped) ItemEquipped(item);
-			}
+			// foreach (var item in _characterBase.inventory.items)
+			// {
+			// 	if(item != null && item.IsEquipped) ItemEquipped(item);
+			// }
 		}
 
 		private void ItemEquipped(Item item)
@@ -50,7 +50,7 @@ namespace Character
 						switch (effect.type)
 						{
 							case ItemEffectType.AddHealth:
-								_characterBase.SetHealth(_characterBase.data.health + effect.amount);
+								_characterBase.SetHealth(_characterBase.CharacterComponent.Health + effect.amount);
 								break;
 							case ItemEffectType.AddMana:
 								break;
@@ -58,7 +58,7 @@ namespace Character
 								throw new ArgumentOutOfRangeException();
 						}
 					}
-					_characterBase.inventory.DestroyItem(item.slot);
+					//_characterBase.inventory.DestroyItem(item.slot);
 					break;
 				case ItemType.RangedWeapon:
 					if (rightHandEquipped)

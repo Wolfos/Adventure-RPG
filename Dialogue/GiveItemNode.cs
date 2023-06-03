@@ -1,13 +1,14 @@
 ﻿using Items;
 using XNode;
 using Utility;
+using WolfRPG.Core;
 
 namespace Dialogue
 {
     public class GiveItemNode : Node
     {
         public bool giveItem;
-        public Item item;
+        public RPGObjectReference item;
         public bool giveMoney;
         public int money;
         [Input(ShowBackingValue.Never)] public Node previous;
@@ -17,11 +18,11 @@ namespace Dialogue
         {
             if (giveItem)
             {
-                SystemContainer.GetSystem<Player.PlayerCharacter>().inventory.AddItem(item.id);
+                SystemContainer.GetSystem<Player.PlayerCharacter>().Inventory.AddItem(item.GetObject());
             }
             else if (giveMoney)
             {
-                SystemContainer.GetSystem<Player.PlayerCharacter>().data.money += money;
+                SystemContainer.GetSystem<Player.PlayerCharacter>().Inventory.Money += money;
             }
         }
     }

@@ -21,12 +21,12 @@ namespace UI
         private int maxVisible;
         private GameObject lastSelectedObject;
         private List<Button> buttons;
-        private List<Quest> quests;
+        //private List<Quest> quests;
 
         private void OnEnable()
         {
             buttons = new List<Button>();
-            quests = SystemContainer.GetSystem<PlayerCharacter>().data.quests;
+            //quests = SystemContainer.GetSystem<PlayerCharacter>().data.quests;
             CreateQuestButtons();
         }
 
@@ -42,15 +42,15 @@ namespace UI
 
         private void CreateQuestButtons()
         {
-            foreach (var quest in quests)
-            {
-                var go = Instantiate(buttonPrefab, content);
-                go.SetActive(true);
-                var button = go.GetComponent<Button>();
-                button.onClick.AddListener(() => ButtonPressed(go));
-                buttons.Add(button);
-                go.GetComponentInChildren<Text>().text = quest.questName;
-            }
+            // foreach (var quest in quests)
+            // {
+            //     var go = Instantiate(buttonPrefab, content);
+            //     go.SetActive(true);
+            //     var button = go.GetComponent<Button>();
+            //     button.onClick.AddListener(() => ButtonPressed(go));
+            //     buttons.Add(button);
+            //     go.GetComponentInChildren<Text>().text = quest.questName;
+            // }
             if(InputMapper.UsingController && buttons.Count > 0) buttons[0].Select();
         }
         
@@ -74,25 +74,25 @@ namespace UI
             {
                 if (selected != buttons[i].gameObject) continue;
                 
-                var quest = quests[i];
-                title.text = quest.questName.ToUpper();
-                string stageText = "";
-                foreach (var stage in quest.stages)
-                {
-                    if (stage.complete)
-                    {
-                        stageText += "◉ ";
-                        stageText += stage.description + "\n";
-                    }
-                    else
-                    {
-                        stageText += "○ ";
-                        stageText += stage.description;
-                        break;
-                    }
-                }
+                // var quest = quests[i];
+                // title.text = quest.questName.ToUpper();
+                // string stageText = "";
+                // foreach (var stage in quest.stages)
+                // {
+                //     if (stage.complete)
+                //     {
+                //         stageText += "◉ ";
+                //         stageText += stage.description + "\n";
+                //     }
+                //     else
+                //     {
+                //         stageText += "○ ";
+                //         stageText += stage.description;
+                //         break;
+                //     }
+                // }
 
-                stages.text = stageText;
+               // stages.text = stageText;
                 
                 // Scrolling the list for gamepads
                 if(!InputMapper.UsingController) continue;

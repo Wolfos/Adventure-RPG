@@ -9,6 +9,7 @@ using Items;
 using Player;
 using UnityEngine.InputSystem;
 using Utility;
+using WolfRPG.Inventory;
 
 namespace UI
 {
@@ -33,8 +34,8 @@ namespace UI
 	{
 		private static InventoryView instance;
 		
-		public Container container;
-		public Container otherContainer;
+		public ItemContainer Container;
+		public ItemContainer OtherContainer;
 		
 		[SerializeField] private InventoryViewType type;
 		[SerializeField] private InventoryItemButtonView itemButton;
@@ -78,18 +79,18 @@ namespace UI
 		{
 			EventManager.OnDrop -= OnDrop;
 			
-			if (container == null) return;
+			if (Container == null) return;
 			
 			ClearButtons();
-			container.onItemAdded -= ItemAdded;
-			container.onItemRemoved -= ItemRemoved;
+			Container.OnItemAdded -= ItemAdded;
+			Container.OnItemRemoved -= ItemRemoved;
 
-			foreach (var item in container.items)
-			{
-				if (item == null) continue;
-				item.onEquipped -= ItemEquipped;
-				item.onUnEquipped -= ItemUnEquipped;
-			}
+			// foreach (var item in container.items)
+			// {
+			// 	if (item == null) continue;
+			// 	item.onEquipped -= ItemEquipped;
+			// 	item.onUnEquipped -= ItemUnEquipped;
+			// }
 		}
 		
 		
@@ -97,15 +98,15 @@ namespace UI
 		{
 			// Wait a frame to allow container to be set by other scripts
 			yield return null;
-			if (container == null)
+			if (Container == null)
 			{
 				var player = SystemContainer.GetSystem<PlayerCharacter>();
-				container = player.inventory;
+				Container = player.Inventory;
 			}
 			UpdateMoney();
 
-			container.onItemAdded += ItemAdded;
-			container.onItemRemoved += ItemRemoved;
+			Container.OnItemAdded += ItemAdded;
+			Container.OnItemRemoved += ItemRemoved;
 			
 			AddButtons();
 			AddAllItems();
@@ -119,7 +120,7 @@ namespace UI
 				{
 					if (_buttons[i].gameObject == EventSystem.current.currentSelectedGameObject)
 					{
-						container.DropItem(i);
+						//container.DropItem(i);
 					}
 				}
 			}
@@ -128,30 +129,40 @@ namespace UI
 		private void UpdateMoney()
 		{
 			var player = SystemContainer.GetSystem<PlayerCharacter>();
-			moneyAmount.text = player.data.money.ToString("N0");
+			moneyAmount.text = player.Inventory.Money.ToString("N0");
 		}
 		
 		private void AddButtons()
 		{
 			_buttons = new();
-			for (int i = 0; i < container.slots; i++)
+			itemButton.gameObject.SetActive(false);
+			for (int i = 0; i < Container.Count; i++)
 			{
 				var button = Instantiate(itemButton, itemsContainer.transform, false);
-				button.name = "ItemButton " + i;
-
 				var slot = i;
-
-				if (i == 0 && InputMapper.UsingController) button.Select();
-
-				var quantity = 0;
-				if (container.items[i] != null)
-				{
-					quantity = container.items[i].Quantity;
-				}
-				button.Initialize(this, slot, quantity, () => {ButtonClicked(slot);}, 
-					type == InventoryViewType.Normal);
+				button.Initialize(this, slot, 0, () => {ButtonClicked(slot);}, type == InventoryViewType.Normal);
+				button.SetItem(Container.GetItemBySlot(i), Container.GetQuantityFromSlot(i));
+				button.gameObject.SetActive(true);
 				_buttons.Add(button);
 			}
+			// for (int i = 0; i < container.slots; i++)
+			// {
+			// 	var button = Instantiate(itemButton, itemsContainer.transform, false);
+			// 	button.name = "ItemButton " + i;
+			//
+			// 	var slot = i;
+			//
+			// 	if (i == 0 && InputMapper.UsingController) button.Select();
+			//
+			// 	var quantity = 0;
+			// 	if (container.items[i] != null)
+			// 	{
+			// 		quantity = container.items[i].Quantity;
+			// 	}
+			// 	button.Initialize(this, slot, quantity, () => {ButtonClicked(slot);}, 
+			// 		type == InventoryViewType.Normal);
+			// 	_buttons.Add(button);
+			// }
 		}
 
 		private void ClearButtons()
@@ -170,31 +181,31 @@ namespace UI
 		/// </summary>
 		void AddAllItems()
 		{
-			for (int i = 0; i < container.GetItemCount(); i++)
-			{
-				Item item = container.GetItemBySlot(i);
-				if (item != null) ItemAdded(item, item.slot);
-			}
+			// for (int i = 0; i < container.GetItemCount(); i++)
+			// {
+			// 	Item item = container.GetItemBySlot(i);
+			// 	if (item != null) ItemAdded(item, item.slot);
+			// }
 		}
 
-		void ItemAdded(Item item, int slot)
+		void ItemAdded(ItemData item, int slot)
 		{
-			item.onEquipped += ItemEquipped;
-			item.onUnEquipped += ItemUnEquipped;
+			//item.onEquipped += ItemEquipped;
+			//item.onUnEquipped += ItemUnEquipped;
 
 			var button = _buttons[slot];
-			button.SetItem(item);
+			button.SetItem(item, Container.GetQuantityFromSlot(slot));
 			UpdateMoney();
 		}
 
-		private void ItemRemoved(Item item, int slot)
+		private void ItemRemoved(ItemData item, int slot)
 		{
-			item.onEquipped -= ItemEquipped;
-			item.onUnEquipped -= ItemUnEquipped;
-
-			var button = _buttons[slot];
-			button.SetItem(null);
-			UpdateMoney();
+			// item.onEquipped -= ItemEquipped;
+			// item.onUnEquipped -= ItemUnEquipped;
+			//
+			// var button = _buttons[slot];
+			// button.SetItem(null);
+			// UpdateMoney();
 		}
 
 		private void ItemEquipped(Item item)
@@ -215,34 +226,34 @@ namespace UI
 
 		private void ButtonClicked(int button)
 		{
-			if (container.GetItemBySlot(button) == null) return; // Slot was empty
-			var item = container.GetItemBySlot(button);
+			if (Container.GetItemBySlot(button) == null) return; // Slot was empty
+			var item = Container.GetItemBySlot(button);
 			switch(selectItemBehaviour)
 			{
 				case SelectItemBehaviour.Use:
-					item.IsEquipped = !item.IsEquipped;
+					//item.IsEquipped = !item.IsEquipped;
 					break;
 				case SelectItemBehaviour.Transfer:
-					container.MoveItem(button, otherContainer);
+					//container.MoveItem(button, otherContainer);
 					break;
 				case SelectItemBehaviour.Buy:
 				{
 					var player = SystemContainer.GetSystem<PlayerCharacter>();
-					var cost = Mathf.CeilToInt(item.basePrice * PriceMultiplier);
-					if (player.data.money >= cost)
-					{
-						player.data.money -= cost;
-						container.MoveItem(button, otherContainer);
-					}
+					// var cost = Mathf.CeilToInt(item.basePrice * PriceMultiplier);
+					// if (player.data.money >= cost)
+					// {
+					// 	player.data.money -= cost;
+					// 	container.MoveItem(button, otherContainer);
+					// }
 
 					break;
 				}
 				case SelectItemBehaviour.Sell:
 				{
 					var player = SystemContainer.GetSystem<PlayerCharacter>();
-					player.data.money += Mathf.CeilToInt(item.basePrice * PriceMultiplier);
+					//player.data.money += Mathf.CeilToInt(item.basePrice * PriceMultiplier);
 					UpdateMoney();
-					container.MoveItem(button, otherContainer);
+					//container.MoveItem(button, otherContainer);
 					break;
 				}
 				default:
@@ -268,7 +279,7 @@ namespace UI
 
 				if (target != null)
 				{
-					container.SwapItem(slot, target.Slot, target.InventoryView.container);
+					//container.SwapItem(slot, target.Slot, target.InventoryView.container);
 					break;
 				}
 			}
