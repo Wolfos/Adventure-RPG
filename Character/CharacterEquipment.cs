@@ -1,6 +1,7 @@
 using System;
 using Items;
 using UnityEngine;
+using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Character
 {
@@ -50,7 +51,7 @@ namespace Character
 						switch (effect.type)
 						{
 							case ItemEffectType.AddHealth:
-								_characterBase.SetHealth(_characterBase.CharacterComponent.Health + effect.amount);
+								//_characterBase.SetHealth(_characterBase.GetAttributeValue(Attribute.Health) + effect.amount);
 								break;
 							case ItemEffectType.AddMana:
 								break;

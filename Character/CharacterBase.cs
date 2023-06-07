@@ -11,7 +11,10 @@ using Utility;
 using WolfRPG.Character;
 using WolfRPG.Core;
 using WolfRPG.Core.Quests;
+using WolfRPG.Core.Statistics;
 using WolfRPG.Inventory;
+using Attribute = WolfRPG.Core.Statistics.Attribute;
+using ItemType = WolfRPG.Inventory.ItemType;
 
 namespace Character
 {
@@ -55,6 +58,7 @@ namespace Character
 
 			_loadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
 			_loadoutComponent.ItemContainer = new();
+			Inventory.OnItemUsed += OnItemUsed;
 
 			CharacterComponent.CharacterId = characterObjectRef.GetObject().Guid;
 			
@@ -66,9 +70,14 @@ namespace Character
 			animationEvents.onHit += MeleeHitCallback;
 		}
 
+		protected void OnDestroy()
+		{
+			Inventory.OnItemUsed -= OnItemUsed;
+		}
+
 		protected void Start()
 		{
-			for (int i = 0; i < _loadoutComponent.StartingInventory.Length; i++)
+			for (int i = 0; i < _loadoutComponent.StartingInventory?.Length; i++)
 			{
 				Inventory.AddItem(RPGDatabase.GetObject(_loadoutComponent.StartingInventory[i]));
 				//inventory.items[i].IsEquipped = true;
@@ -100,6 +109,41 @@ namespace Character
 		{
 			CheckTargetsAlive();
 		}
+
+		public int GetAttributeValue(Attribute attribute) => Data.GetAttributeValue(attribute);
+		public int GetSkillValue(Skill skill) => Data.GetSkillValue(skill);
+
+		public void OnItemUsed(ItemData item, int slot)
+		{
+			var itemObject = item.RpgObject;
+			switch (item.Type)
+			{
+				case ItemType.Consumable:
+					var consumable = itemObject.GetComponent<ConsumableData>();
+					
+					if (consumable.AttributeStatusEffects != null)
+					{
+						foreach (var statusEffect in consumable.AttributeStatusEffects)
+						{
+							Data.ApplyStatusEffect(statusEffect);
+						}
+					}
+					if (consumable.SkillStatusEffects != null)
+					{
+						foreach (var statusEffect in consumable.SkillStatusEffects)
+						{
+							Data.ApplyStatusEffect(statusEffect);
+						}
+					}
+
+					Inventory.RemoveItem(itemObject);
+					break;
+				case ItemType.Weapon:
+					break;
+				case ItemType.Equipment:
+					break;
+			}
+		}
 		
 		#region Combat
 		private void CheckTargetsAlive()
@@ -108,7 +152,7 @@ namespace Character
 			for (int i = _currentTargets.Count - 1; i >= 0; i--)
 			{
 				var target = _currentTargets[i];
-				if (target == null || target.CharacterComponent.Health <= 0)
+				if (target == null || target.GetAttributeValue(Attribute.Health) <= 0)
 				{
 					_currentTargets.RemoveAt(i);
 				}
@@ -255,9 +299,9 @@ namespace Character
 		}
 		#endregion
 
-		public virtual bool SetHealth(float health)
+		public virtual bool SetHealth(int health)
 		{
-			CharacterComponent.Health = health;
+			Data.SetAttributeValue(Attribute.Health, health);
 
 			if (health <= 0)
 			{
@@ -297,7 +341,7 @@ namespace Character
 
 			//var knockback = (transform.position - point).normalized * (damage.knockback * 20);
 
-			if (SetHealth(CharacterComponent.Health - damage.amount) == false)
+			if (SetHealth(GetAttributeValue(Attribute.Health) - damage.amount) == false)
 			{
 				animator.SetTrigger("Hit");
 			}

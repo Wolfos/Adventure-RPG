@@ -9,6 +9,7 @@ using UnityEngine.AI;
 using Utility;
 using WolfRPG.Character;
 using WolfRPG.Core;
+using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Character
 {
@@ -159,7 +160,7 @@ namespace Character
 				}
 			}
 
-			if (CharacterComponent.Health - damage.amount <= 0) // Dying
+			if (GetAttributeValue(Attribute.Health) - damage.amount <= 0) // Dying
 			{
 				OnDeath?.Invoke();
 				CharacterPool.GetCharacter(damage.source)?.Killed(gameObject.name);

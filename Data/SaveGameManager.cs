@@ -7,6 +7,7 @@ using System.Xml.Schema;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Utility;
+using WolfRPG.Core;
 
 namespace Data
 {
@@ -26,9 +27,13 @@ namespace Data
 			_lastLoadTime = Time.time;
 			if(SceneManager.sceneCount == 1) SceneManager.LoadSceneAsync("MainMenu", LoadSceneMode.Additive);
 			SystemContainer.Register(this);
-			_activeSaveableObjects = new Dictionary<string, SaveableObject>();
-			_saveData = new Dictionary<string, string>();
+			_activeSaveableObjects = new();
+			_saveData = new();
 			NewGame = true;
+			
+			#if UNITY_EDITOR
+			RPGDatabase.DefaultDatabase = null; // Force a reload
+			#endif
 		}
 
 		private void Update()
@@ -125,6 +130,8 @@ namespace Data
 		// New game
 		private IEnumerator LoadGameRoutine()
 		{
+			RPGDatabase.DefaultDatabase = null; // Force a reload
+			
 			CharacterPool.Clear();
 			AsyncOperation async;
 
@@ -146,6 +153,8 @@ namespace Data
 
 		private IEnumerator LoadSaveRoutine()
 		{
+			RPGDatabase.DefaultDatabase = null; // Force a reload
+			
 			IsLoading = true;
 			CharacterPool.Clear();
 			NewGame = false;

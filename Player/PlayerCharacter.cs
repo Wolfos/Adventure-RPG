@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Linq;
+﻿using System.Collections;
 using Data;
-using UI;
 using UnityEngine;
 using Character;
 using Utility;
@@ -18,25 +15,38 @@ namespace Player
 
 		private static readonly int IsAttacking = Animator.StringToHash("IsAttacking");
 
-		private void Awake()
+		private new void Awake()
 		{
 			base.Awake();
 			SystemContainer.Register(this);
+			
+			Data.Attributes.OnAttributeUpdated += OnAttributeUpdated;
 		}
 
 
-		private void Start()
+		private new void Start()
 		{
 			Cursor.visible = false;
 			Cursor.lockState = CursorLockMode.Locked;
 			characterController = GetComponent<CharacterController>();
 
 			base.Start();
+
+			StartCoroutine(SetInitialHealth());
 		}
 
-		private void OnDestroy()
+		private IEnumerator SetInitialHealth()
+		{
+			yield return null;
+			OnAttributeUpdated(Attribute.Health, Data.Attributes.Health);
+		}
+
+		private new void OnDestroy()
 		{
 			SystemContainer.UnRegister<PlayerCharacter>();
+			Data.Attributes.OnAttributeUpdated -= OnAttributeUpdated;
+			
+			base.OnDestroy();
 		}
 
 		// public void StartQuest(Quest quest)
@@ -54,7 +64,19 @@ namespace Player
 		// 	return data.quests.Any(x => x.name == quest.name);
 		// }
 
-		public override bool SetHealth(float health)
+		private void OnAttributeUpdated(Attribute attribute, int newValue)
+		{
+			if (attribute == Attribute.Health)
+			{
+				EventManager.OnPlayerHealthChanged?.Invoke(newValue, Data.GetAttributeValue(Attribute.MaxHealth));
+				if (newValue <= 0)
+				{
+					Die();
+				}
+			}
+		}
+
+		public override bool SetHealth(int health)
 		{
 			EventManager.OnPlayerHealthChanged?.Invoke(health, Data.GetAttributeValue(Attribute.MaxHealth));
 			return base.SetHealth(health);

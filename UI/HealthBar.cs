@@ -28,10 +28,10 @@ namespace UI
             EventManager.OnPlayerHealthChanged -= OnPlayerHealthChanged;
         }
 
-        private void OnPlayerHealthChanged(float health, float maxHealth)
+        private void OnPlayerHealthChanged(int health, int maxHealth)
         {
             fillImage.color = _startColor;
-            var newValue = health / maxHealth;
+            var newValue = (float)health / (float)maxHealth;
             if (newValue < slider.value)
             {
                 if (newValue == 0)
@@ -49,7 +49,7 @@ namespace UI
         private IEnumerator SetValueAnimation(float newValue)
         {
             var startValue = slider.value;
-            for (float t = 0; t < 1; t += Time.deltaTime * animationSpeed)
+            for (float t = 0; t < 1; t += Time.unscaledDeltaTime * animationSpeed)
             {
                 slider.value = Mathf.SmoothStep(startValue, newValue, t);
                 yield return null;
@@ -58,7 +58,7 @@ namespace UI
 
         private IEnumerator BlinkAnimation(Color targetColor)
         {
-            for (float t = 0; t < 1; t += Time.deltaTime * blinkAnimationSpeed)
+            for (float t = 0; t < 1; t += Time.unscaledDeltaTime * blinkAnimationSpeed)
             {
                 fillImage.color = Color.Lerp(blinkColor, targetColor, t);
                 yield return null;

@@ -6,6 +6,7 @@ using WolfRPG.Inventory;
 
 namespace UI
 {
+	[RequireComponent(typeof(Button))]
 	public class InventoryItemButtonView: MonoBehaviour
 	{
 		public ItemData Item { get; private set; }
@@ -14,32 +15,23 @@ namespace UI
 		[SerializeField] private Text typeText;
 		[SerializeField] private Text weightText;
 		[SerializeField] private Text valueText;
-		
-		// [SerializeField] private ItemDetailsPanel detailsPanel;
-		// [SerializeField] private Image image;
-		// [SerializeField] private Image backgroundImage;
-		// [SerializeField] private DraggableItem draggableItem;
-		// [SerializeField] private Button button;
-		// [SerializeField] private Text quantityText;
-		// [SerializeField] private Color emptyColor;
-		// [SerializeField] private Sprite emptySprite;
+
+		private Button _button;
 
 		private InventoryView _inventoryView;
 		
 
 		private void Awake()
 		{
-			//detailsPanel.gameObject.SetActive(false);
+			_button = GetComponent<Button>();
 		}
 
 		public void Initialize(InventoryView inventoryView, int slot, int quantity, Action onClick, bool isDragable)
 		{
 			_inventoryView = inventoryView;
+			if(_button == null) _button = GetComponent<Button>();
+			_button.onClick.AddListener(() => {onClick?.Invoke();});
 			
-			// draggableItem.InventoryView = inventoryView;
-			// draggableItem.Slot = slot;
-			// draggableItem.IsDragable = isDragable;
-			// button.onClick.AddListener(() => {onClick?.Invoke();});
 			SetQuantity(quantity);
 		}
 

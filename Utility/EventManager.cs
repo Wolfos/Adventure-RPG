@@ -6,7 +6,7 @@ namespace Utility
 	public static class EventManager
 	{
 		// New health, max health
-		public static Action<float, float> OnPlayerHealthChanged;
+		public static Action<int, int> OnPlayerHealthChanged;
 		
 		// 
 		// Input

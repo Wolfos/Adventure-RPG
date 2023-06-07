@@ -10,6 +10,7 @@ using Player;
 using UnityEngine.InputSystem;
 using Utility;
 using WolfRPG.Inventory;
+using ItemType = WolfRPG.Inventory.ItemType;
 
 namespace UI
 {
@@ -32,8 +33,6 @@ namespace UI
 	/// </summary>
 	public class InventoryView : MonoBehaviour
 	{
-		private static InventoryView instance;
-		
 		public ItemContainer Container;
 		public ItemContainer OtherContainer;
 		
@@ -200,12 +199,9 @@ namespace UI
 
 		private void ItemRemoved(ItemData item, int slot)
 		{
-			// item.onEquipped -= ItemEquipped;
-			// item.onUnEquipped -= ItemUnEquipped;
-			//
-			// var button = _buttons[slot];
-			// button.SetItem(null);
-			// UpdateMoney();
+			// TODO: Maybe optimize this
+			ClearButtons();
+			AddButtons();
 		}
 
 		private void ItemEquipped(Item item)
@@ -231,7 +227,11 @@ namespace UI
 			switch(selectItemBehaviour)
 			{
 				case SelectItemBehaviour.Use:
-					//item.IsEquipped = !item.IsEquipped;
+					if (item.CanUse == false && item.CanEquip == false)
+					{
+						break;
+					}
+					Container.UseItem(item);
 					break;
 				case SelectItemBehaviour.Transfer:
 					//container.MoveItem(button, otherContainer);

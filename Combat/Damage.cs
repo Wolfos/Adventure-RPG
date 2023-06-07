@@ -13,7 +13,7 @@ namespace Combat
 	public class Damage
 	{
 		public DamageType type;
-		public float amount;
+		public int amount;
 		public float knockback = 1;
 		[NonSerialized] public string source;
 	}
