@@ -21,11 +21,13 @@ namespace Character
 	[RequireComponent(typeof(CharacterEquipment))]
 	public abstract class CharacterBase : MonoBehaviour
 	{
-		public ItemContainer Inventory => _loadoutComponent.ItemContainer;
+		public ItemContainer Inventory { get; set; }
 
 		[SerializeField] protected RPGObjectReference characterObjectRef;
 		public CharacterComponent CharacterComponent => Data.CharacterComponent;
-		public CharacterData Data { get; private set; }
+		public CharacterData Data { get; set; }
+		public LoadoutComponent LoadoutComponent { get; set; }
+		
 		public Transform graphic;
 		[SerializeField] protected Animator animator;
 		[SerializeField] private float deathAnimationLength;
@@ -37,8 +39,8 @@ namespace Character
 
 		private List<CharacterBase> _currentTargets = new();
 		private Collider _currentInteraction;
-		private LoadoutComponent _loadoutComponent;
 		
+
 		protected Action<Damage> onDamaged;
 		public CharacterEquipment equipment;
 		private static readonly int Recoil = Animator.StringToHash("HitRecoil");
@@ -50,14 +52,14 @@ namespace Character
 		
 		protected void Awake()
 		{
-			Data = new CharacterData(
+			Data = new(
 				characterObjectRef.GetComponent<CharacterAttributes>(),
 				characterObjectRef.GetComponent<CharacterSkills>(),
 				characterObjectRef.GetComponent<CharacterComponent>(),
 				characterObjectRef.GetComponent<NpcComponent>()); // Can be null
 
-			_loadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
-			_loadoutComponent.ItemContainer = new();
+			LoadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
+			Inventory = new();
 			Inventory.OnItemUsed += OnItemUsed;
 
 			CharacterComponent.CharacterId = characterObjectRef.GetObject().Guid;
@@ -77,12 +79,15 @@ namespace Character
 
 		protected void Start()
 		{
-			for (int i = 0; i < _loadoutComponent.StartingInventory?.Length; i++)
+			if (SaveGameManager.NewGame)
 			{
-				Inventory.AddItem(RPGDatabase.GetObject(_loadoutComponent.StartingInventory[i]));
-				//inventory.items[i].IsEquipped = true;
+				for (int i = 0; i < LoadoutComponent.StartingInventory?.Length; i++)
+				{
+					Inventory.AddItem(RPGDatabase.GetObject(LoadoutComponent.StartingInventory[i]));
+					//inventory.items[i].IsEquipped = true;
+				}
 			}
-			
+
 			if (meleeAttackTrigger != null)
 			{
 				meleeAttackTrigger.onTriggerEnter += TargetTriggerEnter;
@@ -346,26 +351,7 @@ namespace Character
 				animator.SetTrigger("Hit");
 			}
 		}
-
-
-		/// <summary>
-		/// Returns the currently equipped ammunition. If none is equipped, returns the first instead and equips that.
-		/// </summary>
-		///  TODO: Reimplement
-		// protected Ammunition GetAmmo()
-		// {
-		// 	Item ammo = null;
-		// 	foreach (var item in inventory.items)
-		// 	{
-		// 		if (item != null && item.type == ItemType.Ammunition)
-		// 		{
-		// 			if (ammo == null || item.IsEquipped) ammo = item;
-		// 		}
-		// 	}
-		//
-		// 	if (ammo != null && !ammo.IsEquipped) ammo.IsEquipped = true;
-		// 	return ammo as Ammunition;
-		// }
+		
 
 		// My damage killed something
 		public void Killed(string characterID)

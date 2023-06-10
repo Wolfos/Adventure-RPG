@@ -19,7 +19,15 @@ namespace Player
 		{
 			base.Awake();
 			SystemContainer.Register(this);
-			
+
+			if (SaveGameManager.NewGame)
+			{
+				RegisterCallbacks();
+			}
+		}
+
+		public void RegisterCallbacks()
+		{
 			Data.Attributes.OnAttributeUpdated += OnAttributeUpdated;
 		}
 

@@ -135,7 +135,7 @@ namespace UI
 		{
 			_buttons = new();
 			itemButton.gameObject.SetActive(false);
-			for (int i = 0; i < Container.Count; i++)
+			for (int i = 0; i < Container.ItemCount; i++)
 			{
 				var button = Instantiate(itemButton, itemsContainer.transform, false);
 				var slot = i;
