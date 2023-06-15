@@ -6,6 +6,7 @@ using Items;
 using UI;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 using Utility;
 using WolfRPG.Character;
 using WolfRPG.Core;
@@ -21,8 +22,8 @@ namespace Character
 		[SerializeField] private float maxPursueDistance = 20;
 		[SerializeField] private float startChaseDistance = 10;
 		
-		[HideInInspector] public Bounds bounds;
-		[HideInInspector] public bool respawn = false;
+		public Bounds Bounds { get; set; }
+		public bool Respawn { get; set; }
 		
 		[SerializeField] private Container shopInventory;
 
@@ -44,7 +45,7 @@ namespace Character
 		{
 			if(agent.enabled) Debug.LogError("NavmeshAgent was enabled by default. Due to a bug in Unity, it should start disabled");
 
-			if (respawn)
+			if (Respawn)
 			{
 				Debug.Log("Respawning");
 				animator.SetTrigger("Spawn");
@@ -79,15 +80,13 @@ namespace Character
 			base.Start();
 		}
 
-		// public void UpdateData(CharacterDataOld dataOld)
-		// {
-		// 	this.data = dataOld;
-		// 	SetHealth(dataOld.health);
-		// 	transform.position = dataOld.position;
-		// 	transform.rotation = dataOld.rotation;
-		// 	CharacterPool.Register(dataOld.characterId, this);
-		// 	ActivateRoutine(dataOld.routine, true, true);
-		// }
+		public void UpdateData()
+		{
+			SetHealth(Data.GetAttributeValue(Attribute.Health));
+			transform.position = Data.CharacterComponent.Position;
+			transform.rotation = Data.CharacterComponent.Rotation;
+			ActivateRoutine(Data.NpcComponent.CurrentRoutine, true, true);
+		}
 
 		protected override void DeathAnimationStarted()
 		{
@@ -97,7 +96,7 @@ namespace Character
 
 		protected override void DeathAnimationFinished()
 		{
-			respawn = true;
+			Respawn = true;
 			gameObject.SetActive(false);
 		}
 
@@ -245,7 +244,7 @@ namespace Character
 			while (true)
 			{
 				if (proceed) agent.velocity = CharacterComponent.Velocity;
-				else NpcComponent.Destination = bounds.RandomPos();
+				else NpcComponent.Destination = Bounds.RandomPos();
 
 				agent.destination = NpcComponent.Destination;
 

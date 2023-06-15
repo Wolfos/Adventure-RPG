@@ -53,12 +53,13 @@ namespace Character
 		protected void Awake()
 		{
 			Data = new(
-				characterObjectRef.GetComponent<CharacterAttributes>(),
-				characterObjectRef.GetComponent<CharacterSkills>(),
-				characterObjectRef.GetComponent<CharacterComponent>(),
-				characterObjectRef.GetComponent<NpcComponent>()); // Can be null
+				characterObjectRef.GetComponent<CharacterAttributes>().CreateInstance(),
+				characterObjectRef.GetComponent<CharacterSkills>().CreateInstance(),
+				characterObjectRef.GetComponent<CharacterComponent>().CreateInstance(),
+				characterObjectRef.GetComponent<NpcComponent>()?.CreateInstance()); // Can be null
 
 			LoadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
+
 			Inventory = new();
 			Inventory.OnItemUsed += OnItemUsed;
 
@@ -66,7 +67,7 @@ namespace Character
 			
 			if (SaveGameManager.NewGame)
 			{
-				//data.characterId = CharacterPool.Register(this).ToString();
+				Data.CharacterComponent.CharacterId = CharacterPool.Register(this).ToString();
 			}
 			equipment = GetComponent<CharacterEquipment>();
 			animationEvents.onHit += MeleeHitCallback;

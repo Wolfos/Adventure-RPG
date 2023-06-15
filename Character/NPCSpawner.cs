@@ -13,24 +13,24 @@ namespace Character
 		[SerializeField] private float respawnTime = 120;
 		[SerializeField] private string npcName;
 
-		private List<NPC> npcs;
-		private Bounds bounds;
+		private List<NPC> _npcs;
+		private Bounds _bounds;
 
 		protected override void Start()
 		{
 			base.Start();
-			bounds = GetComponent<BoxCollider>().bounds;
-			npcs = new List<NPC>();
+			_bounds = GetComponent<BoxCollider>().bounds;
+			_npcs = new();
 			InitialSpawn();
 		}
 
 		public override string Save()
 		{
-			string allData = "";
+			var allData = "";
 
-			foreach (NPC npc in npcs)
+			foreach (var npc in _npcs)
 			{
-				//allData += JsonUtility.ToJson(npc.data) + "</npc>";
+				allData += CharacterSaveUtility.GetSaveData(npc) + "</npc>";
 			}
 
 			return allData;
@@ -38,12 +38,12 @@ namespace Character
 
 		public override void Load(string json)
 		{
-			foreach (var npc in npcs)
+			foreach (var npc in _npcs)
 			{
 				Destroy(npc.gameObject);
 			}
 
-			npcs.Clear();
+			_npcs.Clear();
 			StartCoroutine(LoadRoutine(json));
 		}
 
@@ -56,14 +56,14 @@ namespace Character
 				var newNPC = Instantiate(prefab, transform, false);
 				var npc = newNPC.GetComponent<NPC>();
 				newNPC.name = npcName;
-				// var d = JsonUtility.FromJson<CharacterDataOld>(data[i]);
-				// npc.UpdateData(d);
-				// npc.bounds = bounds;
-				// if (d.isDead)
-				// {
-				// 	newNPC.SetActive(false);
-				// }
-				npcs.Add(npc);
+				CharacterSaveUtility.Load(data[i], npc);
+				npc.UpdateData();
+				npc.Bounds = _bounds;
+				if (npc.Data.CharacterComponent.IsDead)
+				{
+					newNPC.SetActive(false);
+				}
+				_npcs.Add(npc);
 			}
 		}
 
@@ -72,17 +72,17 @@ namespace Character
 			for (int i = 0; i < maxAmount; i++)
 			{
 				var npc = Instantiate(prefab, transform, false);
-				npc.name = npcName;
+				npc.name = npcName + i;
 				
 				// Position
-				var randomPosition = bounds.RandomPos();
+				var randomPosition = _bounds.RandomPos();
 				randomPosition.y = transform.position.y;
 				npc.transform.position = randomPosition;
 				
 				// Object initialization
 				var npcBase = npc.GetComponent<NPC>();
-				npcBase.bounds = bounds;
-				npcs.Add(npcBase);
+				npcBase.Bounds = _bounds;
+				_npcs.Add(npcBase);
 			}
 		}
 
@@ -102,7 +102,7 @@ namespace Character
 			{
 				yield return new WaitForSeconds(10);
 
-				foreach (var npc in npcs)
+				foreach (var npc in _npcs)
 				{
 					// if (!npc.gameObject.activeSelf && TimeManager.RealTime() > npc.data.inactiveTime + respawnTime)
 					// {
