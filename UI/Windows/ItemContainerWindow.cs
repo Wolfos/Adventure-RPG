@@ -5,6 +5,7 @@ using Items;
 using Player;
 using UnityEngine;
 using Utility;
+using WolfRPG.Inventory;
 
 namespace UI
 {
@@ -12,18 +13,18 @@ namespace UI
     {
         [SerializeField] private InventoryView itemInventoryView;
         [SerializeField] private InventoryView playerInventoryView;
-        private static Container _itemContainer;
+        private static ItemContainer _itemContainer;
 
         private void OnEnable()
         {
             var player = SystemContainer.GetSystem<PlayerCharacter>();
-            // itemInventoryView.container = _itemContainer;
-            // itemInventoryView.otherContainer = player.inventory;
-            // playerInventoryView.container = player.inventory;
-            // playerInventoryView.otherContainer = _itemContainer;
+            itemInventoryView.Container = _itemContainer;
+            itemInventoryView.OtherContainer = player.Inventory;
+            playerInventoryView.Container = player.Inventory;
+            playerInventoryView.OtherContainer = _itemContainer;
         }
 
-        public static void SetData(Container itemContainer)
+        public static void SetData(ItemContainer itemContainer)
         {
             _itemContainer = itemContainer;
         }

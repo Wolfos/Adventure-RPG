@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using Utility;
 
@@ -7,6 +8,12 @@ namespace Data
 {
     public abstract class SaveableObject : MonoBehaviour
     {
+        [Button("Generate ID")]
+        private void GenerateID()
+        {
+            id = Guid.NewGuid().ToString();
+        }
+        
         public string id;
         [HideInInspector] public bool global;
         private static SaveGameManager SaveGameManager => SystemContainer.GetSystem<SaveGameManager>();
@@ -27,6 +34,11 @@ namespace Data
 
         protected virtual void OnDestroy()
         {
+            if (Application.isPlaying == false)
+            {
+                return;
+            }
+            
             SaveGameManager.Unregister(this);
         }
 

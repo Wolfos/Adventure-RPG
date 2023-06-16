@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using Data;
+﻿using Data;
 using Character;
-using Newtonsoft.Json;
 using Player;
 using UnityEngine;
 using UnityEngine.Serialization;
-using WolfRPG.Character;
-using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 public class PlayerData : SaveableObject
 {

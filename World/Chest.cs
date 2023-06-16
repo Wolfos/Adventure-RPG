@@ -7,64 +7,99 @@ using Data;
 using Interface;
 using Items;
 using Models;
+using Newtonsoft.Json;
 using UI;
 using UnityEngine.Scripting;
+using WolfRPG.Core;
+using WolfRPG.Inventory;
 
 public class Chest : SaveableObject, IInteractable
 {
-	// TODO: This should be saved
-	private bool isOpen;
+	private bool _isOpen;
 	[SerializeField] private Animator animator;
-	[SerializeField] private Container container;
+	[SerializeField] private RPGObjectReference[] items;
 
+	private ItemContainer _container = new();
+	
+	private class ChestSaveData
+	{
+		public bool IsOpen { get; set; }
+		// GUID, item quantity
+		public List<Tuple<string, int>> ItemsAndQuantities { get; set; }
+	}
+
+	protected override void Start()
+	{
+		foreach (var item in items)
+		{
+			_container.AddItem(item.GetObject());
+		}
+		
+		base.Start();
+	}
+	
+	public override void Load(string json)
+	{
+		_container.Clear();
+		
+		var saveData = JsonConvert.DeserializeObject<ChestSaveData>(json);
+		foreach (var tuple in saveData.ItemsAndQuantities)
+		{
+			_container.AddItem(tuple.Item1, tuple.Item2);
+		}
+
+		_isOpen = saveData.IsOpen;
+	}
 
 	public override string Save()
 	{
-		var data = new ContainerData();
-		foreach (var item in container.items.Where(item => item != null))
+		var saveData = new ChestSaveData
 		{
-			data.itemIds.Add(item.id);
-			data.itemQuantities.Add(item.Quantity);
+			IsOpen = _isOpen,
+			ItemsAndQuantities = new()
+		};
+		
+		for (int i = 0; i < _container.ItemCount; i++)
+		{
+			var guid = _container.GetItemBySlot(i).RpgObject.Guid;
+			var quantity = _container.GetQuantityFromSlot(i);
+			saveData.ItemsAndQuantities.Add(new(guid,quantity));
 		}
-		var json = JsonUtility.ToJson(data);
-		return json;
+
+		return JsonConvert.SerializeObject(saveData);
 	}
 
-	public override void Load(string json)
-	{
-		container.Clear();
-		var data = JsonUtility.FromJson<ContainerData>(json);
-		for(var i = 0; i < data.itemIds.Count; i++)
-		{
-			for (var ii = 0; ii < data.itemQuantities[i]; ii++)
-			{
-				container.AddItem(data.itemIds[i]);
-			}
-		}
-	}
+	
 
 	[Preserve]
 	public void OnCanInteract(CharacterBase character)
 	{
-		Tooltip.Activate(isOpen ? "Close" : "Open", transform, Vector3.zero);
+		Tooltip.Activate(_isOpen ? "Close" : "Open", transform, Vector3.zero);
 	}
 	
 	[Preserve]
 	public void OnInteract(CharacterBase character)
 	{
-		ItemContainerWindow.SetData(container);
+		ItemContainerWindow.SetData(_container);
 		WindowManager.Open<ItemContainerWindow>();
 
-		if (isOpen)
+		
+
+		_isOpen = !_isOpen;
+		
+		if (animator == null)
 		{
-			animator.SetTrigger("Close");
+			return;
 		}
-		else
+		
+		if (_isOpen)
 		{
 			animator.SetTrigger("Open");
 		}
-
-		isOpen = !isOpen;
+		else
+		{
+			animator.SetTrigger("Close");
+		}
 	}
 
 	[Preserve]

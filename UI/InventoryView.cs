@@ -192,8 +192,12 @@ namespace UI
 			//item.onEquipped += ItemEquipped;
 			//item.onUnEquipped += ItemUnEquipped;
 
-			var button = _buttons[slot];
-			button.SetItem(item, Container.GetQuantityFromSlot(slot));
+			//var button = _buttons[slot];
+			//button.SetItem(item, Container.GetQuantityFromSlot(slot));
+			
+			// TODO: Maybe optimize this
+			ClearButtons();
+			AddButtons();
 			UpdateMoney();
 		}
 
@@ -220,10 +224,10 @@ namespace UI
 			button.EquipStatusChanged(item, false);
 		}
 
-		private void ButtonClicked(int button)
+		private void ButtonClicked(int index)
 		{
-			if (Container.GetItemBySlot(button) == null) return; // Slot was empty
-			var item = Container.GetItemBySlot(button);
+			if (Container.GetItemBySlot(index) == null) return; // Slot was empty
+			var item = Container.GetItemBySlot(index);
 			switch(selectItemBehaviour)
 			{
 				case SelectItemBehaviour.Use:
@@ -234,7 +238,10 @@ namespace UI
 					Container.UseItem(item);
 					break;
 				case SelectItemBehaviour.Transfer:
-					//container.MoveItem(button, otherContainer);
+					var quantity = Container.GetQuantityFromSlot(index);
+					Container.RemoveItemFromSlot(index);
+					
+					OtherContainer.AddItem(item.RpgObject, quantity);
 					break;
 				case SelectItemBehaviour.Buy:
 				{
