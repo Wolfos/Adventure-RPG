@@ -18,7 +18,7 @@ namespace Items
 		{
 			base.Attack(direction, attackLayerMask, onStagger);
 
-			ammunition.Fire(direction, 100, baseDamage, container.GetComponent<CharacterBase>());
+			//ammunition.Fire(direction, 100, baseDamage, container.GetComponent<CharacterBase>());
 		}
 	}
 }

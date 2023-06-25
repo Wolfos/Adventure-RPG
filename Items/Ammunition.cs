@@ -89,7 +89,7 @@ namespace Items
 			
 			
 			Quantity--;
-			if(Quantity <= 0) container.DestroyItem(slot);
+			//if(Quantity <= 0) container.DestroyItem(slot);
 		}
 	}
 }

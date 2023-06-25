@@ -2,8 +2,8 @@ using System;
 using Items;
 using Player;
 using UnityEngine;
-using UnityEngine.UI;
 using Utility;
+using WolfRPG.Inventory;
 
 namespace UI
 {
@@ -14,19 +14,19 @@ namespace UI
 
         private Action _onShoppingDoneCallback;
 
-        private static Container _itemContainer;
+        private static ItemContainer _itemContainer;
         public static Action OnShoppingDone;
 
         private void OnEnable()
         {
             var player = SystemContainer.GetSystem<PlayerCharacter>();
-            // shopInventoryView.container = _itemContainer;
-            // shopInventoryView.otherContainer = player.inventory;
-            // playerInventoryView.container = player.inventory;
-            // playerInventoryView.otherContainer = _itemContainer;
+            shopInventoryView.Container = _itemContainer;
+            shopInventoryView.OtherContainer = player.Inventory;
+            playerInventoryView.Container = player.Inventory;
+            playerInventoryView.OtherContainer = _itemContainer;
         }
 
-        public static void SetData(Container itemContainer)
+        public static void SetData(ItemContainer itemContainer)
         {
             _itemContainer = itemContainer;
         }

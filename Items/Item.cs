@@ -73,12 +73,12 @@ namespace Items
 				{
 					onUnEquipped?.Invoke(this);
 				}
-				container?.EquipStatusChanged(this);
+				//container?.EquipStatusChanged(this);
 			}
 		}
 
 		[HideInInspector]
-		public Container container;
+		//public Container container;
 		public Sprite icon;
 		
 		private Rigidbody _rigidbody;
@@ -102,28 +102,28 @@ namespace Items
 			}
 		}
 
-		public void AddedToInventory(Container container, int slot)
-		{
-			this.slot = slot;
-			if (this.container != container)
-			{
-				IsEquipped = false;
-			}
-			this.container = container;
-			
-			if (Rigidbody != null)
-			{
-				Rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
-				Rigidbody.isKinematic = true;
-			}
-
-			if (Collider != null)
-			{
-				Collider.enabled = false;
-			}
-			
-			gameObject.SetActive(false);
-		}
+		// public void AddedToInventory(Container container, int slot)
+		// {
+		// 	this.slot = slot;
+		// 	if (this.container != container)
+		// 	{
+		// 		IsEquipped = false;
+		// 	}
+		// 	this.container = container;
+		// 	
+		// 	if (Rigidbody != null)
+		// 	{
+		// 		Rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
+		// 		Rigidbody.isKinematic = true;
+		// 	}
+		//
+		// 	if (Collider != null)
+		// 	{
+		// 		Collider.enabled = false;
+		// 	}
+		// 	
+		// 	gameObject.SetActive(false);
+		// }
 
 		public void Drop()
 		{
@@ -142,9 +142,9 @@ namespace Items
 				Collider.enabled = true;
 			}
 
-			transform.position = container.transform.position + container.transform.forward;
+			//transform.position = container.transform.position + container.transform.forward;
 
-			container = null;
+			//container = null;
 		}
 		
 		public void OnCanInteract(CharacterBase character)

@@ -30,12 +30,17 @@ namespace UI
 		private void OnEnable()
 		{
 			StartCoroutine(StartDialogue(_nodeGraph));
-			ShopMenuWindow.OnShoppingDone += () => OnNodeEnded(0);
+			ShopMenuWindow.OnShoppingDone += OnShoppingDone;
 		}
 
 		private void OnDisable()
 		{
-			ShopMenuWindow.OnShoppingDone -= () => OnNodeEnded(0);
+			ShopMenuWindow.OnShoppingDone -= OnShoppingDone;
+		}
+
+		private void OnShoppingDone()
+		{
+			OnNodeEnded(0);
 		}
 
 		private IEnumerator StartDialogue(DialogueNodeGraph asset)

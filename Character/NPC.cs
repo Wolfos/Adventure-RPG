@@ -2,14 +2,13 @@
 using System.Collections;
 using Combat;
 using Data;
-using Items;
 using UI;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 using Utility;
 using WolfRPG.Character;
 using WolfRPG.Core;
+using WolfRPG.Inventory;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Character
@@ -24,8 +23,10 @@ namespace Character
 		
 		public Bounds Bounds { get; set; }
 		public bool Respawn { get; set; }
+
+		[SerializeField] private RPGObjectReference shopObject;
 		
-		[SerializeField] private Container shopInventory;
+		public ItemContainer ShopInventory { get; set; }
 
 		private float _movementSpeed;
 
@@ -39,6 +40,18 @@ namespace Character
 		{
 			base.Awake();
 			_movementSpeed = agent.speed;
+
+			if (string.IsNullOrEmpty(shopObject.Guid) == false)
+			{
+				ShopInventory = new();
+				var shopComponent = shopObject.GetComponent<ShopComponent>();
+				foreach (var guid in shopComponent.StartingInventory)
+				{
+					ShopInventory.AddItem(guid);
+				}
+
+				ShopInventory.Money = shopComponent.BarteringMoney;
+			}
 		}
 
 		private new void OnEnable()
@@ -102,7 +115,7 @@ namespace Character
 
 		public void OpenShop()
 		{
-			ShopMenuWindow.SetData(shopInventory);
+			ShopMenuWindow.SetData(ShopInventory);
 			WindowManager.Open<ShopMenuWindow>();
 		}
 		

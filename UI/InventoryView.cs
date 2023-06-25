@@ -10,7 +10,6 @@ using Player;
 using UnityEngine.InputSystem;
 using Utility;
 using WolfRPG.Inventory;
-using ItemType = WolfRPG.Inventory.ItemType;
 
 namespace UI
 {
@@ -50,21 +49,22 @@ namespace UI
 
 		private void Awake()
 		{
-			var itemDatabase = Database.GetDatabase<ItemDatabase>();
-			switch (type)
-			{
-				case InventoryViewType.Normal:
-					PriceMultiplier = 1;
-					break;
-				case InventoryViewType.Buy:
-					PriceMultiplier = itemDatabase.buyPriceMultiplier;
-					break;
-				case InventoryViewType.Sell:
-					PriceMultiplier = itemDatabase.sellPriceMultiplier;
-					break;
-				default:
-					throw new ArgumentOutOfRangeException();
-			}
+			PriceMultiplier = 1;
+			// var itemDatabase = Database.GetDatabase<ItemDatabase>();
+			// switch (type)
+			// {
+			// 	case InventoryViewType.Normal:
+			// 		PriceMultiplier = 1;
+			// 		break;
+			// 	case InventoryViewType.Buy:
+			// 		PriceMultiplier = itemDatabase.buyPriceMultiplier;
+			// 		break;
+			// 	case InventoryViewType.Sell:
+			// 		PriceMultiplier = itemDatabase.sellPriceMultiplier;
+			// 		break;
+			// 	default:
+			// 		throw new ArgumentOutOfRangeException();
+			// }
 		}
 		
 
@@ -127,8 +127,7 @@ namespace UI
 
 		private void UpdateMoney()
 		{
-			var player = SystemContainer.GetSystem<PlayerCharacter>();
-			moneyAmount.text = player.Inventory.Money.ToString("N0");
+			moneyAmount.text = Container.Money.ToString("N0");
 		}
 		
 		private void AddButtons()
@@ -239,28 +238,36 @@ namespace UI
 					break;
 				case SelectItemBehaviour.Transfer:
 					var quantity = Container.GetQuantityFromSlot(index);
-					Container.RemoveItemFromSlot(index);
 					
+					// Transfer the whole quantity of item
+					Container.RemoveItemFromSlot(index);
 					OtherContainer.AddItem(item.RpgObject, quantity);
 					break;
 				case SelectItemBehaviour.Buy:
 				{
 					var player = SystemContainer.GetSystem<PlayerCharacter>();
-					// var cost = Mathf.CeilToInt(item.basePrice * PriceMultiplier);
-					// if (player.data.money >= cost)
-					// {
-					// 	player.data.money -= cost;
-					// 	container.MoveItem(button, otherContainer);
-					// }
+
+					var cost = Mathf.CeilToInt(item.BaseValue * PriceMultiplier);
+					if (player.Inventory.Money >= cost)
+					{
+						player.Inventory.Money -= cost;
+						
+						// Transfer one quantity of item at a time
+						Container.RemoveItem(item.RpgObject);
+						OtherContainer.AddItem(item.RpgObject);
+					}
 
 					break;
 				}
 				case SelectItemBehaviour.Sell:
 				{
 					var player = SystemContainer.GetSystem<PlayerCharacter>();
-					//player.data.money += Mathf.CeilToInt(item.basePrice * PriceMultiplier);
+					player.Inventory.Money += Mathf.CeilToInt(item.BaseValue * PriceMultiplier);
 					UpdateMoney();
-					//container.MoveItem(button, otherContainer);
+					
+					// Transfer one quantity of item at a time
+					Container.RemoveItem(item.RpgObject);
+					OtherContainer.AddItem(item.RpgObject);
 					break;
 				}
 				default:

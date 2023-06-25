@@ -18,7 +18,7 @@ namespace Items
 		IEnumerator DestroySelf()
 		{
 			yield return null;
-			item.container.DestroyItem(item.slot);
+			//item.container.DestroyItem(item.slot);
 		}
 
 		void Equipped(Item item)

@@ -43,7 +43,7 @@ namespace Data
 
 		public void Register(SaveableObject saveableObject)
 		{
-			_activeSaveableObjects.Add(saveableObject.id, saveableObject);
+			_activeSaveableObjects[saveableObject.id] = saveableObject;
 		}
 		
 		public void Unregister(SaveableObject saveableObject)

@@ -12,8 +12,10 @@ namespace Character
 		private class CharacterSaveData
 		{
 			public CharacterData CharacterData { get; set; }
+			public int Money { get; set; }
 			// GUID, item quantity
 			public List<Tuple<string, int>> ItemsAndQuantities { get; set; }
+			public List<Tuple<string, int>> ItemsAndQuantitiesShop { get; set; }
 		}
 
 		public static void Load(string json, CharacterBase character)
@@ -28,12 +30,24 @@ namespace Character
 			character.graphic.rotation = data.CharacterComponent.Rotation;
 			character.SetHealth(data.GetAttributeValue(Attribute.Health));
 
+			character.Inventory.Money = saveData.Money;
+
 			if (saveData.ItemsAndQuantities != null)
 			{
 				foreach (var tuple in saveData.ItemsAndQuantities)
 				{
 					character.Inventory.AddItem(tuple.Item1, tuple.Item2);
 				}
+			}
+
+			if (saveData.ItemsAndQuantitiesShop != null && character is NPC npc)
+			{
+				npc.ShopInventory.Clear();
+				foreach (var tuple in saveData.ItemsAndQuantities)
+				{
+					npc.ShopInventory.AddItem(tuple.Item1, tuple.Item2);
+				}
+				
 			}
 
 
@@ -51,14 +65,31 @@ namespace Character
 			var saveData = new CharacterSaveData
 			{
 				CharacterData = characterData,
-				ItemsAndQuantities = new()
+				ItemsAndQuantities = new(),
+				ItemsAndQuantitiesShop = new(),
+				Money = character.Inventory.Money
 			};
 
+			// Character inventory
 			for (int i = 0; i < character.Inventory.ItemCount; i++)
 			{
 				var guid = character.Inventory.GetItemBySlot(i).RpgObject.Guid;
 				var quantity = character.Inventory.GetQuantityFromSlot(i);
 				saveData.ItemsAndQuantities.Add(new(guid,quantity));
+			}
+
+			// Shop inventory
+			if (character is NPC npc)
+			{
+				if (npc.ShopInventory != null)
+				{
+					for (int i = 0; i < npc.ShopInventory.ItemCount; i++)
+					{
+						var guid = npc.ShopInventory.GetItemBySlot(i).RpgObject.Guid;
+						var quantity = npc.ShopInventory.GetQuantityFromSlot(i);
+						saveData.ItemsAndQuantities.Add(new(guid,quantity));
+					}
+				}
 			}
 
 			return JsonConvert.SerializeObject(saveData, WolfRPG.Core.Settings.JsonSerializerSettings);

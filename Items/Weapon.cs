@@ -42,7 +42,7 @@ namespace Items
 		protected virtual void OnEquipped(Item item)
 		{
 			gameObject.SetActive(true);
-			Character = container.GetComponent<CharacterBase>();
+			//Character = container.GetComponent<CharacterBase>();
 			gameObject.layer = 0;
 		}
 

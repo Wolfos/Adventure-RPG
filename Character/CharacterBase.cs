@@ -85,7 +85,6 @@ namespace Character
 				for (int i = 0; i < LoadoutComponent.StartingInventory?.Length; i++)
 				{
 					Inventory.AddItem(RPGDatabase.GetObject(LoadoutComponent.StartingInventory[i]));
-					//inventory.items[i].IsEquipped = true;
 				}
 			}
 
