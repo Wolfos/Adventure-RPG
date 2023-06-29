@@ -3,6 +3,7 @@ using Data;
 using UnityEngine;
 using Character;
 using Utility;
+using WolfRPG.Inventory;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Player
@@ -15,18 +16,23 @@ namespace Player
 
 		private static readonly int IsAttacking = Animator.StringToHash("IsAttacking");
 
+		private static PlayerCharacter _instance;
+
+
 		private new void Awake()
 		{
+			_instance = this;
+			
 			base.Awake();
-			SystemContainer.Register(this);
 
 			if (SaveGameManager.NewGame)
 			{
-				RegisterCallbacks();
+				OnFinishedLoading();
 			}
 		}
 
-		public void RegisterCallbacks()
+		// TODO: Refactor into event
+		public void OnFinishedLoading()
 		{
 			Data.Attributes.OnAttributeUpdated += OnAttributeUpdated;
 		}
@@ -42,6 +48,17 @@ namespace Player
 
 			StartCoroutine(SetInitialHealth());
 		}
+		
+
+		public static Vector3 GetPosition()
+		{
+			return _instance.transform.position;
+		}
+
+		public static ItemContainer GetInventory()
+		{
+			return _instance.Inventory;
+		}
 
 		private IEnumerator SetInitialHealth()
 		{
@@ -51,7 +68,6 @@ namespace Player
 
 		private new void OnDestroy()
 		{
-			SystemContainer.UnRegister<PlayerCharacter>();
 			Data.Attributes.OnAttributeUpdated -= OnAttributeUpdated;
 			
 			base.OnDestroy();
@@ -98,7 +114,7 @@ namespace Player
 		protected override void DeathAnimationFinished()
 		{
 			PlayerControls.SetInputActive(true);
-			SystemContainer.GetSystem<SaveGameManager>().LoadSaveGame();
+			SaveGameManager.LoadSaveGame();
 		}
 
 	}

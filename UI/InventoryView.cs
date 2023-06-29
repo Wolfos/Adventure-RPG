@@ -99,8 +99,7 @@ namespace UI
 			yield return null;
 			if (Container == null)
 			{
-				var player = SystemContainer.GetSystem<PlayerCharacter>();
-				Container = player.Inventory;
+				Container = PlayerCharacter.GetInventory();
 			}
 			UpdateMoney();
 
@@ -245,12 +244,10 @@ namespace UI
 					break;
 				case SelectItemBehaviour.Buy:
 				{
-					var player = SystemContainer.GetSystem<PlayerCharacter>();
-
 					var cost = Mathf.CeilToInt(item.BaseValue * PriceMultiplier);
-					if (player.Inventory.Money >= cost)
+					if (OtherContainer.Money >= cost)
 					{
-						player.Inventory.Money -= cost;
+						OtherContainer.Money -= cost;
 						
 						// Transfer one quantity of item at a time
 						Container.RemoveItem(item.RpgObject);
@@ -261,8 +258,7 @@ namespace UI
 				}
 				case SelectItemBehaviour.Sell:
 				{
-					var player = SystemContainer.GetSystem<PlayerCharacter>();
-					player.Inventory.Money += Mathf.CeilToInt(item.BaseValue * PriceMultiplier);
+					Container.Money += Mathf.CeilToInt(item.BaseValue * PriceMultiplier);
 					UpdateMoney();
 					
 					// Transfer one quantity of item at a time

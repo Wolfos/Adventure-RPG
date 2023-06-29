@@ -21,7 +21,7 @@ namespace Dialogue
 
         public void OnInteract(CharacterBase character)
         {
-            DialogueWindow.SetData(dialogueAsset, GetComponent<NPC>());
+            DialogueWindow.SetData(dialogueAsset, GetComponent<NPC>(), character);
             WindowManager.Open<DialogueWindow>();
         }
 		

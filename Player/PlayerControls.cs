@@ -13,10 +13,10 @@ namespace Player
         [SerializeField] private float jumpSpeed = 9;
         [SerializeField] private float gravity = 30;
         [SerializeField] private float inputCacheDuration = 0.2f;
-
+        [SerializeField] private Transform playerCamera;
+        
         private PlayerCharacter _playerCharacter;
         private CharacterController _characterController;
-        private PlayerCamera _playerCamera;
         private Vector3 _velocity;
         private Vector2 _movementInput;
         private bool _jump;
@@ -40,11 +40,6 @@ namespace Player
             _playerCharacter.animationEvents.onCanDoSecondAttack += OnCanDoSecondAttack;
             _playerCharacter.animationEvents.OnEndDoSecondAttack += OnEndDoSecondAttack;
             SetInputActive(true);
-        }
-
-        private void Start()
-        {
-            _playerCamera = SystemContainer.GetSystem<PlayerCamera>();
         }
 
         private void OnEnable()
@@ -85,9 +80,8 @@ namespace Player
             {
                 animator.SetBool(Jumping, false);
                 
-                var cameraTransform = _playerCamera.transform;
-                var forward = cameraTransform.forward;
-                var right = cameraTransform.right;
+                var forward = playerCamera.forward;
+                var right = playerCamera.right;
                 forward *= _movementInput.y;
                 right *= _movementInput.x;
                 _velocity = (forward + right) * movementSpeed;
@@ -178,9 +172,8 @@ namespace Player
         {
             if (_movementInput.magnitude > 0.1f)
             {
-                var cameraTransform = _playerCamera.transform;
-                var forward = cameraTransform.forward;
-                var right = cameraTransform.right;
+                var forward = playerCamera.forward;
+                var right = playerCamera.right;
                 forward *= _movementInput.y;
                 right *= _movementInput.x;
                 var direction = forward + right;

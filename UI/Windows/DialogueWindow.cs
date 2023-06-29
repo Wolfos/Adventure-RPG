@@ -19,12 +19,14 @@ namespace UI
 		
 		private static DialogueNodeGraph _nodeGraph;
 		private static NPC _dialogueNpc;
+		private static CharacterBase _interactingCharacter;
 
 
-		public static void SetData(DialogueNodeGraph asset, NPC dialogueNpc)
+		public static void SetData(DialogueNodeGraph asset, NPC dialogueNpc, CharacterBase interactingCharacter)
 		{
 			_dialogueNpc = dialogueNpc;
 			_nodeGraph = asset;
+			_interactingCharacter = interactingCharacter;
 		}
 
 		private void OnEnable()
@@ -135,7 +137,7 @@ namespace UI
 
 				case GiveItemNode gin:
 				{
-					gin.Execute();
+					gin.Execute(_interactingCharacter);
 					var port = gin.GetOutputPort("next");
 				
 					if(port.IsConnected) _nextNodes.Add(port.Connection.node);

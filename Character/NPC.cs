@@ -32,8 +32,7 @@ namespace Character
 
 		public Action OnDeath;
 		public NpcComponent NpcComponent => Data.NpcComponent;
-
-		private Player.PlayerCharacter _playerCharacter;
+		
 		private static readonly int Speed = Animator.StringToHash("Speed");
 
 		private new void Awake()
@@ -88,8 +87,7 @@ namespace Character
 			CharacterComponent.Rotation = transform1.rotation;
 			
 			equipment.CheckEquipment();
-
-			_playerCharacter = SystemContainer.GetSystem<Player.PlayerCharacter>();
+			
 			base.Start();
 		}
 
@@ -267,11 +265,11 @@ namespace Character
 				{
 					if (NpcComponent.Demeanor == NPCDemeanor.Hostile)
 					{
-						if (Vector3.SqrMagnitude(transform.position - _playerCharacter.transform.position) < startChaseDistance * startChaseDistance)
-						{
-							CharacterComponent.CurrentTarget = _playerCharacter.CharacterComponent.CurrentTarget;
-							ActivateRoutine(NPCRoutine.Combat);
-						}
+						// if (Vector3.SqrMagnitude(transform.position - _playerCharacter.transform.position) < startChaseDistance * startChaseDistance)
+						// {
+						// 	CharacterComponent.CurrentTarget = _playerCharacter.CharacterComponent.CurrentTarget;
+						// 	ActivateRoutine(NPCRoutine.Combat);
+						// }
 					}
 					if (Mathf.Abs(agent.velocity.magnitude) < 0.01f) // Stuck
 					{

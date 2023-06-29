@@ -188,6 +188,11 @@ namespace OpenWorld
         {
             _instance._streamingDisabled = false;
         }
+
+        public static void ForceUpdate()
+        {
+            _instance.Update();
+        }
         
         private void Update()
         {
@@ -285,11 +290,20 @@ namespace OpenWorld
             // Draws a blue line from this transform to the target
             //Gizmos.color = Color.blue;
             //Gizmos.DrawLine(transform.position, new Vector3(500, 0, 500));
-            Gizmos.color = Color.yellow;
+            
             foreach (var chunk in data.chunks)
             {
                 var chunkMin = chunk.min;
                 var chunkMax = chunk.max;
+
+                if (chunk.scene.isLoaded)
+                {
+                    Gizmos.color = Color.yellow;
+                }
+                else
+                {
+                    Gizmos.color = Color.red;
+                }
                 
                 var topLeft = new Vector3(chunkMin.x, 25, chunkMin.z);
                 var bottomLeft = new Vector3(chunkMin.x, 25, chunkMax.z);

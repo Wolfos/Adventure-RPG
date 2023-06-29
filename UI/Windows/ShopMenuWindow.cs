@@ -19,10 +19,9 @@ namespace UI
 
         private void OnEnable()
         {
-            var player = SystemContainer.GetSystem<PlayerCharacter>();
             shopInventoryView.Container = _itemContainer;
-            shopInventoryView.OtherContainer = player.Inventory;
-            playerInventoryView.Container = player.Inventory;
+            shopInventoryView.OtherContainer = PlayerCharacter.GetInventory();
+            playerInventoryView.Container = PlayerCharacter.GetInventory();
             playerInventoryView.OtherContainer = _itemContainer;
         }
 

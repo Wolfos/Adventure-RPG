@@ -14,22 +14,12 @@ namespace Player
 		[SerializeField] private Transform camera;
 		[SerializeField] private Range cameraDistance;
 		[SerializeField] private float zoomSpeed;
+		[SerializeField] private Transform targetTransform;
 		
-		private Transform _targetTransform;
 		private Vector3 _offset;
 		private Vector2 _movementInput;
 		private float _zoomInput;
 
-		private void Awake()
-		{
-			SystemContainer.Register(this);
-		}
-
-		private void OnDestroy()
-		{
-			SystemContainer.UnRegister<PlayerCamera>();
-		}
-		
 		private void OnEnable()
 		{
 			EventManager.OnCameraMove += OnCameraMove;
@@ -46,8 +36,7 @@ namespace Player
 		private void Start()
 		{
 			Camera.main.depthTextureMode = DepthTextureMode.Depth;
-			_targetTransform = SystemContainer.GetSystem<PlayerCharacter>().transform;
-			_offset = _targetTransform.position - transform.position;
+			_offset = targetTransform.position - transform.position;
 		}
 
 		private void Update()
@@ -80,7 +69,7 @@ namespace Player
 		
 		private void LateUpdate()
 		{
-			var targetPosition = _targetTransform.position - _offset;
+			var targetPosition = targetTransform.position - _offset;
 			transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * followSpeed);
 		}
 		

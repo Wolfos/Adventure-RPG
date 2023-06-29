@@ -34,26 +34,27 @@ namespace UI
 		public void LoadMainMenu()
 		{
 			Time.timeScale = 1;
-			SystemContainer.GetSystem<SaveGameManager>().LoadMainMenu();
+
+			SaveGameManager.LoadMainMenu();
 		}
 
 		public void Save()
 		{
-			SystemContainer.GetSystem<SaveGameManager>().Save();
+			SaveGameManager.Save();
 		}
 
 		public void NewGame()
 		{
 			Debug.Log("Starting new game");
 			Time.timeScale = 1;
-			SystemContainer.GetSystem<SaveGameManager>().LoadGame();
+			SaveGameManager.LoadGame();
 		}
 
 		public void Load()
 		{
 			Debug.Log("Loading saved game");
 			Time.timeScale = 1;
-			SystemContainer.GetSystem<SaveGameManager>().LoadSaveGame();
+			SaveGameManager.LoadSaveGame();
 		}
 	}
 }

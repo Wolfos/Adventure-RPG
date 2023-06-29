@@ -16,8 +16,7 @@ namespace Data
         
         public string id;
         [HideInInspector] public bool global;
-        private static SaveGameManager SaveGameManager => SystemContainer.GetSystem<SaveGameManager>();
-        
+
         protected virtual void Start()
         {
             SaveGameManager.Register(this);

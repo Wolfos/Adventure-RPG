@@ -13,20 +13,23 @@ namespace Data
 {
 	public class SaveGameManager : MonoBehaviour
 	{
-		private Dictionary<string, SaveableObject> _activeSaveableObjects;
-		private Dictionary<string, string> _saveData;
+		private static Dictionary<string, SaveableObject> _activeSaveableObjects;
+		private static Dictionary<string, string> _saveData;
 
 		public static bool NewGame = true;
 		public static float TimeSinceLoad;
 		private static float _lastLoadTime;
 		
-		public bool IsLoading { get; set; }
+		public static bool IsLoading { get; set; }
+
+		private static SaveGameManager _instance;
 		
 		private void Awake()
 		{
+			_instance = this;
 			_lastLoadTime = Time.time;
 			if(SceneManager.sceneCount == 1) SceneManager.LoadSceneAsync("MainMenu", LoadSceneMode.Additive);
-			SystemContainer.Register(this);
+
 			_activeSaveableObjects = new();
 			_saveData = new();
 			NewGame = true;
@@ -41,12 +44,12 @@ namespace Data
 			TimeSinceLoad = Time.time - _lastLoadTime;
 		}
 
-		public void Register(SaveableObject saveableObject)
+		public static void Register(SaveableObject saveableObject)
 		{
 			_activeSaveableObjects[saveableObject.id] = saveableObject;
 		}
 		
-		public void Unregister(SaveableObject saveableObject)
+		public static void Unregister(SaveableObject saveableObject)
 		{
 			_activeSaveableObjects.Remove(saveableObject.id);
 			
@@ -54,7 +57,7 @@ namespace Data
 			_saveData.Add(saveableObject.id, saveableObject.Save());
 		}
 
-		public void Save()
+		public static void Save()
 		{
 			// Save all currently active objects
 			foreach (var o in _activeSaveableObjects)
@@ -81,7 +84,7 @@ namespace Data
 			}
 		}
 
-		public string GetData(SaveableObject saveableObject)
+		public static string GetData(SaveableObject saveableObject)
 		{
 			if (_saveData.ContainsKey(saveableObject.id))
 			{
@@ -92,19 +95,19 @@ namespace Data
 		}
 
 
-		public void LoadSaveGame()
+		public static void LoadSaveGame()
 		{
-			StartCoroutine(LoadSaveRoutine());
+			_instance.StartCoroutine(nameof(LoadSaveRoutine));
 		}
 
-		public void LoadGame()
+		public static void LoadGame()
 		{
-			StartCoroutine(LoadGameRoutine());
+			_instance.StartCoroutine(nameof(LoadGameRoutine));
 		}
 
-		public void LoadMainMenu()
+		public static void LoadMainMenu()
 		{
-			StartCoroutine(LoadMainMenuRoutine());
+			_instance.StartCoroutine(nameof(LoadMainMenuRoutine));
 		}
 
 		private IEnumerator LoadMainMenuRoutine()

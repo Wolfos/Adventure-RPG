@@ -13,7 +13,7 @@ public class PlayerData : SaveableObject
 		playerCharacter.characterController.enabled = false;
 		CharacterSaveUtility.Load(json, playerCharacter);
 		playerCharacter.characterController.enabled = true;
-		playerCharacter.RegisterCallbacks();
+		playerCharacter.OnFinishedLoading();
 	}
 		
 	public override string Save()
