@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Xml.Schema;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Utility;
 using WolfRPG.Core;
 
 namespace Data
