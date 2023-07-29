@@ -19,6 +19,9 @@ namespace OpenWorld
         private bool _bakingMode;
         private bool _streamingDisabled;
         private static WorldStreamer _instance;
+        private AsyncOperation _unloadAssetsOperation;
+        private const int MaxUnloadBeforeCleanup = 20;
+        private int _unloadedSceneCounter;
 
 
         private void Start()
@@ -219,7 +222,7 @@ namespace OpenWorld
 #endif
             var cameraPos = mainCamera.transform.position;
             var chunks = data.GetChunkAndAdjacent(cameraPos.x, cameraPos.z);
-
+            
             // Iterate in reverse for safe removal
             for (int i = _currentChunks.Count - 1; i >= 0; i--)
             {
@@ -239,9 +242,16 @@ namespace OpenWorld
                     }
 #endif
                     SceneManager.UnloadSceneAsync(chunk.Name);
+                    _unloadedSceneCounter++;
                 }
             }
-            
+
+            if (_unloadedSceneCounter >= MaxUnloadBeforeCleanup && (_unloadAssetsOperation == null || _unloadAssetsOperation.isDone))
+            {
+                Debug.Log("Unloading unused assets");
+                _unloadAssetsOperation = Resources.UnloadUnusedAssets();
+                _unloadedSceneCounter = 0;
+            }
             
             foreach (var chunk in chunks)
             {
