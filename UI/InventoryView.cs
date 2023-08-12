@@ -10,6 +10,7 @@ using Player;
 using UnityEngine.InputSystem;
 using Utility;
 using WolfRPG.Inventory;
+using ItemType = WolfRPG.Inventory.ItemType;
 
 namespace UI
 {
@@ -229,7 +230,7 @@ namespace UI
 			switch(selectItemBehaviour)
 			{
 				case SelectItemBehaviour.Use:
-					if (item.CanUse == false && item.CanEquip == false)
+					if (item.CanUse == false && item.Type != ItemType.Equipment)
 					{
 						break;
 					}

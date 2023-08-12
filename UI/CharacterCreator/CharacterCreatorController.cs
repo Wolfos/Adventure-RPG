@@ -1,6 +1,7 @@
 using System;
 using Character;
 using UnityEngine;
+using WolfRPG.Character;
 
 namespace UI.CharacterCreator
 {
@@ -71,6 +72,9 @@ namespace UI.CharacterCreator
                     break;
                 case CharacterCustomizationPart.Hair:
                     _data.Hair = selector.Index;
+                    break;
+                case CharacterCustomizationPart.BackAttachment:
+                    _data.BackAttachment = selector.Index;
                     break;
                 case CharacterCustomizationPart.Head:
                     _data.Head = selector.Index;

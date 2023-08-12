@@ -1,4 +1,6 @@
-﻿namespace Character
+﻿using WolfRPG.Character;
+
+namespace Character
 {
 	public static class CharacterCustomizationController
 	{
@@ -7,6 +9,7 @@
 			partPicker.DisableAllObjects();
 			
 			partPicker.SelectPart(data, CharacterCustomizationPart.Hair, data.Hair);
+			partPicker.SelectPart(data, CharacterCustomizationPart.BackAttachment, data.BackAttachment);
 			partPicker.SelectPart(data, CharacterCustomizationPart.Head, data.Head);
 			partPicker.SelectPart(data, CharacterCustomizationPart.Eyebrows, data.Eyebrows);
 			partPicker.SelectPart(data, CharacterCustomizationPart.FacialHair, data.FacialHair);

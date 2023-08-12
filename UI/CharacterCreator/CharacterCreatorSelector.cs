@@ -2,6 +2,7 @@ using System;
 using Character;
 using UnityEngine;
 using UnityEngine.UI;
+using WolfRPG.Character;
 
 namespace UI.CharacterCreator
 {

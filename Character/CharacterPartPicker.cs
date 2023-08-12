@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using WolfRPG.Character;
 
 namespace Character
 {
@@ -8,6 +9,8 @@ namespace Character
 	{
 		// Common
 		[SerializeField] private GameObject[] hair;
+		[SerializeField] private GameObject[] backAttachment;
+		
 		
 		#region Female
 		// Female
@@ -88,6 +91,7 @@ namespace Character
 		public void DisableAllObjects()
 		{
 			DisableObjects(hair);
+			DisableObjects(backAttachment);
 			DisableFemaleObjects();
 			DisableMaleObjects();
 		}
@@ -100,6 +104,8 @@ namespace Character
 					return null;
 				case CharacterCustomizationPart.Hair:
 					return hair;
+				case CharacterCustomizationPart.BackAttachment:
+					return backAttachment;
 				case CharacterCustomizationPart.Head:
 					return gender == Gender.Female ? femaleHead : maleHead;
 				case CharacterCustomizationPart.Eyebrows:
