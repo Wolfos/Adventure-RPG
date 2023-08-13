@@ -1,9 +1,66 @@
-﻿using WolfRPG.Character;
+﻿using System;
+using WolfRPG.Character;
 
 namespace Character
 {
 	public static class CharacterCustomizationController
 	{
+		public static void SetPart(CharacterCustomizationPart part, ref CharacterCustomizationData data, int value)
+		{
+			switch (part)
+			{
+				case CharacterCustomizationPart.Gender:
+					data.Gender = (Gender)value;
+					break;
+				case CharacterCustomizationPart.Hair:
+					data.Hair = value;
+					break;
+				case CharacterCustomizationPart.BackAttachment:
+					data.BackAttachment = value;
+					break;
+				case CharacterCustomizationPart.Head:
+					data.Head = value;
+					break;
+				case CharacterCustomizationPart.Eyebrows:
+					data.Eyebrows = value;
+					break;
+				case CharacterCustomizationPart.FacialHair:
+					data.FacialHair = value;
+					break;
+				case CharacterCustomizationPart.Torso:
+					data.Torso = value;
+					break;
+				case CharacterCustomizationPart.ArmUpperRight:
+					data.ArmUpperRight = value;
+					break;
+				case CharacterCustomizationPart.ArmUpperLeft:
+					data.ArmUpperLeft = value;
+					break;
+				case CharacterCustomizationPart.ArmLowerRight:
+					data.ArmLowerRight = value;
+					break;
+				case CharacterCustomizationPart.ArmLowerLeft:
+					data.ArmLowerLeft = value;
+					break;
+				case CharacterCustomizationPart.HandRight:
+					data.HandRight = value;
+					break;
+				case CharacterCustomizationPart.HandLeft:
+					data.HandLeft = value;
+					break;
+				case CharacterCustomizationPart.Hips:
+					data.Hips = value;
+					break;
+				case CharacterCustomizationPart.LegRight:
+					data.LegRight = value;
+					break;
+				case CharacterCustomizationPart.LegLeft:
+					data.LegLeft = value;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(part), part, null);
+			}
+		}
 		public static void SetData(CharacterCustomizationData data, CharacterPartPicker partPicker)
 		{
 			partPicker.DisableAllObjects();

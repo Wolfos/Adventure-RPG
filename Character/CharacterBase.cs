@@ -28,6 +28,9 @@ namespace Character
 		public CharacterData Data { get; set; }
 		public LoadoutComponent LoadoutComponent { get; set; }
 		
+		// Visuals
+		public CharacterCustomizationData CustomizationData { get; set; }
+		
 		public Transform graphic;
 		[SerializeField] protected Animator animator;
 		[SerializeField] private float deathAnimationLength;
@@ -36,9 +39,11 @@ namespace Character
 		[SerializeField] private Damage unarmedDamage;
 		[SerializeField] private AudioClip hitSound;
 		[SerializeField] public CharacterAnimationEvents animationEvents;
+		[SerializeField] private CharacterPartPicker partPicker;
 
 		private List<CharacterBase> _currentTargets = new();
 		private Collider _currentInteraction;
+		private CharacterCustomizationComponent _characterCustomizationComponent;
 		
 
 		protected Action<Damage> onDamaged;
@@ -48,7 +53,7 @@ namespace Character
 		protected bool IsInHitRecoil => animator.GetBool(Recoil);
 		protected bool IsBlocking;
 
-		private Weapon Weapon => equipment.currentWeapon;
+		private Weapon Weapon => null; //equipment.currentWeapon;
 		
 		protected void Awake()
 		{
@@ -73,6 +78,39 @@ namespace Character
 			animationEvents.onHit += MeleeHitCallback;
 		}
 
+		private void LoadCustomizationData()
+		{
+			_characterCustomizationComponent = characterObjectRef.GetComponent<CharacterCustomizationComponent>();
+			if (_characterCustomizationComponent == null) return;
+
+			UpdateCustomizationData();
+		}
+
+		public void UpdateCustomizationData()
+		{
+			CustomizationData = new()
+			{
+				Gender = _characterCustomizationComponent.Gender,
+				Hair = _characterCustomizationComponent.Hair,
+				Head = _characterCustomizationComponent.Head,
+				Eyebrows = _characterCustomizationComponent.Eyebrows,
+				FacialHair = _characterCustomizationComponent.FacialHair,
+			};
+
+			var tempData = CustomizationData;
+			// Add equipment
+			foreach (var item in equipment.Equipment)
+			{
+				foreach (var part in item.EquipmentParts)
+				{
+					CharacterCustomizationController.SetPart(part.Part, ref tempData, part.Index);
+				}
+			}
+			
+			CharacterCustomizationController.SetData(tempData, partPicker);
+		}
+		
+
 		protected void OnDestroy()
 		{
 			Inventory.OnItemUsed -= OnItemUsed;
@@ -80,6 +118,8 @@ namespace Character
 
 		protected void Start()
 		{
+			LoadCustomizationData();
+			
 			if (SaveGameManager.NewGame)
 			{
 				for (int i = 0; i < LoadoutComponent.StartingInventory?.Length; i++)
@@ -146,6 +186,15 @@ namespace Character
 				case ItemType.Weapon:
 					break;
 				case ItemType.Equipment:
+					var equipmentData = itemObject.GetComponent<EquipmentData>();
+					if (equipment.IsEquipped(equipmentData))
+					{
+						equipment.UnequipItem(equipmentData);
+					}
+					else
+					{
+						equipment.EquipItem(equipmentData);
+					}
 					break;
 			}
 		}

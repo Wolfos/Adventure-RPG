@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using Items;
 using UnityEngine;
+using WolfRPG.Inventory;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Character
@@ -8,29 +10,64 @@ namespace Character
 	public class CharacterEquipment : MonoBehaviour
 	{
 		private CharacterBase _characterBase;
+		private ItemContainer Inventory => _characterBase.Inventory;
 		[SerializeField] private Animator animator;
-		[SerializeField] private Transform rightHand;
-		[SerializeField] private Transform leftHand;
-		[SerializeField] private RuntimeAnimatorController unarmed;
-		[Tooltip("These objects show when the character is naked")]
-		[SerializeField] private GameObject[] nakedObjects;
-		[SerializeField] private Transform rootBone;
-		[SerializeField] private SkinnedMeshRenderer bonesSource;
-		[SerializeField] private bool skipAttackAnticipation = false;
-		
-		private Item rightHandEquipped;
-		private Item leftHandEquipped;
-		private Item twoHandEquipped;
-		private bool replaceEquippedItem;
-		[HideInInspector] public Weapon currentWeapon;
+		[SerializeField] private CharacterPartPicker partPicker;
+
+		public List<EquipmentData> Equipment = new();
+		private Dictionary<EquipmentSlot, EquipmentData> _equipmentSlots = new();
 
 		public void Awake()
 		{
 			_characterBase = GetComponent<CharacterBase>();
+			for (var i = EquipmentSlot.UNDEFINED; i < EquipmentSlot.MAX; i++)
+			{
+				if(i is EquipmentSlot.UNDEFINED or EquipmentSlot.MAX) continue;
+				
+				_equipmentSlots.Add(i, null);
+			}
 		}
 		
 		public void CheckEquipment()
 		{
+		}
+
+		public bool IsEquipped(EquipmentData data)
+		{
+			return Equipment.Contains(data);
+		}
+
+		public void EquipItem(EquipmentData data)
+		{
+			if (data.EquipmentSlot is EquipmentSlot.UNDEFINED or EquipmentSlot.MAX)
+			{
+				Debug.LogError("Item has invalid equipment slot");
+				return;
+			}
+			var currentItem = _equipmentSlots[data.EquipmentSlot];
+			if (currentItem != null)
+			{
+				UnequipItem(currentItem);
+			}
+
+			_equipmentSlots[data.EquipmentSlot] = data;
+			Equipment.Add(data);
+			
+			_characterBase.UpdateCustomizationData();
+		}
+		
+		public void UnequipItem(EquipmentData data)
+		{
+			if (data.EquipmentSlot is EquipmentSlot.UNDEFINED or EquipmentSlot.MAX)
+			{
+				Debug.LogError("Item has invalid equipment slot");
+				return;
+			}
+
+			_equipmentSlots[data.EquipmentSlot] = null;
+			Equipment.Remove(data);
+			
+			_characterBase.UpdateCustomizationData();
 		}
 	}
 }
