@@ -23,7 +23,7 @@ namespace Character
 	{
 		public ItemContainer Inventory { get; set; }
 
-		[SerializeField] protected RPGObjectReference characterObjectRef;
+		[SerializeField, ObjectReference((int)DatabaseCategory.Characters)] protected RPGObjectReference characterObjectRef;
 		public CharacterComponent CharacterComponent => Data.CharacterComponent;
 		public CharacterData Data { get; set; }
 		public LoadoutComponent LoadoutComponent { get; set; }
@@ -124,7 +124,18 @@ namespace Character
 			{
 				for (int i = 0; i < LoadoutComponent.StartingInventory?.Length; i++)
 				{
-					Inventory.AddItem(RPGDatabase.GetObject(LoadoutComponent.StartingInventory[i]));
+					var itemReference = LoadoutComponent.StartingInventory[i];
+
+					for (int j = 0; j < itemReference.Quantity; j++)
+					{
+						Inventory.AddItem(RPGDatabase.GetObject(itemReference.ItemObject.Guid));
+					} 
+
+					var equipmentData = itemReference.ItemObject.GetComponent<EquipmentData>();
+					if (itemReference.Equipped && equipmentData != null)
+					{
+						equipment.EquipItem(equipmentData);
+					}
 				}
 			}
 
