@@ -176,21 +176,7 @@ namespace Character
 			{
 				case ItemType.Consumable:
 					var consumable = itemObject.GetComponent<ConsumableData>();
-					
-					if (consumable.AttributeStatusEffects != null)
-					{
-						foreach (var statusEffect in consumable.AttributeStatusEffects)
-						{
-							Data.ApplyStatusEffect(statusEffect);
-						}
-					}
-					if (consumable.SkillStatusEffects != null)
-					{
-						foreach (var statusEffect in consumable.SkillStatusEffects)
-						{
-							Data.ApplyStatusEffect(statusEffect);
-						}
-					}
+					Data.ApplyStatusEffect(consumable.StatusEffect);
 
 					Inventory.RemoveItem(itemObject);
 					break;

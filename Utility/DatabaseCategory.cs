@@ -6,6 +6,7 @@
 		Default = 0,
 		Items = 1,
 		Characters = 2,
-		Shops = 3
+		Shops = 3,
+		StatusEffects = 4
 	}
 }
