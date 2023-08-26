@@ -10,6 +10,7 @@ using Models;
 using Newtonsoft.Json;
 using UI;
 using UnityEngine.Scripting;
+using Utility;
 using WolfRPG.Core;
 using WolfRPG.Inventory;
 
@@ -17,7 +18,7 @@ public class Chest : SaveableObject, IInteractable
 {
 	private bool _isOpen;
 	[SerializeField] private Animator animator;
-	[SerializeField] private RPGObjectReference[] items;
+	[SerializeField, ObjectReference((int)DatabaseCategory.Items)] private RPGObjectReference[] items;
 
 	private ItemContainer _container = new();
 	
