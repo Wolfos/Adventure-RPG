@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Items;
 using UnityEngine;
+using WolfRPG.Core.Statistics;
 using WolfRPG.Inventory;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
 
@@ -52,6 +53,10 @@ namespace Character
 
 			_equipmentSlots[data.EquipmentSlot] = data;
 			Equipment.Add(data);
+			if (data.StatusEffect != null)
+			{
+				_characterBase.Data.ApplyStatusEffect(data.StatusEffect);
+			}
 			
 			_characterBase.UpdateCustomizationData();
 		}
@@ -62,6 +67,12 @@ namespace Character
 			{
 				Debug.LogError("Item has invalid equipment slot");
 				return;
+			}
+
+			var effect = data.StatusEffect?.GetComponent<StatusEffect>();
+			if (effect != null)
+			{
+				_characterBase.Data.RemoveStatusEffect(effect.Id);
 			}
 
 			_equipmentSlots[data.EquipmentSlot] = null;

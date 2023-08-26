@@ -65,7 +65,10 @@ namespace Character
 
 			LoadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
 
-			Inventory = new();
+			Inventory = new()
+			{
+				Owner = Data
+			};
 			Inventory.OnItemUsed += OnItemUsed;
 
 			CharacterComponent.CharacterId = characterObjectRef.GetObject().Guid;

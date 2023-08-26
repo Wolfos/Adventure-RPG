@@ -10,6 +10,7 @@ using Player;
 using UnityEngine.InputSystem;
 using Utility;
 using WolfRPG.Inventory;
+using Attribute = WolfRPG.Core.Statistics.Attribute;
 using ItemType = WolfRPG.Inventory.ItemType;
 
 namespace UI
@@ -43,6 +44,7 @@ namespace UI
 		[SerializeField] private RectTransform itemsContainer;
 		[SerializeField] private Text moneyAmount;
 		[SerializeField] private SelectItemBehaviour selectItemBehaviour;
+		[SerializeField] private Text carryWeightText;
 
 		public float PriceMultiplier { get; set; }
 
@@ -84,13 +86,6 @@ namespace UI
 			ClearButtons();
 			Container.OnItemAdded -= ItemAdded;
 			Container.OnItemRemoved -= ItemRemoved;
-
-			// foreach (var item in container.items)
-			// {
-			// 	if (item == null) continue;
-			// 	item.onEquipped -= ItemEquipped;
-			// 	item.onUnEquipped -= ItemUnEquipped;
-			// }
 		}
 		
 		
@@ -108,7 +103,8 @@ namespace UI
 			Container.OnItemRemoved += ItemRemoved;
 			
 			AddButtons();
-			AddAllItems();
+
+			UpdateCarryWeight();
 		}
 
 		private void OnDrop(InputAction.CallbackContext context)
@@ -129,6 +125,16 @@ namespace UI
 		{
 			moneyAmount.text = Container.Money.ToString("N0");
 		}
+
+		private void UpdateCarryWeight()
+		{
+			if (carryWeightText != null)
+			{
+				var weight = Container.GetWeight();
+				var maxWeight = Container.Owner?.GetAttributeValue(Attribute.MaxCarryWeight);
+				carryWeightText.text = $"Weight: {weight} / {maxWeight}"; // TODO: Localize
+			}
+		}
 		
 		private void AddButtons()
 		{
@@ -143,24 +149,6 @@ namespace UI
 				button.gameObject.SetActive(true);
 				_buttons.Add(button);
 			}
-			// for (int i = 0; i < container.slots; i++)
-			// {
-			// 	var button = Instantiate(itemButton, itemsContainer.transform, false);
-			// 	button.name = "ItemButton " + i;
-			//
-			// 	var slot = i;
-			//
-			// 	if (i == 0 && InputMapper.UsingController) button.Select();
-			//
-			// 	var quantity = 0;
-			// 	if (container.items[i] != null)
-			// 	{
-			// 		quantity = container.items[i].Quantity;
-			// 	}
-			// 	button.Initialize(this, slot, quantity, () => {ButtonClicked(slot);}, 
-			// 		type == InventoryViewType.Normal);
-			// 	_buttons.Add(button);
-			// }
 		}
 
 		private void ClearButtons()
@@ -173,27 +161,8 @@ namespace UI
 			_buttons.Clear();
 		}
 
-		/// <summary>
-		/// Call ItemAdded for each item in our inventory
-		/// This is called during initialization
-		/// </summary>
-		void AddAllItems()
-		{
-			// for (int i = 0; i < container.GetItemCount(); i++)
-			// {
-			// 	Item item = container.GetItemBySlot(i);
-			// 	if (item != null) ItemAdded(item, item.slot);
-			// }
-		}
-
 		void ItemAdded(ItemData item, int slot)
 		{
-			//item.onEquipped += ItemEquipped;
-			//item.onUnEquipped += ItemUnEquipped;
-
-			//var button = _buttons[slot];
-			//button.SetItem(item, Container.GetQuantityFromSlot(slot));
-			
 			// TODO: Maybe optimize this
 			ClearButtons();
 			AddButtons();
@@ -235,6 +204,8 @@ namespace UI
 						break;
 					}
 					Container.UseItem(item);
+					
+					UpdateCarryWeight();
 					break;
 				case SelectItemBehaviour.Transfer:
 					var quantity = Container.GetQuantityFromSlot(index);
