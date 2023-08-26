@@ -171,6 +171,8 @@ namespace Player
 
         private void Jump()
         {
+            if (_isOverweight) return;
+            
             _jump = false;
             _velocity.y = jumpSpeed;
             animator.SetBool(Jumping, true);
