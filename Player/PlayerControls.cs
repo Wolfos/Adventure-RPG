@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Utility;
+using WolfRPG.Core.Statistics;
 
 namespace Player
 {
@@ -14,6 +15,7 @@ namespace Player
         [SerializeField] private float gravity = 30;
         [SerializeField] private float inputCacheDuration = 0.2f;
         [SerializeField] private Transform playerCamera;
+        [SerializeField] private float overWeightMultiplier = 0.4f;
         
         private PlayerCharacter _playerCharacter;
         private CharacterController _characterController;
@@ -24,7 +26,8 @@ namespace Player
         private float _cachedAttackTime;
         private bool _hasCachedAttack;
         private bool _canDoSecondAttack;
-        
+        private bool _isOverweight;
+
         private static readonly int CanWalk = Animator.StringToHash("CanWalk");
         private static readonly int Jumping = Animator.StringToHash("Jumping");
         private static readonly int Speed = Animator.StringToHash("Speed");
@@ -66,10 +69,18 @@ namespace Player
         {
             if (InputActive && !_isDodging)
             {
+                CheckOverWeight();
                 Movement();
                 Rotation();
                 Actions();
             }
+        }
+
+        private void CheckOverWeight()
+        {
+            var maxWeight = _playerCharacter.Data.GetAttributeValue(Attribute.MaxCarryWeight);
+            var currentWeight = _playerCharacter.Inventory.GetWeight();
+            _isOverweight = currentWeight > maxWeight;
         }
         
         private void Movement()
@@ -85,6 +96,7 @@ namespace Player
                 forward *= _movementInput.y;
                 right *= _movementInput.x;
                 _velocity = (forward + right) * movementSpeed;
+                if (_isOverweight) _velocity *= overWeightMultiplier;
                 
                 if(_jump) Jump();
             }
@@ -127,6 +139,9 @@ namespace Player
         
         private IEnumerator Dodge()
         {
+            if (_isOverweight) yield break;
+            
+            
             _isDodging = true;
             _playerCharacter.EndBlock();
 			
@@ -136,7 +151,7 @@ namespace Player
             var forward = _playerCharacter.graphic.forward;
             for (float t = 0; t < duration; t += Time.deltaTime)
             {
-                _velocity = forward * movementSpeed * _playerCharacter.dodgeSpeed.Evaluate(t);
+                _velocity = forward * (movementSpeed * _playerCharacter.dodgeSpeed.Evaluate(t));
                 _velocity.y -= gravity * Time.deltaTime;
                 _characterController.Move(_velocity * Time.deltaTime);
                 yield return null;
