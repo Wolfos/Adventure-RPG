@@ -65,7 +65,12 @@ namespace UI
 			Item = item;
 			if (item != null)
 			{
-				var text = quantity > 1 ? $"{item.Name.Get()} ({quantity})" : item.Name.Get();
+				string text = "Not localized";
+				if (item.Name != null)
+				{
+					text = quantity > 1 ? $"{item.Name.Get()} ({quantity})" : item.Name.Get();
+				}
+
 				itemNameText.text = text;
 				typeText.text = item.Type.ToString(); // TODO: Localize
 				weightText.text = item.Weight.ToString("0.0");

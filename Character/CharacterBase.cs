@@ -104,6 +104,8 @@ namespace Character
 			// Add equipment
 			foreach (var item in equipment.Equipment)
 			{
+				if(item.EquipmentParts == null) continue;
+				
 				foreach (var part in item.EquipmentParts)
 				{
 					CharacterCustomizationController.SetPart(part.Part, ref tempData, part.Index);
@@ -134,10 +136,11 @@ namespace Character
 						Inventory.AddItem(RPGDatabase.GetObject(itemReference.ItemObject.Guid));
 					} 
 
+					var itemData = itemReference.ItemObject.GetComponent<ItemData>();
 					var equipmentData = itemReference.ItemObject.GetComponent<EquipmentData>();
 					if (itemReference.Equipped && equipmentData != null)
 					{
-						equipment.EquipItem(equipmentData);
+						equipment.EquipItem(itemData, equipmentData);
 					}
 				}
 			}
@@ -184,7 +187,6 @@ namespace Character
 					Inventory.RemoveItem(itemObject);
 					break;
 				case ItemType.Weapon:
-					break;
 				case ItemType.Equipment:
 					var equipmentData = itemObject.GetComponent<EquipmentData>();
 					if (equipment.IsEquipped(equipmentData))
@@ -193,7 +195,7 @@ namespace Character
 					}
 					else
 					{
-						equipment.EquipItem(equipmentData);
+						equipment.EquipItem(item, equipmentData);
 					}
 					break;
 			}

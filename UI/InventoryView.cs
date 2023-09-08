@@ -199,7 +199,7 @@ namespace UI
 			switch(selectItemBehaviour)
 			{
 				case SelectItemBehaviour.Use:
-					if (item.CanUse == false && item.Type != ItemType.Equipment)
+					if (item.CanUse == false && item.Type != ItemType.Equipment && item.Type != ItemType.Weapon)
 					{
 						break;
 					}

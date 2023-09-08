@@ -7,6 +7,8 @@ namespace Character
 {
 	public class CharacterPartPicker: MonoBehaviour
 	{
+		public Transform handSocketRight;
+		
 		// Common
 		[SerializeField] private GameObject[] hair;
 		[SerializeField] private GameObject[] backAttachment;
