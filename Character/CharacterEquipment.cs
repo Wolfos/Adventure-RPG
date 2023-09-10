@@ -11,6 +11,7 @@ namespace Character
 		private ItemContainer Inventory => _characterBase.Inventory;
 		[SerializeField] private Animator animator;
 		[SerializeField] private CharacterPartPicker partPicker;
+		[SerializeField] private AnimatorOverrideController unarmedAnimationSet;
 
 		public readonly List<EquipmentData> Equipment = new();
 		private readonly Dictionary<EquipmentSlot, EquipmentData> _equipmentSlots = new();
@@ -18,6 +19,8 @@ namespace Character
 
 		public void Awake()
 		{
+			ResetAnimations();
+			
 			_characterBase = GetComponent<CharacterBase>();
 			for (var i = EquipmentSlot.UNDEFINED; i < EquipmentSlot.MAX; i++)
 			{
@@ -34,6 +37,19 @@ namespace Character
 		public bool IsEquipped(EquipmentData data)
 		{
 			return Equipment.Contains(data);
+		}
+
+		public void SetAnimations(EquipmentData data)
+		{
+			if (data.OverrideAnimations)
+			{
+				animator.runtimeAnimatorController = data.AnimationSet.GetAsset<AnimatorOverrideController>();
+			}
+		}
+
+		public void ResetAnimations()
+		{
+			animator.runtimeAnimatorController = unarmedAnimationSet;
 		}
 
 		public void EquipItem(ItemData itemData, EquipmentData data)
@@ -70,6 +86,8 @@ namespace Character
 			}
 			
 			_characterBase.UpdateCustomizationData();
+			
+			SetAnimations(data);
 		}
 		
 		public void UnequipItem(EquipmentData data)
@@ -99,6 +117,11 @@ namespace Character
 			}
 			
 			_characterBase.UpdateCustomizationData();
+			
+			if (data.OverrideAnimations)
+			{
+				ResetAnimations();
+			}
 		}
 	}
 }

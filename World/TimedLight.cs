@@ -1,36 +1,46 @@
 ﻿using System.Collections;
 using Models;
 using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
 
 public class TimedLight : MonoBehaviour
 {
-	private Light light;
+	private Light _light;
+	private HDAdditionalLightData _hdAdditionalLightData;
 
 	[SerializeField] private TimeStamp onTime = new TimeStamp(20,0);
 	[SerializeField] private TimeStamp offTime = new TimeStamp(7,0);
+	[SerializeField] private bool bakeShadows;
 
 	private float intensity;
 	private bool on;
 	
 	private void Start()
 	{
-		light = GetComponent<Light>();
-		intensity = light.intensity;
-		on = light.enabled;
+		_light = GetComponent<Light>();
+		_hdAdditionalLightData = GetComponent<HDAdditionalLightData>();
+		intensity = _light.intensity;
+		on = _light.enabled;
 	}
 
 	private IEnumerator TurnOn()
 	{
 		on = true;
-		light.enabled = true;
-		light.intensity = 0;
+		_light.enabled = true;
+		_light.intensity = 0;
 		for (float t = 0; t < 1; t += Time.deltaTime * 5)
 		{
-			light.intensity = Mathf.SmoothStep(0, intensity, t);
+			_light.intensity = Mathf.SmoothStep(0, intensity, t);
 			yield return null;
 		}
 
-		light.intensity = intensity;
+		// TODO: This is broken
+		if (bakeShadows)
+		{
+			_hdAdditionalLightData.RequestShadowMapRendering();
+			bakeShadows = false; // Only need to do this once
+		}
+		_light.intensity = intensity;
 	}
 
 	private IEnumerator TurnOff()
@@ -38,10 +48,10 @@ public class TimedLight : MonoBehaviour
 		on = false;
 		for (float t = 0; t < 1; t += Time.deltaTime * 5)
 		{
-			light.intensity = Mathf.SmoothStep(intensity, 0, t);
+			_light.intensity = Mathf.SmoothStep(intensity, 0, t);
 			yield return null;
 		}
-		light.enabled = false;
+		_light.enabled = false;
 	}
 
 	private void Update()
