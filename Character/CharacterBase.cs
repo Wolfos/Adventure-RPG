@@ -341,6 +341,13 @@ namespace Character
 			}
 		}
 
+		public void EndInteraction(Collider collider)
+		{
+			if (collider == null) return;
+			
+			InteractionTriggerExit(collider);
+		}
+
 		private void InteractionTriggerExit(Collider other)
 		{
 			if (other == _currentInteraction)

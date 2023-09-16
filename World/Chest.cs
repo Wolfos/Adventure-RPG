@@ -75,6 +75,7 @@ public class Chest : SaveableObject, IInteractable
 	[Preserve]
 	public void OnCanInteract(CharacterBase character)
 	{
+		// TODO: Localize
 		Tooltip.Activate(_isOpen ? "Close" : "Open", transform, Vector3.zero);
 	}
 	
