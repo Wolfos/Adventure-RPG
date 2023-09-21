@@ -17,6 +17,6 @@ public class TimeDisplay : MonoBehaviour
 		var hours = Mathf.FloorToInt(time);
 		var minutes = Mathf.FloorToInt((time - hours) * 60);
 
-		text.text = (hours < 10 ? 0.ToString() : "") + hours + ":" + (minutes < 10 ? 0.ToString() : "") + minutes;
+		text.text = (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
 	}
 }

@@ -55,6 +55,8 @@ namespace Character
 
 		private new void OnEnable()
 		{
+			if(agent.enabled) Debug.LogError("NavmeshAgent was enabled by default. Due to a bug in Unity, it should start disabled");
+
 			if (Respawn)
 			{
 				Debug.Log("Respawning");
@@ -189,6 +191,8 @@ namespace Character
 				yield return null;
 			}
 
+			if (!agent.enabled) agent.enabled = true;
+			
 			while (true)
 			{
 				if (proceed) 
@@ -246,6 +250,8 @@ namespace Character
 				yield return null;
 			}
 
+			if (!agent.enabled) agent.enabled = true;
+			
 			while (true)
 			{
 				if (proceed) agent.velocity = CharacterComponent.Velocity;

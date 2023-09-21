@@ -22,11 +22,12 @@ namespace OpenWorld
         private AsyncOperation _unloadAssetsOperation;
         private const int MaxUnloadBeforeCleanup = 20;
         private int _unloadedSceneCounter;
-
+        private Camera _mainCamera;
 
         private void Start()
         {
             _instance = this;
+            _mainCamera = Camera.main;
 
             // Load terrain scene if not currently loaded
 #if UNITY_EDITOR
@@ -202,8 +203,8 @@ namespace OpenWorld
             _instance = this;
             
             if (_bakingMode || _streamingDisabled) return;
-            
-            var mainCamera = Camera.main;
+
+            var mainCamera = _mainCamera;
 #if UNITY_EDITOR
             if (EditorApplication.isPlaying == false)
             {
