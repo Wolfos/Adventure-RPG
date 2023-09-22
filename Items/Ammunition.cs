@@ -35,7 +35,7 @@ namespace Items
 			{
 				foreach (var d in damage)
 				{
-					character.TakeDamage(d, transform.position);
+					//character.TakeDamage(d, transform.position);
 					var rigidbody = GetComponent<Rigidbody>();
 					rigidbody.isKinematic = true;
 					transform.Translate(Vector3.down * 0.2f);

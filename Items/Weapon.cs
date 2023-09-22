@@ -5,38 +5,27 @@ using Combat;
 using Character;
 using UnityEngine;
 using Utility;
+using WolfRPG.Core;
 
 namespace Items
 {
 	public abstract class Weapon : Item
 	{
 		[Header("Weapon")]
-		public Damage baseDamage;
-		[SerializeField] private AudioClip attackSound;
+		[SerializeField, ObjectReference((int)DatabaseCategory.Items)] protected RPGObjectReference rpgObjectReference;
 		[SerializeField] protected LayerMask blockLayerMask;
-		
+
 		protected LayerMask AttackLayerMask;
 		protected CharacterBase Character;
 		public bool Attacking { get; set; }
 		
 		private int _defaultLayer;
 
+		protected AudioClip AttackSound;
+
 		private void Awake()
 		{
-			onEquipped += OnEquipped;
-			onUnEquipped += OnUnEquipped;
 			_defaultLayer = gameObject.layer;
-		}
-
-		private void Start()
-		{
-			if(IsEquipped) OnEquipped(this);
-		}
-
-		private void OnDestroy()
-		{
-			onEquipped -= OnEquipped;
-			onUnEquipped -= OnUnEquipped;
 		}
 
 		protected virtual void OnEquipped(Item item)
@@ -67,7 +56,7 @@ namespace Items
 		public virtual void Attack(Vector3 direction, LayerMask attackLayerMask, Action onStagger)
 		{
 			AttackLayerMask = attackLayerMask;
-			SFXPlayer.PlaySound(attackSound);
+			SFXPlayer.PlaySound(AttackSound);
 		}
 
 		public virtual void StartBlock() { }

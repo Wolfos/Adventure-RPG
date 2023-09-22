@@ -52,8 +52,8 @@ namespace UI
 				return;
 			}
 			
-			nameText.text = item.friendlyName;
-			priceText.text = Mathf.CeilToInt(item.basePrice * priceMultiplier).ToString();
+			//nameText.text = item.friendlyName;
+			//priceText.text = Mathf.CeilToInt(item.basePrice * priceMultiplier).ToString();
 		}
 	}
 }

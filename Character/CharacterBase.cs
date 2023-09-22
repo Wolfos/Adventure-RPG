@@ -46,14 +46,14 @@ namespace Character
 		private CharacterCustomizationComponent _characterCustomizationComponent;
 		
 
-		protected Action<Damage> onDamaged;
+		protected Action<float> onDamaged;
 		public CharacterEquipment equipment;
 		private static readonly int Recoil = Animator.StringToHash("HitRecoil");
 		private static readonly int Blocking = Animator.StringToHash("Blocking");
 		protected bool IsInHitRecoil => animator.GetBool(Recoil);
 		protected bool IsBlocking;
 
-		private Weapon Weapon => null; //equipment.currentWeapon;
+		private Weapon Weapon => equipment.CurrentWeapon;
 		
 		protected void Awake()
 		{
@@ -255,9 +255,9 @@ namespace Character
 			if (IsInHitRecoil || IsBlocking) return;
 			
 			bool willAttack;
-			if (Weapon)
+			if (Weapon != null)
 			{
-				Weapon.baseDamage.source = CharacterComponent.CharacterId;
+				//Weapon.baseDamage.source = CharacterComponent.CharacterId;
 				if (Weapon is RangedWeapon rangedWeapon)
 				{
 					//rangedWeapon.ammunition = GetAmmo();
@@ -281,8 +281,8 @@ namespace Character
 			{
 				foreach (var target in _currentTargets)
 				{
-					unarmedDamage.source = CharacterComponent.CharacterId;
-					target.TakeDamage(unarmedDamage, transform.position);
+					//unarmedDamage.source = CharacterComponent.CharacterId;
+					//target.TakeDamage(unarmedDamage, transform.position);
 				}
 			}
 			//Armed
@@ -394,7 +394,7 @@ namespace Character
 			DeathAnimationFinished();
 		}
 
-		public void TakeDamage(Damage damage, Vector3 point)
+		public void TakeDamage(float damage, Vector3 point, CharacterBase other)
 		{
 			if(Weapon != null) Weapon.InterruptAttack();
 			if (CharacterComponent.IsDead) return;
@@ -404,7 +404,7 @@ namespace Character
 
 			//var knockback = (transform.position - point).normalized * (damage.knockback * 20);
 
-			if (SetHealth(GetAttributeValue(Attribute.Health) - damage.amount) == false)
+			if (SetHealth(GetAttributeValue(Attribute.Health) - (int)damage) == false)
 			{
 				animator.SetTrigger("Hit");
 			}

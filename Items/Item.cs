@@ -25,14 +25,6 @@ namespace Items
 	
 	public class Item : MonoBehaviour, IInteractable
 	{
-		public int id;
-		
-		[Header("Item base")]
-		public Color inventoryBackgroundColor = Color.white;
-		public Color equippedInventoryBackgroundColor = Color.yellow;
-		public string friendlyName;
-		public float basePrice;
-
 		public delegate void Event(Item item);
 		public Event onEquipped;
 		public Event onUnEquipped;
@@ -149,7 +141,7 @@ namespace Items
 		
 		public void OnCanInteract(CharacterBase character)
 		{
-			Tooltip.Activate(friendlyName + (Quantity > 1 ? " (" + Quantity + ")" : ""), transform, Vector3.zero);
+			//Tooltip.Activate(friendlyName + (Quantity > 1 ? " (" + Quantity + ")" : ""), transform, Vector3.zero);
 		}
 
 		public void OnInteract(CharacterBase character)

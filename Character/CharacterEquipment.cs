@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using Items;
 using UnityEngine;
 using WolfRPG.Core.Statistics;
 using WolfRPG.Inventory;
+using ItemType = WolfRPG.Inventory.ItemType;
 
 namespace Character
 {
@@ -16,6 +18,7 @@ namespace Character
 		public readonly List<EquipmentData> Equipment = new();
 		private readonly Dictionary<EquipmentSlot, EquipmentData> _equipmentSlots = new();
 		private GameObject _rightHandSocketObject;
+		public Weapon CurrentWeapon { get; private set; }
 
 		public void Awake()
 		{
@@ -81,6 +84,10 @@ namespace Character
 					if (prefab != null)
 					{
 						_rightHandSocketObject = Instantiate(prefab, partPicker.handSocketRight);
+						if (itemData.Type == ItemType.Weapon)
+						{
+							CurrentWeapon = _rightHandSocketObject.GetComponent<Weapon>();
+						}
 					}
 				}
 			}
@@ -113,6 +120,7 @@ namespace Character
 				if (data.EquipmentSlot == EquipmentSlot.RightHand)
 				{
 					Destroy(_rightHandSocketObject);
+					CurrentWeapon = null;
 				}
 			}
 			

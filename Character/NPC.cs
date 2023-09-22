@@ -159,21 +159,22 @@ namespace Character
 			base.Update();
 		}
 
-		private void OnDamaged(Damage damage)
+		private void OnDamaged(float damage)
 		{
-			if (!string.IsNullOrEmpty(damage.source))
-			{
-				CharacterComponent.CurrentTarget = damage.source;
-				if (NpcComponent.CurrentRoutine != NPCRoutine.Combat)
-				{
-					ActivateRoutine(NPCRoutine.Combat);
-				}
-			}
-
-			if (GetAttributeValue(Attribute.Health) - damage.amount <= 0) // Dying
+			// TODO: Get damage source
+			// if (!string.IsNullOrEmpty(damage.source))
+			// {
+			// 	CharacterComponent.CurrentTarget = damage.source;
+			// 	if (NpcComponent.CurrentRoutine != NPCRoutine.Combat)
+			// 	{
+			// 		ActivateRoutine(NPCRoutine.Combat);
+			// 	}
+			// }
+			//
+			if (GetAttributeValue(Attribute.Health) - damage <= 0) // Dying
 			{
 				OnDeath?.Invoke();
-				CharacterPool.GetCharacter(damage.source)?.Killed(gameObject.name);
+				//CharacterPool.GetCharacter(damage.source)?.Killed(gameObject.name);
 			}
 			
 		}

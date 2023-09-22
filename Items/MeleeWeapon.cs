@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Character;
 using UnityEngine;
-using Utility;
+using WolfRPG.Inventory;
 
 namespace Items
 {
@@ -11,12 +11,18 @@ namespace Items
 	{
 		[Header("Melee weapon")]
 		[SerializeField] private TrailRenderer attackFx;
-		[SerializeField] private float attackDuration = 1;
 		[SerializeField] private ParticleSystem hitParticles;
 		[SerializeField] private BoxCollider hitCollider;
 		[SerializeField] private GameObject blockCollider;
 
 		private List<Matrix4x4> _cubeMatrices = new();
+		private MeleeWeaponData _weaponData;
+
+		private void Start()
+		{
+			_weaponData = rpgObjectReference.GetComponent<MeleeWeaponData>();
+			AttackSound = _weaponData.AttackSound?.GetAsset<AudioClip>();
+		}
 
 		public override void Attack(Vector3 direction, LayerMask attackLayerMask, Action onStagger)
 		{
@@ -37,13 +43,17 @@ namespace Items
 
 		private IEnumerator AttackRoutine(Action onStagger)
 		{
-			attackFx.emitting = true;
+			if (attackFx != null)
+			{
+				attackFx.emitting = true;
+			}
+
 			Attacking = true;
 
 			var previousPosition = transform.TransformPoint(hitCollider.center);
 			var previousRotation = transform.rotation;
 			var alreadyHit = new List<Rigidbody>();
-			for (float t = 0; t < attackDuration; t += Time.deltaTime)
+			for (float t = 0; t < _weaponData.AttackDuration; t += Time.deltaTime)
 			{
 				yield return new WaitForFixedUpdate();
 				
@@ -93,7 +103,11 @@ namespace Items
 			}
 			
 			EndAttack:
-			attackFx.emitting = false;
+			if (attackFx != null)
+			{
+				attackFx.emitting = false;
+			}
+
 			Attacking = false;
 		}
 
@@ -127,9 +141,12 @@ namespace Items
 			if (otherCharacter != null && otherCharacter != Character)
 			{
 				//var position = transform.position;
-				otherCharacter.TakeDamage(baseDamage, hitPosition);
-				hitParticles.transform.position = hitPosition;
-				hitParticles?.Play();
+				otherCharacter.TakeDamage(_weaponData.BaseDamage, hitPosition, Character);
+				if (hitParticles != null)
+				{
+					hitParticles.transform.position = hitPosition;
+					hitParticles.Play();
+				}
 			}
 		}
 	}
