@@ -2,6 +2,9 @@
 using Models;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class TimedLight : MonoBehaviour
 {
@@ -53,16 +56,36 @@ public class TimedLight : MonoBehaviour
 		}
 		_light.enabled = false;
 	}
+	
+	
 
-	private void Update()
+	public void Update()
 	{
 		if (TimeManager.IsBetween(onTime, offTime))
 		{
-			if (!on) StartCoroutine(TurnOn());
+			if (!on)
+			{
+				#if UNITY_EDITOR
+				if (EditorApplication.isPlaying == false)
+				{
+					var light = GetComponent<Light>();
+					light.enabled = true;
+					return;
+				}
+				#endif
+				StartCoroutine(TurnOn());
+			}
 		}
 		else
 		{
-
+#if UNITY_EDITOR
+			if (EditorApplication.isPlaying == false)
+			{
+				var light = GetComponent<Light>();
+				light.enabled = false;
+				return;
+			}
+#endif
 			if (on) StartCoroutine(TurnOff());
 		}
 	}

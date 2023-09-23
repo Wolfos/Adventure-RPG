@@ -108,7 +108,7 @@ namespace Character
 		protected override void DeathAnimationFinished()
 		{
 			Respawn = true;
-			gameObject.SetActive(false);
+			//gameObject.SetActive(false);
 		}
 
 		public void OpenShop()

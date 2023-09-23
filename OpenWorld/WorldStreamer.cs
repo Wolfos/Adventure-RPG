@@ -16,13 +16,13 @@ namespace OpenWorld
     {
         [SerializeField] private OpenWorldManager data;
         private readonly List<Chunk> _currentChunks = new();
-        private bool _bakingMode;
         private bool _streamingDisabled;
         private static WorldStreamer _instance;
         private AsyncOperation _unloadAssetsOperation;
         private const int MaxUnloadBeforeCleanup = 20;
         private int _unloadedSceneCounter;
         private Camera _mainCamera;
+        public static bool BakingMode { get; private set; }
 
         private void Start()
         {
@@ -79,12 +79,17 @@ namespace OpenWorld
 
         private Transform selectedObject;
 
-        private void UpdateSelectionChunks()
+        public static void PutSelectedObjectInChunk()
+        {
+            _instance.UpdateSelectionChunks(true);
+        }
+
+        private void UpdateSelectionChunks(bool force = false)
         {
             selectedObject = Selection.activeTransform;
             if (selectedObject != null &&
-                selectedObject.parent == null &&
-                selectedObject.gameObject.scene.name.Contains("Chunk"))
+                (selectedObject.parent == null &&
+                selectedObject.gameObject.scene.name.Contains("Chunk")) || force)
             {
                 var oldScene = selectedObject.gameObject.scene;
                 var chunk = data.GetChunkByWorldPosition(selectedObject.position.x, selectedObject.position.z);
@@ -117,8 +122,8 @@ namespace OpenWorld
         {
             if (EditorApplication.isPlaying) return;
 
-            _instance._bakingMode = !_instance._bakingMode;
-            if (_instance._bakingMode)
+            BakingMode = !BakingMode;
+            if (BakingMode)
             {
                 foreach (var chunk in _instance.data.chunks)
                 {
@@ -126,7 +131,7 @@ namespace OpenWorld
                     {
                         _instance._currentChunks.Add(chunk);
 
-                        EditorSceneManager.OpenScene($"Assets/Scenes/Chunk/s{chunk.Name}.unity",
+                        EditorSceneManager.OpenScene($"Assets/Scenes/Chunks/{chunk.Name}.unity",
                             OpenSceneMode.Additive);
                         _instance.SelectPrevious();
                     }
@@ -151,7 +156,7 @@ namespace OpenWorld
 
             _instance.data.chunks = new();
 
-            _instance._bakingMode = true;
+            BakingMode = true;
 
             AssetDatabase.CreateFolder("Assets/Scenes", "Chunks");
             AssetDatabase.Refresh();
@@ -161,7 +166,7 @@ namespace OpenWorld
             var chunkPosition = _instance.data.WorldToChunkPosition(cameraPos.x, cameraPos.z);
             _instance.data.AddChunk(chunkPosition.X, chunkPosition.Z);
             
-            _instance._bakingMode = false;
+            BakingMode = false;
         }
 #endif
 
@@ -202,7 +207,7 @@ namespace OpenWorld
         {
             _instance = this;
             
-            if (_bakingMode || _streamingDisabled) return;
+            if (BakingMode || _streamingDisabled) return;
 
             var mainCamera = _mainCamera;
 #if UNITY_EDITOR
