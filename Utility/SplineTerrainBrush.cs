@@ -19,6 +19,8 @@ namespace Utility
         [SerializeField] private float strength = 1;
         [SerializeField] private TerrainLayer layer;
         [SerializeField, HideInInspector] private string guid;
+        [SerializeField] private bool limitHeight;
+        [SerializeField] private float heightSoftness;
 
         private UndoBufferData _undoBuffer;
 
@@ -241,6 +243,25 @@ namespace Utility
             {
                 for (int yy = 0; yy < radius; yy++)
                 {
+                    float hardnessModifier = 1;
+                    if (limitHeight) // Don't paint above spline position if this is enabled
+                    {
+                        var pixelToWorldWidth = terrainData.size.x / terrainData.alphamapWidth;
+                        var pixelToWorldHeight = terrainData.size.z / terrainData.alphamapHeight;
+                        var samplePosition = new Vector3(
+                            worldPoint.x + (float) (yy - radius / 2) * pixelToWorldWidth, // x and y are inverted on the splat array
+                            worldPoint.y,
+                            worldPoint.z + (float) (xx - radius / 2) * pixelToWorldHeight);
+                        var terrainHeight = terrain.SampleHeight(samplePosition);
+                        if (worldPoint.y < terrainHeight)
+                        {
+                            continue;
+                        }
+                        else if (worldPoint.y - heightSoftness < terrainHeight)
+                        {
+                            hardnessModifier = 1 - Mathf.InverseLerp(worldPoint.y - heightSoftness, worldPoint.y, terrainHeight);
+                        }
+                    }
                     float[] weights = new float[terrainData.alphamapLayers]; //creates a float array and sets the size to be the number of paints your terrain has
                     for (int zz = 0; zz < splat.GetLength(2); zz++)
                     {
@@ -248,8 +269,11 @@ namespace Utility
                     }
 
                     var pixel = resizedBrush.GetPixel(xx, yy).a;
-                    weights[layerIndex] += pixel * strength; // adds weight to the paint currently selected with the int paint variable
+
+                    weights[layerIndex] +=
+                        pixel * strength * hardnessModifier; // adds weight to the paint currently selected with the int paint variable
                     
+
                     //this next bit normalizes all the weights so that they will add up to 1
                     float sum = weights.Sum();
                     for (int ww = 0; ww < weights.Length; ww++)
