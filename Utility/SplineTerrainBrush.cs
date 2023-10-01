@@ -314,6 +314,7 @@ namespace Utility
             
             int terrainWidth = terrainWeights.GetLength(1);
             int terrainHeight = terrainWeights.GetLength(0);
+            int terrainWeightCount = terrainWeights.GetLength(2);
             
             for (int xx = 0; xx < width; xx++)
             {
@@ -323,6 +324,7 @@ namespace Utility
                     if (yy + y >= terrainHeight || yy + y < 0) continue;
                     for (int zz = 0; zz < weights; zz++)
                     {
+                        if (zz >= weights || zz >= terrainWeightCount) continue;
                         terrainWeights[y + yy, x + xx, zz] = map[yy, xx, zz];
                     }
                 }
