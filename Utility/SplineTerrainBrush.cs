@@ -14,7 +14,6 @@ namespace Utility
     [RequireComponent(typeof(SplineContainer))]
     public class SplineTerrainBrush : MonoBehaviour
     {
-        [SerializeField] private Terrain terrain;
         [SerializeField] private Texture2D brush;
         [FormerlySerializedAs("width")] [SerializeField] private float radius = 1;
         [SerializeField] private float strength = 1;
@@ -22,7 +21,6 @@ namespace Utility
         [SerializeField, HideInInspector] private string guid;
 
         private UndoBufferData _undoBuffer;
-        private float[,,] _terrainWeights;
 
         [Serializable]
         public class Int2
@@ -38,7 +36,7 @@ namespace Utility
         [Serializable]
         public class UndoBufferData
         {
-            public List<Tuple<Int2, float[,,]>> UndoData = new();
+            public Dictionary<string, List<Tuple<Int2, float[,,]>>> UndoData = new();
         }
 
         private void LoadUndoBuffer()
@@ -70,18 +68,37 @@ namespace Utility
         [Button("Apply")]
         public void Apply()
         {
+            LoadUndoBuffer();
+            var terrains = FindObjectsByType<Terrain>(FindObjectsSortMode.None);
+            foreach (var terrain in terrains)
+            {
+                Apply(terrain);
+            }
+            
+            SaveUndoBuffer();
+        }
+        
+        private void Apply(Terrain terrain)
+        {
             if (string.IsNullOrEmpty(guid))
             {
                 guid = Guid.NewGuid().ToString();
             }
             var terrainData = terrain.terrainData;
-            _terrainWeights = terrainData.GetAlphamaps(0, 0, terrainData.alphamapWidth, terrainData.alphamapHeight);
+            var terrainWeights = terrainData.GetAlphamaps(0, 0, terrainData.alphamapWidth, terrainData.alphamapHeight);
 
-            Undo(false);
+            Undo(terrain, terrainWeights, false);
 
+            var terrainExtension = terrain.GetComponent<TerrainExtension>();
+            if (terrainExtension == null)
+            {
+                terrainExtension = terrain.gameObject.AddComponent<TerrainExtension>();
+                terrainExtension.Initialize();
+            }
+
+            var terrainGuid = terrainExtension.guid;
             var undo = new List<Tuple<Int2, float[,,]>>();
-            _undoBuffer.UndoData = undo;
-            
+            _undoBuffer.UndoData[terrainGuid] = undo;
             
             int layerIndex = -1;
             for (int i = 0; i < terrainData.terrainLayers.Length; i++)
@@ -95,95 +112,71 @@ namespace Utility
 
             if (layerIndex == -1)
             {
-                Debug.LogError("Layer not found on terrain");
+                return; // Layer wasn't present on terrain
             }
             
-            var spline = GetComponent<SplineContainer>();
-            var length = spline.CalculateLength();
+            var splineContainer = GetComponent<SplineContainer>();
+           
             var resizedBrush = GetResizedBrush((int)radius, (int)radius);
-            for (float t = 0; t < 1; t += 1 / length)
+            foreach (var spline in splineContainer.Splines)
             {
-                var worldPoint = spline.EvaluatePosition(t);
-                Paint(worldPoint, layerIndex, resizedBrush);
+                var length = spline.GetLength();
+                for (float t = 0; t < 1; t += 1 / length)
+                {
+                    var worldPoint = (Vector3)(spline.EvaluatePosition(t)) + splineContainer.transform.position;
+                    Paint(worldPoint, layerIndex, resizedBrush, terrain, terrainWeights, terrainGuid);
+                }
             }
-            
-            ApplyChanges();
+
+            ApplyChanges(terrain, terrainWeights);
             DestroyImmediate(resizedBrush);
-
-            SaveUndoBuffer();
-            _undoBuffer.UndoData.Clear();
-        }
-
-        private void SetAlphaMap(int x, int y, float[,,] map)
-        {
-            int width = map.GetLength(1);
-            int height = map.GetLength(0);
-            int weights = map.GetLength(2);
-            for (int xx = 0; xx < width; xx++)
-            {
-                for (int yy = 0; yy < height; yy++)
-                {
-                    for (int zz = 0; zz < weights; zz++)
-                    {
-                        _terrainWeights[y + yy, x + xx, zz] = map[yy, xx, zz];
-                    }
-                }
-            }
-        }
-
-        private float[,,] GetAlphaMap(int x, int y, int width, int height)
-        {
-            var layers = terrain.terrainData.alphamapLayers;
-            var result = new float[width, height, layers];
-
-            for (int xx = 0; xx < width; xx++)
-            {
-                for (int yy = 0; yy < height; yy++)
-                {
-                    for (int zz = 0; zz < layers; zz++)
-                    {
-                        result[yy, xx, zz] = _terrainWeights[y + yy, x + xx, zz];
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        private void ApplyChanges()
-        {
-            terrain.terrainData.SetAlphamaps(0, 0, _terrainWeights);
-            terrain.Flush();
         }
         
+
+        private void ApplyChanges(Terrain terrain, float[,,] terrainWeights)
+        {
+            terrain.terrainData.SetAlphamaps(0, 0, terrainWeights);
+            terrain.Flush();
+        }
+
         [Button("Undo")]
-        public void Undo(bool apply = true)
+        public void Undo()
+        {
+            LoadUndoBuffer();
+            var terrains = FindObjectsByType<Terrain>(FindObjectsSortMode.None);
+            foreach (var terrain in terrains)
+            {
+                Undo(terrain, null, true);
+            }
+            SaveUndoBuffer();
+        }
+        
+        public void Undo(Terrain terrain, float[,,] terrainWeights, bool apply)
         {
             var terrainData = terrain.terrainData;
             if (apply)
             {
-                _terrainWeights = terrainData.GetAlphamaps(0, 0, terrainData.alphamapWidth, terrainData.alphamapHeight);
+                terrainWeights = terrainData.GetAlphamaps(0, 0, terrainData.alphamapWidth, terrainData.alphamapHeight);
             }
-            LoadUndoBuffer();
 
             if (_undoBuffer.UndoData == null) return;
 
-            var undoData = _undoBuffer.UndoData;
+            var terrainExtension = terrain.GetComponent<TerrainExtension>();
+            if (terrainExtension == null || _undoBuffer.UndoData.ContainsKey(terrainExtension.guid) == false) return;
+            
+            var undoData = _undoBuffer.UndoData[terrainExtension.guid];
+            
             
             for (int i = undoData.Count - 1; i >= 0; i--) // Apply in reverse
             {
                 var data = undoData[i];
-                SetAlphaMap(data.Item1.X, data.Item1.Y, data.Item2);
+                SetAlphaMap(data.Item1.X, data.Item1.Y, data.Item2, terrainWeights);
             }
 
             if (apply)
             {
-                ApplyChanges();
+                ApplyChanges(terrain, terrainWeights);
             }
-
-            _undoBuffer.UndoData.Clear();
-
-            SaveUndoBuffer();
         }
 
         [Button("Generate GUID")]
@@ -201,60 +194,52 @@ namespace Utility
             var result=new Texture2D(width,height);
             result.ReadPixels(new Rect(0,0,width,height),0,0);
             result.Apply();
+            RenderTexture.active = null;
             DestroyImmediate(rt);
             return result;
         }
 
-        private void AddUndoPoint(int x, int y, int width, int height)
+        private void AddUndoPoint(int x, int y, int width, int height, float[,,] terrainWeights, string terrainGuid)
         {
-            var splat = GetAlphaMap(x, 
-                y, 
-                width, 
-                height);
+            var terrainWidth = terrainWeights.GetLength(1);
+            var terrainHeight = terrainWeights.GetLength(0);
+
+            if (x >= terrainWidth || x + width < 0 ||
+                y >= terrainHeight || y + height < 0)
+            {
+                return;
+            }
+            
+            var splat = GetAlphaMap(x, y, width, height, terrainWeights);
 
             var undoData = new Tuple<Int2, float[,,]>(new(x, y), splat);
-            _undoBuffer.UndoData.Add(undoData);
+            _undoBuffer.UndoData[terrainGuid].Add(undoData);
         }
-        private void Paint(Vector3 worldPoint, int layerIndex, Texture2D resizedBrush)
+        private void Paint(Vector3 worldPoint, int layerIndex, Texture2D resizedBrush, Terrain terrain, float[,,] terrainWeights, string terrainGuid)
         {
-            var point = GetTerrainCoordinates(worldPoint);
-            int xMod = 0; // Modifier for when we paint at the terrain's edge
-            int yMod = 0;// Modifier for when we paint at the terrain's edge
-            int widthMod = 0;
-            int heightMod = 0;
-            
+            var point = GetTerrainCoordinates(worldPoint, terrain);
             var terrainData = terrain.terrainData;
-            
-            if (point.x < 0) // if the brush goes off the negative end of the x axis we set the mod == to it to offset the edited area
+
+            if (point.x + radius < 0 || point.x >= terrainData.alphamapWidth ||
+                point.y + radius < 0 || point.y >= terrainData.alphamapHeight)
             {
-                xMod = Mathf.FloorToInt(point.x);
-            }
-            else if (point.x + radius  > terrainData.alphamapWidth)// if the brush goes off the posative end of the x axis we set the mod == to this
-            {
-                widthMod = Mathf.FloorToInt(point.x + radius - terrainData.alphamapWidth);
-            }
-    
-            if (point.y < 0)//same as with x
-            {
-                yMod = Mathf.FloorToInt(point.y);
-            }
-            else if (point.y + radius > terrainData.alphamapHeight)
-            {
-                heightMod = Mathf.FloorToInt(point.y + radius - terrainData.alphamapHeight);
+                return;
             }
 
-            int x = Mathf.FloorToInt(point.x - xMod);
-            int y = Mathf.FloorToInt(point.y - yMod);
-            int width = Mathf.FloorToInt(radius + widthMod);
-            int height = Mathf.FloorToInt(radius + heightMod);
             
-            AddUndoPoint(x, y, width, height);
-            
-            var splat = GetAlphaMap(x, y, width, height); //grabs the splat map data for our brush area
 
-            for (int xx = 0; xx < radius + widthMod; xx++)
+            int x = Mathf.FloorToInt(point.x);
+            int y = Mathf.FloorToInt(point.y);
+            int width = Mathf.FloorToInt(radius);
+            int height = Mathf.FloorToInt(radius);
+            
+            AddUndoPoint(x, y, width, height, terrainWeights, terrainGuid);
+            
+            var splat = GetAlphaMap(x, y, width, height, terrainWeights); //grabs the splat map data for our brush area
+
+            for (int xx = 0; xx < radius; xx++)
             {
-                for (int yy = 0; yy < radius + heightMod; yy++)
+                for (int yy = 0; yy < radius; yy++)
                 {
                     float[] weights = new float[terrainData.alphamapLayers]; //creates a float array and sets the size to be the number of paints your terrain has
                     for (int zz = 0; zz < splat.GetLength(2); zz++)
@@ -276,22 +261,23 @@ namespace Utility
                 }
             }
             
-            SetAlphaMap(Mathf.FloorToInt(point.x - xMod), Mathf.FloorToInt(point.y - yMod), splat);
+            SetAlphaMap(Mathf.FloorToInt(point.x), Mathf.FloorToInt(point.y), splat, terrainWeights);
         }
         
-        private Vector2 GetTerrainCoordinates(Vector3 worldPoint)
+        private Vector2 GetTerrainCoordinates(Vector3 worldPoint, Terrain terrain)
         {
             var offset = radius / 2; //This offsets the hit position to account for the size of the brush which gets drawn from the corner out
             //World Position Offset Coords, these can differ from the terrain coords if the terrain object is not at (0,0,0)
             Vector3 tempTerrainCoodinates = worldPoint - terrain.transform.position;
             //This takes the world coords and makes them relative to the terrain
+            var data = terrain.terrainData;
             Vector3 terrainCoordinates = new Vector3(
-                tempTerrainCoodinates.x / GetTerrainSize().x,
-                tempTerrainCoodinates.y / GetTerrainSize().y,
-                tempTerrainCoodinates.z / GetTerrainSize().z);
+                tempTerrainCoodinates.x / data.size.x,
+                tempTerrainCoodinates.y / data.size.y,
+                tempTerrainCoodinates.z / data.size.z);
 
             // This will take the coords relative to the terrain and make them relative to the height map(which often has different dimensions)
-            var terrainData = terrain.terrainData;
+            var terrainData = data;
             Vector3 locationInTerrain = new Vector3
             (
                 terrainCoordinates.x * terrainData.alphamapWidth,
@@ -301,11 +287,52 @@ namespace Utility
 
             return new(locationInTerrain.x - offset, locationInTerrain.z - offset);
         }
-        
-        public Vector3 GetTerrainSize()
+
+        private void SetAlphaMap(int x, int y, float[,,] map, float[,,] terrainWeights)
         {
-            return terrain.terrainData.size;
+            int width = map.GetLength(1);
+            int height = map.GetLength(0);
+            int weights = map.GetLength(2);
+            
+            int terrainWidth = terrainWeights.GetLength(1);
+            int terrainHeight = terrainWeights.GetLength(0);
+            
+            for (int xx = 0; xx < width; xx++)
+            {
+                if (xx + x>= terrainWidth || xx + x< 0) continue;
+                for (int yy = 0; yy < height; yy++)
+                {
+                    if (yy + y >= terrainHeight || yy + y < 0) continue;
+                    for (int zz = 0; zz < weights; zz++)
+                    {
+                        terrainWeights[y + yy, x + xx, zz] = map[yy, xx, zz];
+                    }
+                }
+            }
         }
 
+        private float[,,] GetAlphaMap(int x, int y, int width, int height, float[,,] terrainWeights)
+        {
+            var terrainWidth = terrainWeights.GetLength(1);
+            var terrainHeight = terrainWeights.GetLength(0);
+            var layers = terrainWeights.GetLength(2);
+            
+            var result = new float[width, height, layers];
+
+            for (int xx = 0; xx < width; xx++)
+            {
+                if (x + xx >= terrainWidth || x + xx < 0) continue;
+                for (int yy = 0; yy < height; yy++)
+                {
+                    if (y + yy >= terrainHeight || y + yy < 0) continue;
+                    for (int zz = 0; zz < layers; zz++)
+                    {
+                        result[yy, xx, zz] = terrainWeights[y + yy, x + xx, zz];
+                    }
+                }
+            }
+
+            return result;
+        }
     }
 }
