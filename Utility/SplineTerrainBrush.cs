@@ -181,12 +181,6 @@ namespace Utility
             }
         }
 
-        [Button("Generate GUID")]
-        public void NewGuid()
-        {
-            guid = Guid.NewGuid().ToString();
-        }
-
         private Texture2D GetResizedBrush(int width, int height)
         {
             var rt = new RenderTexture(width, height, 24);
