@@ -12,7 +12,8 @@ namespace Character
 		// Common
 		[SerializeField] private GameObject[] hair;
 		[SerializeField] private GameObject[] backAttachment;
-		
+		[SerializeField] private Material[] materials;
+		[SerializeField] private SkinnedMeshRenderer[] objectsAffectedBySkinColor;
 		
 		#region Female
 		// Female
@@ -46,6 +47,14 @@ namespace Character
 		[SerializeField] private GameObject[] maleLegRight;
 		[SerializeField] private GameObject[] maleLegLeft;
 		#endregion
+		
+		private void SetSkinColour(Material material)
+		{
+			foreach (var mr in objectsAffectedBySkinColor)
+			{
+				mr.material = material;
+			}
+		}
 
 		private void DisableObjects(IEnumerable<GameObject> objects)
 		{
@@ -54,6 +63,7 @@ namespace Character
 				if(obj != null) obj.SetActive(false);
 			}
 		}
+		
 
 		private void DisableFemaleObjects()
 		{
@@ -141,12 +151,22 @@ namespace Character
 
 		public int GetNumAvailableOptions(CharacterCustomizationData data, CharacterCustomizationPart part)
 		{
+			if (part == CharacterCustomizationPart.SkinColor)
+			{
+				return materials.Length;
+			}
 			var array = PartToArray(data.Gender, part);
 			return array?.Length ?? 0;
 		}
 
 		public void SelectPart(CharacterCustomizationData data, CharacterCustomizationPart part, int selectionIndex)
 		{
+			if (part == CharacterCustomizationPart.SkinColor)
+			{
+				SetSkinColour(materials[selectionIndex]);
+				return;
+			}
+			
 			var array = PartToArray(data.Gender, part);
 			if (array == null) return;
 			

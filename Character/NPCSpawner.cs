@@ -3,21 +3,28 @@ using System.Collections;
 using System.Collections.Generic;
 using Data;
 using UnityEngine;
+using Utility;
+using WolfRPG.Character;
+using WolfRPG.Core;
 
 namespace Character
 {
 	public class NPCSpawner : SaveableObject
-	{
-		[SerializeField] private GameObject prefab;
+	{ 
 		[SerializeField] private int maxAmount;
 		[SerializeField] private float respawnTime = 120;
-		[SerializeField] private string npcName;
+		[SerializeField] private string npcName; 
+		[SerializeField, ObjectReference((int)DatabaseCategory.Characters)] protected RPGObjectReference characterObjectRef;
+		private GameObject _prefab;
 
 		private List<NPC> _npcs;
 		private Bounds _bounds;
 
 		protected override void Start()
 		{
+			var characterComponent = characterObjectRef.GetComponent<CharacterComponent>();
+			_prefab = characterComponent.Prefab.GetAsset<GameObject>();
+			
 			base.Start();
 			_bounds = GetComponent<BoxCollider>().bounds;
 			_npcs = new();
@@ -53,8 +60,9 @@ namespace Character
 			var data = json.Split(new[] {"</npc>"}, StringSplitOptions.RemoveEmptyEntries);
 			for (int i = 0; i < data.Length; i++)
 			{
-				var newNPC = Instantiate(prefab, transform, false);
+				var newNPC = Instantiate(_prefab, transform, false);
 				var npc = newNPC.GetComponent<NPC>();
+				npc.Initialize(characterObjectRef);
 				newNPC.name = npcName;
 				CharacterSaveUtility.Load(data[i], npc);
 				npc.UpdateData();
@@ -71,18 +79,22 @@ namespace Character
 		{
 			for (int i = 0; i < maxAmount; i++)
 			{
-				var npc = Instantiate(prefab, transform, false);
-				npc.name = npcName + i;
+				var newNPC = Instantiate(_prefab, transform, false);
+				newNPC.name = npcName + i;
+				
 				
 				// Position
 				var randomPosition = _bounds.RandomPos();
 				randomPosition.y = transform.position.y;
-				npc.transform.position = randomPosition;
+				newNPC.transform.position = randomPosition;
 				
 				// Object initialization
-				var npcBase = npc.GetComponent<NPC>();
-				npcBase.Bounds = _bounds;
-				_npcs.Add(npcBase);
+				var npc = newNPC.GetComponent<NPC>();
+				npc.Initialize(characterObjectRef);
+				newNPC.SetActive(true);
+				npc.Bounds = _bounds;
+				
+				_npcs.Add(npc);
 			}
 		}
 

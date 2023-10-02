@@ -5,7 +5,7 @@ namespace Character
 {
 	public static class CharacterCustomizationController
 	{
-		public static void SetPart(CharacterCustomizationPart part, ref CharacterCustomizationData data, int value)
+		public static void SetPart(CharacterCustomizationPart part, CharacterCustomizationData data, int value)
 		{
 			switch (part)
 			{
@@ -80,6 +80,7 @@ namespace Character
 			partPicker.SelectPart(data, CharacterCustomizationPart.Hips, data.Hips);
 			partPicker.SelectPart(data, CharacterCustomizationPart.LegRight, data.LegRight);
 			partPicker.SelectPart(data, CharacterCustomizationPart.LegLeft, data.LegLeft);
+			partPicker.SelectPart(data, CharacterCustomizationPart.SkinColor, data.SkinColor);
 		}
 	}
 }

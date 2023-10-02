@@ -23,7 +23,7 @@ namespace Player
 		{
 			_instance = this;
 			
-			base.Awake();
+			base.Initialize(characterObjectRef);
 
 			if (SaveGameManager.NewGame)
 			{

@@ -24,8 +24,6 @@ namespace Character
 		public Bounds Bounds { get; set; }
 		public bool Respawn { get; set; }
 
-		[SerializeField] private RPGObjectReference shopObject;
-		
 		public ItemContainer ShopInventory { get; set; }
 
 		private float _movementSpeed;
@@ -35,22 +33,22 @@ namespace Character
 		
 		private static readonly int Speed = Animator.StringToHash("Speed");
 
-		private new void Awake()
+		public new void Initialize(RPGObjectReference characterObjectReference)
 		{
-			base.Awake();
+			base.Initialize(characterObjectReference);
 			_movementSpeed = agent.speed;
 
-			if (string.IsNullOrEmpty(shopObject.Guid) == false)
-			{
-				ShopInventory = new();
-				var shopComponent = shopObject.GetComponent<ShopComponent>();
-				foreach (var guid in shopComponent.StartingInventory)
-				{
-					ShopInventory.AddItem(guid);
-				}
-
-				ShopInventory.Money = shopComponent.BarteringMoney;
-			}
+			// if (string.IsNullOrEmpty(shopObject.Guid) == false)
+			// {
+			// 	ShopInventory = new();
+			// 	var shopComponent = shopObject.GetComponent<ShopComponent>();
+			// 	foreach (var guid in shopComponent.StartingInventory)
+			// 	{
+			// 		ShopInventory.AddItem(guid);
+			// 	}
+			//
+			// 	ShopInventory.Money = shopComponent.BarteringMoney;
+			// }
 		}
 
 		private new void OnEnable()

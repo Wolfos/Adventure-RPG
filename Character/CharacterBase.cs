@@ -29,7 +29,7 @@ namespace Character
 		public LoadoutComponent LoadoutComponent { get; set; }
 		
 		// Visuals
-		public CharacterCustomizationData CustomizationData { get; set; }
+		public CharacterCustomizationData CustomizationData => CharacterComponent.VisualData;
 		
 		public Transform graphic;
 		[SerializeField] protected Animator animator;
@@ -43,8 +43,7 @@ namespace Character
 
 		private List<CharacterBase> _currentTargets = new();
 		private Collider _currentInteraction;
-		private CharacterCustomizationComponent _characterCustomizationComponent;
-		
+
 
 		protected Action<float> onDamaged;
 		public CharacterEquipment equipment;
@@ -55,8 +54,9 @@ namespace Character
 
 		private Weapon Weapon => equipment.CurrentWeapon;
 		
-		protected void Awake()
+		public void Initialize(RPGObjectReference characterObjectReference)
 		{
+			characterObjectRef = characterObjectReference;
 			Data = new(
 				characterObjectRef.GetComponent<CharacterAttributes>().CreateInstance(),
 				characterObjectRef.GetComponent<CharacterSkills>().CreateInstance(),
@@ -83,24 +83,22 @@ namespace Character
 
 		private void LoadCustomizationData()
 		{
-			_characterCustomizationComponent = characterObjectRef.GetComponent<CharacterCustomizationComponent>();
-			if (_characterCustomizationComponent == null) return;
-
 			UpdateCustomizationData();
 		}
 
 		public void UpdateCustomizationData()
 		{
-			CustomizationData = new()
-			{
-				Gender = _characterCustomizationComponent.Gender,
-				Hair = _characterCustomizationComponent.Hair,
-				Head = _characterCustomizationComponent.Head,
-				Eyebrows = _characterCustomizationComponent.Eyebrows,
-				FacialHair = _characterCustomizationComponent.FacialHair,
-			};
-
-			var tempData = CustomizationData;
+			CustomizationData.Hips = 0;
+			CustomizationData.Torso = 0;
+			CustomizationData.BackAttachment = 0;
+			CustomizationData.HandLeft = 0;
+			CustomizationData.HandRight = 0;
+			CustomizationData.LegLeft = 0;
+			CustomizationData.LegRight = 0;
+			CustomizationData.ArmLowerLeft = 0;
+			CustomizationData.ArmLowerRight = 0;
+			CustomizationData.ArmUpperLeft = 0;
+			CustomizationData.ArmUpperRight = 0;
 			// Add equipment
 			foreach (var item in equipment.Equipment)
 			{
@@ -108,11 +106,11 @@ namespace Character
 				
 				foreach (var part in item.EquipmentParts)
 				{
-					CharacterCustomizationController.SetPart(part.Part, ref tempData, part.Index);
+					CharacterCustomizationController.SetPart(part.Part, CustomizationData, part.Index);
 				}
 			}
 			
-			CharacterCustomizationController.SetData(tempData, partPicker);
+			CharacterCustomizationController.SetData(CustomizationData, partPicker);
 		}
 		
 

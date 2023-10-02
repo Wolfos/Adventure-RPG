@@ -17,10 +17,13 @@ namespace Utility
         [SerializeField] private Texture2D brush;
         [FormerlySerializedAs("width")] [SerializeField] private float radius = 1;
         [SerializeField] private float strength = 1;
+        [SerializeField] private float strengthVariation = 0;
+        [SerializeField] private float strengthVariationScale = 1f;
         [SerializeField] private TerrainLayer layer;
         [SerializeField, HideInInspector] private string guid;
         [SerializeField] private bool limitHeight;
         [SerializeField] private float heightSoftness;
+       
 
         private UndoBufferData _undoBuffer;
 
@@ -222,8 +225,9 @@ namespace Utility
                 return;
             }
 
-            
 
+            var strengthVar = Mathf.PerlinNoise(worldPoint.x / strengthVariationScale, worldPoint.z / strengthVariationScale) * strengthVariation;
+            
             int x = Mathf.FloorToInt(point.x);
             int y = Mathf.FloorToInt(point.y);
             int width = Mathf.FloorToInt(radius);
@@ -265,7 +269,7 @@ namespace Utility
                     var pixel = resizedBrush.GetPixel(xx, yy).a;
 
                     weights[layerIndex] +=
-                        pixel * strength * hardnessModifier; // adds weight to the paint currently selected with the int paint variable
+                        pixel * strength * hardnessModifier + strengthVar; // adds weight to the paint currently selected with the int paint variable
                     
 
                     //this next bit normalizes all the weights so that they will add up to 1
