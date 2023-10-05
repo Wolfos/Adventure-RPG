@@ -65,6 +65,7 @@ namespace Character
 				npc.Initialize(characterObjectRef);
 				newNPC.name = npcName;
 				CharacterSaveUtility.Load(data[i], npc);
+				newNPC.SetActive(true);
 				npc.UpdateData();
 				npc.Bounds = _bounds;
 				if (npc.Data.CharacterComponent.IsDead)

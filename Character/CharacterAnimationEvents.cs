@@ -28,5 +28,15 @@ namespace Character
         {
             OnEndDoSecondAttack?.Invoke();    
         }
+
+        [Preserve]
+        private void FootL()
+        {
+        }
+        
+        [Preserve]
+        private void FootR()
+        {
+        }
     }
 }

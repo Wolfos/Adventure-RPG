@@ -87,6 +87,7 @@ namespace Character
 						if (itemData.Type == ItemType.Weapon)
 						{
 							CurrentWeapon = _rightHandSocketObject.GetComponent<Weapon>();
+							CurrentWeapon.Character = _characterBase;
 						}
 					}
 				}

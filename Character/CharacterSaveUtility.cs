@@ -40,7 +40,7 @@ namespace Character
 				}
 			}
 
-			if (saveData.ItemsAndQuantitiesShop != null && character is NPC npc)
+			if (saveData.ItemsAndQuantitiesShop != null && character is NPC {ShopInventory: not null} npc)
 			{
 				npc.ShopInventory.Clear();
 				foreach (var tuple in saveData.ItemsAndQuantities)

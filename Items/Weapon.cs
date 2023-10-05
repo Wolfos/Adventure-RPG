@@ -16,7 +16,7 @@ namespace Items
 		[SerializeField] protected LayerMask blockLayerMask;
 
 		protected LayerMask AttackLayerMask;
-		protected CharacterBase Character;
+		[HideInInspector] public CharacterBase Character;
 		public bool Attacking { get; set; }
 		
 		private int _defaultLayer;

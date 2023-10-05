@@ -45,7 +45,7 @@ namespace Character
 		private Collider _currentInteraction;
 
 
-		protected Action<float> onDamaged;
+		protected Action<float, string> onDamaged;
 		public CharacterEquipment equipment;
 		private static readonly int Recoil = Animator.StringToHash("HitRecoil");
 		private static readonly int Blocking = Animator.StringToHash("Blocking");
@@ -70,12 +70,13 @@ namespace Character
 				Owner = Data
 			};
 			Inventory.OnItemUsed += OnItemUsed;
-
-			CharacterComponent.CharacterId = characterObjectRef.GetObject().Guid;
 			
 			if (SaveGameManager.NewGame)
 			{
 				Data.CharacterComponent.CharacterId = CharacterPool.Register(this).ToString();
+			}
+			else
+			{
 			}
 			equipment = GetComponent<CharacterEquipment>();
 			animationEvents.onHit += MeleeHitCallback;
@@ -397,7 +398,7 @@ namespace Character
 			if(Weapon != null) Weapon.InterruptAttack();
 			if (CharacterComponent.IsDead) return;
 			
-			onDamaged?.Invoke(damage);
+			onDamaged?.Invoke(damage, other.CharacterComponent.CharacterId);
 			SFXPlayer.PlaySound(hitSound, 0.2f);
 
 			//var knockback = (transform.position - point).normalized * (damage.knockback * 20);

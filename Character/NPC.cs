@@ -94,6 +94,7 @@ namespace Character
 			SetHealth(Data.GetAttributeValue(Attribute.Health));
 			transform.position = Data.CharacterComponent.Position;
 			transform.rotation = Data.CharacterComponent.Rotation;
+			graphic.localRotation = Quaternion.identity;
 			ActivateRoutine(Data.NpcComponent.CurrentRoutine, true, true);
 		}
 
@@ -157,22 +158,21 @@ namespace Character
 			base.Update();
 		}
 
-		private void OnDamaged(float damage)
+		private void OnDamaged(float damage, string source)
 		{
-			// TODO: Get damage source
-			// if (!string.IsNullOrEmpty(damage.source))
-			// {
-			// 	CharacterComponent.CurrentTarget = damage.source;
-			// 	if (NpcComponent.CurrentRoutine != NPCRoutine.Combat)
-			// 	{
-			// 		ActivateRoutine(NPCRoutine.Combat);
-			// 	}
-			// }
-			//
+			if (!string.IsNullOrEmpty(source))
+			{
+				CharacterComponent.CurrentTarget = source;
+				if (NpcComponent.CurrentRoutine != NPCRoutine.Combat)
+				{
+					ActivateRoutine(NPCRoutine.Combat);
+				}
+			}
+			
 			if (GetAttributeValue(Attribute.Health) - damage <= 0) // Dying
 			{
 				OnDeath?.Invoke();
-				//CharacterPool.GetCharacter(damage.source)?.Killed(gameObject.name);
+				CharacterPool.GetCharacter(source)?.Killed(gameObject.name);
 			}
 			
 		}
