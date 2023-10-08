@@ -264,11 +264,12 @@ namespace Character
 				{
 					if (NpcComponent.Demeanor == NPCDemeanor.Hostile)
 					{
-						// if (Vector3.SqrMagnitude(transform.position - _playerCharacter.transform.position) < startChaseDistance * startChaseDistance)
-						// {
-						// 	CharacterComponent.CurrentTarget = _playerCharacter.CharacterComponent.CurrentTarget;
-						// 	ActivateRoutine(NPCRoutine.Combat);
-						// }
+						var playerCharacter = CharacterPool.GetPlayer();
+						if (Vector3.SqrMagnitude(transform.position - playerCharacter.transform.position) < startChaseDistance * startChaseDistance)
+						{
+							CharacterComponent.CurrentTarget = playerCharacter.CharacterComponent.CharacterId;
+							ActivateRoutine(NPCRoutine.Combat);
+						}
 					}
 					if (Mathf.Abs(agent.velocity.magnitude) < 0.01f) // Stuck
 					{

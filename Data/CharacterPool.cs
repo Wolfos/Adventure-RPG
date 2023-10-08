@@ -6,7 +6,8 @@ namespace Data
 {
 	public class CharacterPool
 	{
-		private static Dictionary<Guid, CharacterBase> characters = new Dictionary<Guid, CharacterBase>();
+		private static Dictionary<Guid, CharacterBase> _characters = new();
+		private static CharacterBase _player; // Placeholder until we get a proper faction system
 
 		public static Guid Register(CharacterBase character)
 		{
@@ -21,7 +22,7 @@ namespace Data
 
 		public static Guid Register(Guid id, CharacterBase character)
 		{
-			characters.Add(id, character);
+			_characters.Add(id, character);
 			return id;
 		}
 
@@ -32,7 +33,7 @@ namespace Data
 
 		public static void Unregister(Guid id)
 		{
-			characters.Remove(id);
+			_characters.Remove(id);
 		}
 		
 		public static CharacterBase GetCharacter(string id)
@@ -40,11 +41,21 @@ namespace Data
 			return string.IsNullOrEmpty(id) ? null : GetCharacter(Guid.Parse(id));
 		}
 
+		public static void RegisterPlayer(CharacterBase player)
+		{
+			_player = player;
+		}
+		
+		public static CharacterBase GetPlayer()
+		{
+			return _player;
+		}
+
 		public static CharacterBase GetCharacter(Guid id)
 		{
-			if (characters.ContainsKey(id))
+			if (_characters.ContainsKey(id))
 			{
-				return characters[id];
+				return _characters[id];
 			}
 
 			return null;
@@ -52,7 +63,7 @@ namespace Data
 
 		public static void Clear()
 		{
-			characters.Clear();
+			_characters.Clear();
 		}
 	}
 }

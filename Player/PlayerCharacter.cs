@@ -24,11 +24,13 @@ namespace Player
 			_instance = this;
 			
 			base.Initialize(characterObjectRef);
+			CharacterPool.RegisterPlayer(this);
 
 			if (SaveGameManager.NewGame)
 			{
 				OnFinishedLoading();
 			}
+			animator.SetBool("SkipAttackAnticipation", true);
 		}
 
 		// TODO: Refactor into event

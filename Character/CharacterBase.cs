@@ -77,6 +77,10 @@ namespace Character
 			}
 			else
 			{
+				if (Data.CharacterComponent.CharacterId != null) // Saved game probably hasn't loaded yet
+				{
+					CharacterPool.Register(Data.CharacterComponent.CharacterId, this);
+				}
 			}
 			equipment = GetComponent<CharacterEquipment>();
 			animationEvents.onHit += MeleeHitCallback;
