@@ -31,7 +31,7 @@ namespace UI
 
 		private void OnPlayerMenu(InputAction.CallbackContext context)
 		{
-			if (GetActiveWindow() is not PlayerMenuWindow) return;
+			if (GetActiveWindow() != null && GetActiveWindow() is not PlayerMenuWindow) return;
 			
 			if (context.canceled)
 			{
