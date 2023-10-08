@@ -2,6 +2,7 @@
 using System.Collections;
 using Combat;
 using Data;
+using Dialogue;
 using UI;
 using UnityEngine;
 using UnityEngine.AI;
@@ -38,17 +39,24 @@ namespace Character
 			base.Initialize(characterObjectReference);
 			_movementSpeed = agent.speed;
 
-			// if (string.IsNullOrEmpty(shopObject.Guid) == false)
-			// {
-			// 	ShopInventory = new();
-			// 	var shopComponent = shopObject.GetComponent<ShopComponent>();
-			// 	foreach (var guid in shopComponent.StartingInventory)
-			// 	{
-			// 		ShopInventory.AddItem(guid);
-			// 	}
-			//
-			// 	ShopInventory.Money = shopComponent.BarteringMoney;
-			// }
+			if (NpcComponent.Dialogue != null)
+			{
+				var dialogueStarter = gameObject.AddComponent<DialogueStarter>();
+				dialogueStarter.dialogueAsset = NpcComponent.Dialogue.GetAsset<DialogueNodeGraph>();
+			}
+
+			if (NpcComponent.IsShopKeeper)
+			{
+				ShopInventory = new();
+				var shopComponent = NpcComponent.Shop.GetComponent<ShopComponent>();
+				foreach (var shopItem in shopComponent.ShopInventory)
+				{
+					ShopInventory.AddItem(shopItem.Item.Guid, shopItem.Quantity);
+					ShopInventory.Money = shopComponent.BarteringMoney;
+				}
+			
+				ShopInventory.Money = shopComponent.BarteringMoney;
+			}
 		}
 
 		private new void OnEnable()

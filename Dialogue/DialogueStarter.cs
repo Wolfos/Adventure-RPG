@@ -10,9 +10,9 @@ namespace Dialogue
 
     public class DialogueStarter : MonoBehaviour, IInteractable
     {
-        [SerializeField] private DialogueNodeGraph dialogueAsset;
-        [SerializeField] private string friendlyName;
-        [SerializeField] private float tooltipOffset;
+        public DialogueNodeGraph dialogueAsset;
+        public string friendlyName = "test";
+        [SerializeField] private float tooltipOffset = 3;
         
         public void OnCanInteract(CharacterBase character)
         {
