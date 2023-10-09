@@ -55,7 +55,7 @@ namespace UI
 			// }
 		}
 		
-		public void SetItem(ItemData item, int quantity)
+		public void SetItem(ItemData item, int quantity, PriceList priceList)
 		{
 			if (Item != null)
 			{
@@ -71,10 +71,18 @@ namespace UI
 					text = quantity > 1 ? $"{item.Name.Get()} ({quantity})" : item.Name.Get();
 				}
 
-				itemNameText.text = text;
+				itemNameText.text = text;	
 				typeText.text = item.Type.ToString(); // TODO: Localize
 				weightText.text = item.Weight.ToString("0.0");
-				valueText.text = item.BaseValue.ToString();
+				// TODO: Price multiplier
+				var listPrice = item.BaseValue;
+				if (priceList != null)
+				{
+					listPrice = priceList.GetPrice(item.RpgObject.Guid);
+					if (listPrice == -1) listPrice = item.BaseValue; // Item wasn't on price list, pay default value
+				}
+
+				valueText.text = listPrice.ToString();
 				// image.sprite = item.icon;
 				// EquipStatusChanged(item, item.IsEquipped);
 				// SetQuantity(item.Quantity);

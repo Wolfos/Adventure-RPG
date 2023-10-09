@@ -56,6 +56,7 @@ namespace Character
 				}
 			
 				ShopInventory.Money = shopComponent.BarteringMoney;
+				ShopInventory.PriceList = shopComponent.PriceList.GetComponent<PriceList>();
 			}
 		}
 

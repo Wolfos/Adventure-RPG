@@ -46,6 +46,8 @@ namespace UI
 		[SerializeField] private SelectItemBehaviour selectItemBehaviour;
 		[SerializeField] private Text carryWeightText;
 
+		private PriceList _priceList;
+
 		public float PriceMultiplier { get; set; }
 
 		private List<InventoryItemButtonView> _buttons;
@@ -101,7 +103,20 @@ namespace UI
 
 			Container.OnItemAdded += ItemAdded;
 			Container.OnItemRemoved += ItemRemoved;
-			
+
+			_priceList = null;
+			switch (type)
+			{
+				case InventoryViewType.Normal:
+					break;
+				case InventoryViewType.Buy:
+					_priceList = Container.PriceList;
+					break;
+				case InventoryViewType.Sell:
+					_priceList = OtherContainer.PriceList;
+					break;
+			}
+
 			AddButtons();
 
 			UpdateCarryWeight();
@@ -145,7 +160,7 @@ namespace UI
 				var button = Instantiate(itemButton, itemsContainer.transform, false);
 				var slot = i;
 				button.Initialize(this, slot, 0, () => {ButtonClicked(slot);}, type == InventoryViewType.Normal);
-				button.SetItem(Container.GetItemBySlot(i), Container.GetQuantityFromSlot(i));
+				button.SetItem(Container.GetItemBySlot(i), Container.GetQuantityFromSlot(i), _priceList);
 				button.gameObject.SetActive(true);
 				_buttons.Add(button);
 			}
@@ -216,7 +231,10 @@ namespace UI
 					break;
 				case SelectItemBehaviour.Buy:
 				{
-					var cost = Mathf.CeilToInt(item.BaseValue * PriceMultiplier);
+					var listPrice = _priceList.GetPrice(item.RpgObject.Guid);
+					if (listPrice == -1) listPrice = item.BaseValue; // Item wasn't on price list, pay default value
+					
+					var cost = Mathf.CeilToInt(listPrice * PriceMultiplier);
 					if (OtherContainer.Money >= cost)
 					{
 						OtherContainer.Money -= cost;
@@ -230,7 +248,10 @@ namespace UI
 				}
 				case SelectItemBehaviour.Sell:
 				{
-					Container.Money += Mathf.CeilToInt(item.BaseValue * PriceMultiplier);
+					var listPrice = _priceList.GetPrice(item.RpgObject.Guid);
+					if (listPrice == -1) listPrice = item.BaseValue; // Item wasn't on price list, pay default value
+					
+					Container.Money += Mathf.CeilToInt(listPrice * PriceMultiplier);
 					UpdateMoney();
 					
 					// Transfer one quantity of item at a time
