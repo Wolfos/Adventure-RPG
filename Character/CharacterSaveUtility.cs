@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using Data;
 using Newtonsoft.Json;
+using Player;
 using WolfRPG.Character;
+using WolfRPG.Core.Quests;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Character
@@ -16,6 +18,7 @@ namespace Character
 			// GUID, item quantity
 			public List<Tuple<string, int>> ItemsAndQuantities { get; set; }
 			public List<Tuple<string, int>> ItemsAndQuantitiesShop { get; set; }
+			public Dictionary<string, QuestProgress> QuestProgress { get; set; }
 		}
 
 		public static void Load(string json, CharacterBase character)
@@ -49,6 +52,12 @@ namespace Character
 				}
 				
 			}
+			
+			if (character is PlayerCharacter player)
+			{
+				player.QuestProgress = saveData.QuestProgress;
+			}
+
 
 
 			character.GetComponent<CharacterEquipment>().CheckEquipment();
@@ -90,6 +99,10 @@ namespace Character
 						saveData.ItemsAndQuantities.Add(new(guid,quantity));
 					}
 				}
+			}
+			else if (character is PlayerCharacter player)
+			{
+				saveData.QuestProgress = player.QuestProgress;
 			}
 
 			return JsonConvert.SerializeObject(saveData, WolfRPG.Core.Settings.JsonSerializerSettings);

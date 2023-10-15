@@ -133,6 +133,7 @@ namespace Character
 			switch (routine)
 			{
 				case NPCRoutine.Idle:
+					StartCoroutine(IdleRoutine());
 					break;
 				case NPCRoutine.Wandering:
 					StartCoroutine(WanderingRoutine(delayed, proceed));
@@ -248,6 +249,20 @@ namespace Character
 			var length = clip.length;
 			yield return new WaitForSeconds(length - 0.1f);
 			Attack();
+		}
+
+		private IEnumerator IdleRoutine()
+		{
+			yield return null;
+			yield return null;
+
+			if (!agent.enabled) agent.enabled = true;
+			agent.destination = transform.position;
+			
+			while (true)
+			{
+				yield return null;
+			}
 		}
 		
 		private IEnumerator WanderingRoutine(bool delayed = false, bool proceed = false)

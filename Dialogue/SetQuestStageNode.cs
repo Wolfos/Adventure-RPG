@@ -2,9 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Character;
 using Data;
 using UnityEngine;
 using Utility;
+using WolfRPG.Core;
+using WolfRPG.Core.Quests;
 using XNode;
 
 namespace Dialogue
@@ -13,22 +16,21 @@ namespace Dialogue
 	{
 		[Input(ShowBackingValue.Never)] public Node previous;
 		[Output] public Node next;
-		//[SerializeField] private Quest quest;
+		[SerializeField, ObjectReference(5)] private RPGObjectReference questReference;
 		[SerializeField] private int stage;
 
 		private void OnValidate()
 		{
-			//stage = Mathf.Clamp(stage, 0, quest.stages.Length - 1);
+			var quest = Quest.GetQuest(questReference.Guid);
+			stage = Mathf.Clamp(stage, 0, quest.Stages.Length - 1);
 		}
 
-		public void Execute()
+		public void Execute(CharacterBase character)
 		{
-			// var player = SystemContainer.GetSystem<Player.PlayerCharacter>();
-			// if (player.HasQuest(quest))
-			// {
-			// 	var playerQuest = player.data.quests.First(q => q.name == quest.name);
-			// 	playerQuest.SetStage(stage);
-			// }
+			if (character.HasQuest(questReference.Guid))
+			{
+				Quest.SetStage(character.GetQuestProgress(questReference.Guid), stage);
+			}
 		}
 	}
 }

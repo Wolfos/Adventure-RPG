@@ -1,8 +1,12 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Data;
 using UnityEngine;
 using Character;
 using Utility;
+using WolfRPG.Core.Quests;
 using WolfRPG.Inventory;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
 
@@ -17,6 +21,8 @@ namespace Player
 		private static readonly int IsAttacking = Animator.StringToHash("IsAttacking");
 
 		private static PlayerCharacter _instance;
+
+		public Dictionary<string, QuestProgress> QuestProgress { get; set; }= new();
 
 
 		private new void Awake()
@@ -75,20 +81,25 @@ namespace Player
 			base.OnDestroy();
 		}
 
-		// public void StartQuest(Quest quest)
-		// {
-		// 	if (HasQuest(quest)) return;
-		// 	
-		// 	var q = Instantiate(quest);
-		// 	q.name = quest.name;
-		// 	data.quests.Add(q);
-		// 	data.questProgress.Add(quest.progress);
-		// }
+		public override void StartQuest(string guid)
+		{
+			if (HasQuest(guid)) return;
+			
+			QuestProgress.Add(guid, new()
+			{
+				Guid = guid
+			});
+		}
+		
+		public override QuestProgress GetQuestProgress(string guid)
+		{
+			return QuestProgress[guid];
+		}
 
-		// public bool HasQuest(Quest quest)
-		// {
-		// 	return data.quests.Any(x => x.name == quest.name);
-		// }
+		public override bool HasQuest(string guid)
+		{
+			return QuestProgress.ContainsKey(guid);
+		}
 
 		private void OnAttributeUpdated(Attribute attribute, int newValue)
 		{

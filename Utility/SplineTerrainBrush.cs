@@ -156,6 +156,7 @@ namespace Utility
             SaveUndoBuffer();
         }
         
+        
         public void Undo(Terrain terrain, float[,,] terrainWeights, bool apply)
         {
             var terrainData = terrain.terrainData;
@@ -357,6 +358,12 @@ namespace Utility
             }
 
             return result;
+        }
+
+        [Button("New GUID")]
+        public void NewGuid()
+        {
+            guid = Guid.NewGuid().ToString();
         }
     }
 }

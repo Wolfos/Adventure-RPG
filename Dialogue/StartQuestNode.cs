@@ -1,19 +1,23 @@
-﻿using Data;
+﻿using Character;
+using Data;
+using UnityEngine;
 using Utility;
+using WolfRPG.Core;
 using XNode;
 
 namespace Dialogue
 {
     public class StartQuestNode : Node
     {
-        //public Quest quest;
+        [SerializeField, ObjectReference(5)] private RPGObjectReference questReference;
+
         
         [Input(ShowBackingValue.Never)] public Node previous;
         [Output] public Node next;
         
-        public void Execute()
+        public void Execute(CharacterBase character)
         {
-            //SystemContainer.GetSystem<Player.PlayerCharacter>().StartQuest(quest);
+            character.StartQuest(questReference.Guid);
         }
         
     }

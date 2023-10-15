@@ -1,43 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-//using Data;
+﻿using System.Collections.Generic;
+using Character;
+using Player;
 using UnityEngine;
-//using Utility;
+using UnityEngine.Serialization;
+using WolfRPG.Core;
+using WolfRPG.Core.Quests;
 using XNode;
 
 namespace Dialogue
 {
 	public class GetQuestStageNode : Node
 	{
-		//[SerializeField] private Quest quest;
+		[FormerlySerializedAs("quest")] [SerializeField, ObjectReference(5)] private RPGObjectReference questReference;
 		[Input(ShowBackingValue.Never)] public Node previous;
 		[Output()] public Node doesntHaveQuest;
 		[Output(instancePortList = true)] public List<string> stages;
+		[Output()] public Node finishedQuest;
 
 		private void OnValidate()
 		{
-			// if (!quest) return;
-			// stages = new();
-			// foreach (var stage in quest.stages)
-			// {
-			// 	stages.Add(stage.description);
-			// }
+			if (questReference == null) return;
+			var quest = questReference.GetComponent<QuestData>();
+			stages = new();
+			foreach (var stage in quest.Stages)
+			{
+				stages.Add(stage.Description);
+			}
 		}
 
-		public Node GetNextNode()
+		public Node GetNextNode(CharacterBase character)
 		{
-			// var player = SystemContainer.GetSystem<Player.PlayerCharacter>();
-			// if (player.HasQuest(quest))
-			// {
-			// 	var playerQuest = player.CharacterComponent.Quests.First(q => q.QuestName == quest.name);
-			// 	return GetOutputPort("stages " + playerQuest.progress.currentStage).Connection.node;
-			// }
-			// else
-			// {
-			// 	return GetOutputPort("doesntHaveQuest").Connection.node;
-			// }
-			return null;
+			if (character.HasQuest(questReference.Guid))
+			{
+				var questProgress = character.GetQuestProgress(questReference.Guid);
+				return GetOutputPort("stages " + questProgress.CurrentStage).Connection.node;
+			}
+
+			return GetOutputPort("doesntHaveQuest").Connection.node;
 		}
 
 		// Return the correct value of an output port when requested

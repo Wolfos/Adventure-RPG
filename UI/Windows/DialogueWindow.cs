@@ -106,7 +106,7 @@ namespace UI
 
 				case StartQuestNode qn:
 				{
-					qn.Execute();
+					qn.Execute(_interactingCharacter);
 					var port = qn.GetOutputPort("next");
 				
 					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
@@ -117,7 +117,7 @@ namespace UI
 				
 				case SetQuestStageNode qn:
 				{
-					qn.Execute();
+					qn.Execute(_interactingCharacter);
 					EndDialogue();
 					var port = qn.GetOutputPort("next");
 					
@@ -129,7 +129,7 @@ namespace UI
 
 				case GetQuestStageNode qn:
 				{
-					var n = qn.GetNextNode();
+					var n = qn.GetNextNode(_interactingCharacter);
 					_nextNodes.Add(n);
 					OnNodeEnded(0);
 					break;

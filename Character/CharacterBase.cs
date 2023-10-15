@@ -397,6 +397,19 @@ namespace Character
 			DeathAnimationFinished();
 		}
 
+		public virtual void StartQuest(string guid)
+		{ }
+
+		public virtual QuestProgress GetQuestProgress(string guid)
+		{
+			return null;
+		}
+
+		public virtual bool HasQuest(string guid)
+		{
+			return false;
+		}
+
 		public void TakeDamage(float damage, Vector3 point, CharacterBase other)
 		{
 			if(Weapon != null) Weapon.InterruptAttack();
@@ -417,11 +430,11 @@ namespace Character
 		// My damage killed something
 		public void Killed(string characterID)
 		{
-			var quest = CharacterComponent.Quests.FirstOrDefault(q => q.CurrentStage.Target == characterID);
-			if (quest != null)
-			{
-				Quest.ProgressToNextStage(quest);
-			}
+			//var quest = CharacterComponent.Quests.FirstOrDefault(q => q.CurrentStage.Target == characterID);
+			// if (quest != null)
+			// {
+			// 	Quest.ProgressToNextStage(quest);
+			// }
 		}
 	}
 }
