@@ -76,7 +76,7 @@ namespace Utility
 					_instance.hdCameraData.allowDynamicResolution = true;
 					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
 					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
-					_instance.hdCameraData.deepLearningSuperSamplingQuality = 0;
+					_instance.hdCameraData.deepLearningSuperSamplingQuality = 2;
 					break;
 				case UpscalingMode.DLSSBalanced:
 					_instance.hdCameraData.allowDynamicResolution = true;
@@ -88,7 +88,7 @@ namespace Utility
 					_instance.hdCameraData.allowDynamicResolution = true;
 					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
 					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
-					_instance.hdCameraData.deepLearningSuperSamplingQuality = 2;
+					_instance.hdCameraData.deepLearningSuperSamplingQuality = 0;
 					break;
 				case UpscalingMode.DLSSUltraPerformance:
 					_instance.hdCameraData.allowDynamicResolution = true;
@@ -120,6 +120,7 @@ namespace Utility
 				case LightingQualityMode.ScreenSpace:
 					gi.enable.Override(true);
 					gi.tracing.Override(RayCastingMode.RayMarching);
+					gi.fullResolution = true; // This effect looks awful at half resolution, so no quality setting here
 					break;
 				case LightingQualityMode.RayTracingLow:
 					gi.enable.Override(true);

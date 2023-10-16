@@ -53,8 +53,7 @@ public class GraphicsSettingsMenu : MonoBehaviour
             upscaling.AddOption("DLSS Performance");
             upscaling.AddOption("DLSS Ultra Performance");
         }
-        upscaling.SetValueWithoutNotify(PlayerPrefs.GetInt("UpscalingMode", 0));
-
+        
         lighting.AddOption("Direct only");
         lighting.AddOption("Screen Space Global Illumination");
         if (SystemInfo.supportsRayTracing)
@@ -84,11 +83,17 @@ public class GraphicsSettingsMenu : MonoBehaviour
         shadowQuality.onValueChanged.AddListener(OnShadowQualityChanged);
     }
 
+    private void OnEnable()
+    {
+        LoadOptions();
+    }
+
     private void LoadOptions()
     {
         // Resolution is handled in Awake loop
         
         upscaling.SetValueWithoutNotify(PlayerPrefs.GetInt("UpscalingMode", 0));
+        reflections.SetValueWithoutNotify(PlayerPrefs.GetInt("ReflectionQuality", 0));
         lighting.SetValueWithoutNotify(PlayerPrefs.GetInt("LightingQuality", 0));
         shadowQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("ShadowQuality", 0));
     }
