@@ -33,6 +33,10 @@ namespace Dialogue
 			if (character.HasQuest(questReference.Guid))
 			{
 				var questProgress = character.GetQuestProgress(questReference.Guid);
+				if (questProgress.Complete)
+				{
+					return GetOutputPort("finishedQuest").Connection.node;
+				}
 				return GetOutputPort("stages " + questProgress.CurrentStage).Connection.node;
 			}
 

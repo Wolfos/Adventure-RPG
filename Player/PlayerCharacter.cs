@@ -129,6 +129,26 @@ namespace Player
 			PlayerControls.SetInputActive(true);
 			SaveGameManager.LoadSaveGame();
 		}
+		
+		public override void Killed(string characterGuid)
+		{
+			foreach (var qp in QuestProgress)
+			{
+				var questProgress = qp.Value;
+				var quest = questProgress.GetQuest();
+				var stage = quest.Stages[questProgress.CurrentStage];
+				
+				if (stage.Type == QuestStageType.KillX &&
+				    stage.Target.Guid == characterGuid)
+				{
+					stage.Progress++;
+					if (stage.Progress >= stage.Number)
+					{
+						Quest.ProgressToNextStage(questProgress);
+					}
+				}
+			}
+		}
 
 	}
 }

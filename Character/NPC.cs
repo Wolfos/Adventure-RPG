@@ -182,7 +182,7 @@ namespace Character
 			if (GetAttributeValue(Attribute.Health) - damage <= 0) // Dying
 			{
 				OnDeath?.Invoke();
-				CharacterPool.GetCharacter(source)?.Killed(gameObject.name);
+				CharacterPool.GetCharacter(source)?.Killed(characterObjectRef.Guid);
 			}
 			
 		}

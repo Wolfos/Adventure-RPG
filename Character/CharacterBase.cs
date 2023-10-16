@@ -428,7 +428,7 @@ namespace Character
 		
 
 		// My damage killed something
-		public void Killed(string characterID)
+		public virtual void Killed(string characterGuid)
 		{
 			//var quest = CharacterComponent.Quests.FirstOrDefault(q => q.CurrentStage.Target == characterID);
 			// if (quest != null)
