@@ -35,7 +35,7 @@ namespace Character
 		[SerializeField] protected Animator animator;
 		[SerializeField] private float deathAnimationLength;
 		[SerializeField] private CollisionCallbacks interactionTrigger, meleeAttackTrigger;
-		[SerializeField] private LayerMask interactionLayerMask, attackLayerMask;
+		[SerializeField] private LayerMask interactionLayerMask, attackLayerMask, blockLayerMask;
 		[SerializeField] private Damage unarmedDamage;
 		[SerializeField] private AudioClip hitSound;
 		[SerializeField] public CharacterAnimationEvents animationEvents;
@@ -306,7 +306,7 @@ namespace Character
 			//Armed
 			else
 			{
-				Weapon.Attack(graphic.forward, attackLayerMask, OnStagger);
+				Weapon.Attack(graphic.forward, attackLayerMask, blockLayerMask, OnStagger);
 			}
 		}
 

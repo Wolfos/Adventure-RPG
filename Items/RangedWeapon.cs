@@ -14,9 +14,9 @@ namespace Items
 			return ammunition != null;
 		}
 		
-		public override void Attack(Vector3 direction, LayerMask attackLayerMask, Action onStagger)
+		public override void Attack(Vector3 direction, LayerMask attackLayerMask, LayerMask blockLayerMask, Action onStagger)
 		{
-			base.Attack(direction, attackLayerMask, onStagger);
+			base.Attack(direction, attackLayerMask, blockLayerMask, onStagger);
 
 			//ammunition.Fire(direction, 100, baseDamage, container.GetComponent<CharacterBase>());
 		}

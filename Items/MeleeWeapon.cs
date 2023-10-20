@@ -24,9 +24,9 @@ namespace Items
 			AttackSound = _weaponData.AttackSound?.GetAsset<AudioClip>();
 		}
 
-		public override void Attack(Vector3 direction, LayerMask attackLayerMask, Action onStagger)
+		public override void Attack(Vector3 direction, LayerMask attackLayerMask, LayerMask blockLayerMask, Action onStagger)
 		{
-			base.Attack(direction, attackLayerMask, onStagger);
+			base.Attack(direction, attackLayerMask, blockLayerMask, onStagger);
 
 			StartCoroutine(AttackRoutine(onStagger));
 		}
@@ -68,7 +68,7 @@ namespace Items
 					var center = Vector3.Lerp(previousPosition, currentPosition, (float) i / amount);
 					var rotation = Quaternion.Lerp(previousRotation, currentRotation, (float) i / amount);
 
-					var blockResult = Physics.OverlapBox(center, hitCollider.size, rotation, blockLayerMask);
+					var blockResult = Physics.OverlapBox(center, hitCollider.size, rotation, BlockLayerMask);
 					if (blockResult.Length > 0)
 					{
 						onStagger?.Invoke();

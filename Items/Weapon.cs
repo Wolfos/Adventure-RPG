@@ -13,8 +13,8 @@ namespace Items
 	{
 		[Header("Weapon")]
 		[SerializeField, ObjectReference((int)DatabaseCategory.Items)] protected RPGObjectReference rpgObjectReference;
-		[SerializeField] protected LayerMask blockLayerMask;
-
+		
+		protected LayerMask BlockLayerMask;
 		protected LayerMask AttackLayerMask;
 		[HideInInspector] public CharacterBase Character;
 		public bool Attacking { get; set; }
@@ -53,9 +53,10 @@ namespace Items
 			return !Attacking;
 		}
 
-		public virtual void Attack(Vector3 direction, LayerMask attackLayerMask, Action onStagger)
+		public virtual void Attack(Vector3 direction, LayerMask attackLayerMask, LayerMask blockLayerMask, Action onStagger)
 		{
 			AttackLayerMask = attackLayerMask;
+			BlockLayerMask = blockLayerMask;
 			SFXPlayer.PlaySound(AttackSound);
 		}
 
