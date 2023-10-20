@@ -32,7 +32,6 @@ namespace Character
 			
 			character.transform.position = data.CharacterComponent.Position;
 			character.graphic.rotation = data.CharacterComponent.Rotation;
-			character.SetHealth(data.GetAttributeValue(Attribute.Health));
 
 			character.Inventory.Money = saveData.Money;
 

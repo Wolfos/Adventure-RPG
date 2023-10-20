@@ -125,6 +125,8 @@ namespace Character
 		
 		private void ActivateRoutine(NPCRoutine routine, bool delayed = false, bool proceed = false)
 		{
+			if (Data.CharacterComponent.IsDead) return;
+			
 			StopAllCoroutines();
 			
 			NpcComponent.CurrentRoutine = routine;

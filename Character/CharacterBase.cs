@@ -392,7 +392,7 @@ namespace Character
 
 			return false;
 		}
-
+		
 		public void Die()
 		{
 			StopAllCoroutines();

@@ -68,10 +68,7 @@ namespace Character
 				newNPC.SetActive(true);
 				npc.UpdateData();
 				npc.Bounds = _bounds;
-				if (npc.Data.CharacterComponent.IsDead)
-				{
-					newNPC.SetActive(false);
-				}
+
 				_npcs.Add(npc);
 			}
 		}
