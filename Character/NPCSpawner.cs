@@ -10,7 +10,12 @@ using WolfRPG.Core;
 namespace Character
 {
 	public class NPCSpawner : SaveableObject
-	{ 
+	{
+		private class NPCSpawnerSaveData : ISaveData
+		{
+			public List<string> Json { get; set; } = new();
+		}
+		
 		[SerializeField] private int maxAmount;
 		[SerializeField] private float respawnTime = 120;
 		[SerializeField] private string npcName; 
@@ -19,57 +24,50 @@ namespace Character
 
 		private List<NPC> _npcs;
 		private Bounds _bounds;
+		private NPCSpawnerSaveData _saveData = new();
 
-		protected override void Start()
+		protected void Start()
 		{
 			var characterComponent = characterObjectRef.GetComponent<CharacterComponent>();
 			_prefab = characterComponent.Prefab.GetAsset<GameObject>();
 			
-			base.Start();
+			//base.Start();
 			_bounds = GetComponent<BoxCollider>().bounds;
 			_npcs = new();
 			InitialSpawn();
+
+			if (SaveGameManager.HasData(id))
+			{
+				_saveData = SaveGameManager.GetData(id) as NPCSpawnerSaveData;
+				for (int i = 0; i < _saveData.Json.Count; i++)
+				{
+					if (i >= _npcs.Count) break;
+					
+					var json = _saveData.Json[i];
+					CharacterSaveUtility.Load(json, _npcs[i]);
+					_npcs[i].UpdateData();
+				}
+			}
+			else
+			{
+				SaveGameManager.Register(id, _saveData);
+			}
+			
+			SaveGameManager.OnSave += UpdateSaveData;
 		}
 
-		public override string Save()
+		private void OnDestroy()
 		{
-			var allData = "";
+			SaveGameManager.OnSave -= UpdateSaveData;
+		}
 
+		private void UpdateSaveData()
+		{
+			// TODO: This will yield extremely low performance
+			_saveData.Json.Clear();
 			foreach (var npc in _npcs)
 			{
-				allData += CharacterSaveUtility.GetSaveData(npc) + "</npc>";
-			}
-
-			return allData;
-		}
-
-		public override void Load(string json)
-		{
-			foreach (var npc in _npcs)
-			{
-				Destroy(npc.gameObject);
-			}
-
-			_npcs.Clear();
-			StartCoroutine(LoadRoutine(json));
-		}
-
-		private IEnumerator LoadRoutine(string json)
-		{
-			yield return null;
-			var data = json.Split(new[] {"</npc>"}, StringSplitOptions.RemoveEmptyEntries);
-			for (int i = 0; i < data.Length; i++)
-			{
-				var newNPC = Instantiate(_prefab, transform, false);
-				var npc = newNPC.GetComponent<NPC>();
-				npc.Initialize(characterObjectRef);
-				newNPC.name = npcName;
-				CharacterSaveUtility.Load(data[i], npc);
-				newNPC.SetActive(true);
-				npc.UpdateData();
-				npc.Bounds = _bounds;
-
-				_npcs.Add(npc);
+				_saveData.Json.Add(CharacterSaveUtility.GetSaveData(npc));
 			}
 		}
 

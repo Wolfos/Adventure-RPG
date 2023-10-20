@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Character;
 using UnityEngine;
 using Data;
 using Interface;
-using Items;
-using Models;
 using Newtonsoft.Json;
 using UI;
 using UnityEngine.Scripting;
@@ -16,67 +13,65 @@ using WolfRPG.Inventory;
 
 public class Chest : SaveableObject, IInteractable
 {
-	private bool _isOpen;
+	private ChestSaveData _data;
 	[SerializeField] private Animator animator;
 	[SerializeField, ObjectReference((int)DatabaseCategory.Items)] private RPGObjectReference[] items;
 
-	private ItemContainer _container = new();
+	private ItemContainer _container;
 	
-	private class ChestSaveData
+	private class ChestSaveData: ISaveData
 	{
 		public bool IsOpen { get; set; }
 		// GUID, item quantity
-		public List<Tuple<string, int>> ItemsAndQuantities { get; set; }
+		public List<Tuple<string, int>> ItemsAndQuantities { get; set; } = new();
 	}
 
-	protected override void Start()
+	private void Start()
 	{
-		foreach (var item in items)
+		_container = new();
+		
+		if (SaveGameManager.HasData(id))
 		{
-			_container.AddItem(item.GetObject());
+			_data = SaveGameManager.GetData(id) as ChestSaveData;
+			foreach (var tuple in _data.ItemsAndQuantities)
+			{
+				_container.AddItem(tuple.Item1, tuple.Item2);
+			}
+		}
+		else
+		{
+			_data = new();
+			foreach (var item in items)
+			{
+				_container.AddItem(item.GetObject());
+			}
+			ContentsChanged();
 		}
 		
-		base.Start();
-	}
-	
-	public override void Load(string json)
-	{
-		_container.Clear();
-		
-		var saveData = JsonConvert.DeserializeObject<ChestSaveData>(json);
-		foreach (var tuple in saveData.ItemsAndQuantities)
-		{
-			_container.AddItem(tuple.Item1, tuple.Item2);
-		}
-
-		_isOpen = saveData.IsOpen;
+		_container.OnContentsChanged += ContentsChanged;
 	}
 
-	public override string Save()
+	private void OnDestroy()
 	{
-		var saveData = new ChestSaveData
-		{
-			IsOpen = _isOpen,
-			ItemsAndQuantities = new()
-		};
-		
+		_container.OnContentsChanged -= ContentsChanged;
+	}
+
+	private void ContentsChanged()
+	{
+		_data.ItemsAndQuantities.Clear();
 		for (int i = 0; i < _container.ItemCount; i++)
 		{
 			var guid = _container.GetItemBySlot(i).RpgObject.Guid;
 			var quantity = _container.GetQuantityFromSlot(i);
-			saveData.ItemsAndQuantities.Add(new(guid,quantity));
+			_data.ItemsAndQuantities.Add(new(guid,quantity));
 		}
-
-		return JsonConvert.SerializeObject(saveData);
 	}
-
-	
 
 	[Preserve]
 	public void OnCanInteract(CharacterBase character)
 	{
 		// TODO: Localize
-		Tooltip.Activate(_isOpen ? "Close" : "Open", transform, Vector3.zero);
+		Tooltip.Activate(_data.IsOpen ? "Close" : "Open", transform, Vector3.zero);
 	}
 	
 	[Preserve]
@@ -85,16 +80,14 @@ public class Chest : SaveableObject, IInteractable
 		ItemContainerWindow.SetData(_container);
 		WindowManager.Open<ItemContainerWindow>();
 
-		
-
-		_isOpen = !_isOpen;
+		_data.IsOpen = !_data.IsOpen;
 		
 		if (animator == null)
 		{
 			return;
 		}
 		
-		if (_isOpen)
+		if (_data.IsOpen)
 		{
 			animator.SetTrigger("Open");
 		}

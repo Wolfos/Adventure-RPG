@@ -1,11 +1,10 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
 using Utility;
 
 namespace Player
 {
-	public class PlayerCamera : MonoBehaviour
+	public class PlayerCamera: MonoBehaviour
 	{
 		[SerializeField] private float followSpeed;
 		[SerializeField] private float rotationSpeed;
@@ -15,8 +14,8 @@ namespace Player
 		[SerializeField] private Range cameraDistance;
 		[SerializeField] private float zoomSpeed;
 		[SerializeField] private Transform targetTransform;
+		[SerializeField] private Vector3 offset;
 		
-		private Vector3 _offset;
 		private Vector2 _movementInput;
 		private float _zoomInput;
 
@@ -36,7 +35,6 @@ namespace Player
 		private void Start()
 		{
 			Camera.main.depthTextureMode = DepthTextureMode.Depth;
-			_offset = targetTransform.position - transform.position;
 		}
 
 		private void Update()
@@ -69,7 +67,7 @@ namespace Player
 		
 		private void LateUpdate()
 		{
-			var targetPosition = targetTransform.position - _offset;
+			var targetPosition = targetTransform.position + offset;
 			transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * followSpeed);
 		}
 		

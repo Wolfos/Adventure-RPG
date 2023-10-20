@@ -1,7 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using WolfRPG.Core;
@@ -10,8 +11,7 @@ namespace Data
 {
 	public class SaveGameManager : MonoBehaviour
 	{
-		private static Dictionary<string, SaveableObject> _activeSaveableObjects;
-		private static Dictionary<string, string> _saveData;
+		private static Dictionary<string, ISaveData> _saveData;
 
 		public static bool NewGame = true;
 		public static float TimeSinceLoad;
@@ -20,6 +20,7 @@ namespace Data
 		public static bool IsLoading { get; set; }
 
 		private static SaveGameManager _instance;
+		public static Action OnSave;
 		
 		private void Awake()
 		{
@@ -27,7 +28,6 @@ namespace Data
 			_lastLoadTime = Time.time;
 			if(SceneManager.sceneCount == 1) SceneManager.LoadSceneAsync("MainMenu", LoadSceneMode.Additive);
 
-			_activeSaveableObjects = new();
 			_saveData = new();
 			NewGame = true;
 			
@@ -41,34 +41,24 @@ namespace Data
 			TimeSinceLoad = Time.time - _lastLoadTime;
 		}
 
-		public static void Register(SaveableObject saveableObject)
+		public static bool HasData(string id)
 		{
-			_activeSaveableObjects[saveableObject.id] = saveableObject;
+			return _saveData.ContainsKey(id);
 		}
-		
-		public static void Unregister(SaveableObject saveableObject)
+
+		/// <summary>
+		/// Register a new object
+		/// </summary>
+		public static void Register(string id, ISaveData saveData)
 		{
-			_activeSaveableObjects.Remove(saveableObject.id);
-			
-			if (_saveData.ContainsKey(saveableObject.id)) _saveData.Remove(saveableObject.id);
-			_saveData.Add(saveableObject.id, saveableObject.Save());
+			_saveData.Add(id, saveData);
 		}
 
 		public static void Save()
 		{
-			// Save all currently active objects
-			foreach (var o in _activeSaveableObjects)
-			{
-				if (_saveData.ContainsKey(o.Key)) _saveData.Remove(o.Key);
-				_saveData.Add(o.Key, o.Value.Save());
-			}
-
-			var allData = "";
-			foreach (var data in _saveData)
-			{
-				allData += data.Key + ";";
-				allData += data.Value + ";\n";
-			}
+			OnSave?.Invoke(); // Tell objects to update their save data. Not all objects do this though. Most read/write to their save data directly
+			
+			var json = JsonConvert.SerializeObject(_saveData, WolfRPG.Core.Settings.JsonSerializerSettings);
 
 			if (Debug.isDebugBuild)
 			{
@@ -77,18 +67,18 @@ namespace Data
 			
 			using (var file = new StreamWriter(Application.persistentDataPath + "/Save.json"))
 			{
-				file.Write(allData);
+				file.Write(json);
 			}
 		}
 
-		public static string GetData(SaveableObject saveableObject)
+		public static ISaveData GetData(string id)
 		{
-			if (_saveData.ContainsKey(saveableObject.id))
+			if (_saveData.TryGetValue(id, out var data))
 			{
-				return _saveData[saveableObject.id];
+				return data;
 			}
 
-			return string.Empty;
+			return null;
 		}
 
 
@@ -110,7 +100,6 @@ namespace Data
 		private IEnumerator LoadMainMenuRoutine()
 		{
 			CharacterPool.Clear();
-			_activeSaveableObjects.Clear();
 			AsyncOperation async;
 			
 			// Unload scenes
@@ -159,45 +148,15 @@ namespace Data
 			CharacterPool.Clear();
 			NewGame = false;
 			
-			// Remove all non-global objects from the list. They will be destroyed
-			var toRemove = (
-				from obj in _activeSaveableObjects 
-				where !obj.Value.global 
-				select obj.Key).ToList();
-
-			foreach (var key in toRemove)
-			{
-				_activeSaveableObjects.Remove(key);
-			}
-
+			var json = File.ReadAllText(Application.persistentDataPath + "/Save.json");
+			_saveData = JsonConvert.DeserializeObject<Dictionary<string, ISaveData>>(json, WolfRPG.Core.Settings.JsonSerializerSettings);
 
 			yield return StartCoroutine(LoadGameRoutine());
 
 			_lastLoadTime = Time.time;
+
 			yield return null; // SaveableObjects will re-register themselves during this frame
-			
-			var allData = File.ReadAllText(Application.persistentDataPath + "/Save.json");
-			allData = allData.Replace("\n", "");
-			var data = allData.Split(';');
 
-			_saveData.Clear();
-			for(int i = 0; i < data.Length - 1; i++)
-			{
-				_saveData.Add(data[i], data[++i]);
-			}
-
-			foreach (var (key, value) in _activeSaveableObjects)
-			{
-				try
-				{
-					value.Load(_saveData[key]);
-				}
-				catch(KeyNotFoundException)
-				{
-					Debug.LogWarning($"Data for {key} was not found");
-				}
-			}
-			
 			IsLoading = false;
 		}
 	}

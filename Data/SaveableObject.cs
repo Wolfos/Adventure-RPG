@@ -15,33 +15,6 @@ namespace Data
         }
         
         public string id;
-        [HideInInspector] public bool global;
-
-        protected virtual void Start()
-        {
-            SaveGameManager.Register(this);
-
-            if (!SaveGameManager.IsLoading)
-            {
-                var data = SaveGameManager.GetData(this);
-                if (data != string.Empty)
-                {
-                    Load(data);
-                }
-            }
-        }
-
-        protected virtual void OnDestroy()
-        {
-            if (Application.isPlaying == false)
-            {
-                return;
-            }
-            
-            SaveGameManager.Unregister(this);
-        }
-
-        public abstract string Save();
-        public abstract void Load(string json);
+        protected ISaveData SaveData { get; set; }
     }
 }

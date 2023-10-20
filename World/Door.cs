@@ -11,12 +11,17 @@ namespace World
 {
     public class Door : SaveableObject, IInteractable
     {
+        private class DoorData : ISaveData
+        {
+            public bool IsOpen { get; set; }    
+        }
+        
         [SerializeField] private float openRotation = 130;
         [SerializeField] private float closedRotation = 0;
         [SerializeField] private float openTime = 0.5f;
         [SerializeField] private float closeTime = 0.5f;
-        
-        private bool _isOpen;
+
+        private DoorData _data;
         private bool _changingState;
         private Collider _collider;
         private NavMeshObstacle _navMeshObstacle;
@@ -27,35 +32,32 @@ namespace World
             _navMeshObstacle = GetComponent<NavMeshObstacle>();
         }
 
-        public override string Save()
+        private void Start()
         {
-            return _isOpen ? "open" : "closed";
-        }
-
-        public override void Load(string json)
-        {
-            if (json == "open")
+            if (SaveGameManager.HasData(id))
             {
-                _isOpen = true;
+                _data = SaveGameManager.GetData(id) as DoorData;
+                ProcessStateInstant();
             }
             else
             {
-                _isOpen = false;
+                _data = new();
+                SaveGameManager.Register(id, _data);
             }
-            ProcessStateInstant();
         }
+        
 
         public void OnCanInteract(CharacterBase characterBase)
         {
             // TODO: Localize
-            Tooltip.Activate(_isOpen ? "Close" : "Open", transform, new (1, 1));
+            Tooltip.Activate(_data.IsOpen ? "Close" : "Open", transform, new (1, 1));
         }
 
         public void OnInteract(CharacterBase characterBase)
         {
             if (_changingState) return;
             
-            if (_isOpen)
+            if (_data.IsOpen)
             {
                 StartCoroutine(Close());
             }
@@ -74,10 +76,10 @@ namespace World
 
         private void ProcessStateInstant()
         {
-            transform.localRotation = Quaternion.Euler(0, _isOpen ? openRotation : closedRotation, 0);
+            transform.localRotation = Quaternion.Euler(0, _data.IsOpen ? openRotation : closedRotation, 0);
             if (_navMeshObstacle != null)
             {
-                _navMeshObstacle.enabled = _isOpen == false;
+                _navMeshObstacle.enabled = _data.IsOpen == false;
             }
         }
 
@@ -95,7 +97,7 @@ namespace World
             }
 
             _changingState = false;
-            _isOpen = true;
+            _data.IsOpen = true;
             ProcessStateInstant();
             
             if (_collider != null) _collider.enabled = true;
@@ -115,7 +117,7 @@ namespace World
             }
 
             _changingState = false;
-            _isOpen = false;
+            _data.IsOpen = false;
             ProcessStateInstant();
             
             if (_collider != null) _collider.enabled = true;

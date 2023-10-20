@@ -1,4 +1,5 @@
-﻿using Data;
+﻿using System;
+using Data;
 using Character;
 using Player;
 using UnityEngine;
@@ -8,16 +9,43 @@ public class PlayerData : SaveableObject
 {
 	[FormerlySerializedAs("player")] [SerializeField] private PlayerCharacter playerCharacter;
 
-	public override void Load(string json)
+	private class PlayerSaveData : ISaveData
 	{
-		playerCharacter.characterController.enabled = false;
-		CharacterSaveUtility.Load(json, playerCharacter);
-		playerCharacter.characterController.enabled = true;
-		playerCharacter.OnFinishedLoading();
+		public string Json { get; set; }
 	}
-		
-	public override string Save()
+
+	private PlayerSaveData _saveData;
+
+	private void Start()
 	{
-		return CharacterSaveUtility.GetSaveData(playerCharacter);
+		_saveData = new();
+		
+		if (SaveGameManager.HasData(id))
+		{
+			playerCharacter.characterController.enabled = false;
+			
+			_saveData = SaveGameManager.GetData(id) as PlayerSaveData;
+			CharacterSaveUtility.Load(_saveData.Json, playerCharacter);
+			
+			playerCharacter.characterController.enabled = true;
+			playerCharacter.OnFinishedLoading();
+		}
+		else
+		{
+			SaveGameManager.Register(id, _saveData);
+		}
+
+		SaveGameManager.OnSave += UpdateSaveData;
+	}
+
+	private void OnDestroy()
+	{
+		UpdateSaveData();
+		SaveGameManager.OnSave -= UpdateSaveData;
+	}
+
+	private void UpdateSaveData()
+	{
+		_saveData.Json = CharacterSaveUtility.GetSaveData(playerCharacter);
 	}
 }
