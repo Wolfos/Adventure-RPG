@@ -19,6 +19,7 @@ namespace Character
 			public List<Tuple<string, int>> ItemsAndQuantities { get; set; }
 			public List<Tuple<string, int>> ItemsAndQuantitiesShop { get; set; }
 			public Dictionary<string, QuestProgress> QuestProgress { get; set; }
+			public List<string> Equipment { get; set; }
 		}
 
 		public static void Load(string json, CharacterBase character)
@@ -43,6 +44,14 @@ namespace Character
 				}
 			}
 
+			if (saveData.Equipment != null)
+			{
+				foreach (var e in saveData.Equipment)
+				{
+					character.EquipItem(e);
+				}
+			}
+
 			if (saveData.ItemsAndQuantitiesShop != null && character is NPC {ShopInventory: not null} npc)
 			{
 				npc.ShopInventory.Clear();
@@ -57,10 +66,6 @@ namespace Character
 			{
 				player.QuestProgress = saveData.QuestProgress;
 			}
-
-
-
-			character.GetComponent<CharacterEquipment>().CheckEquipment();
 		}
 		
 		public static string GetSaveData(CharacterBase character)
@@ -76,7 +81,8 @@ namespace Character
 				CharacterData = characterData,
 				ItemsAndQuantities = new(),
 				ItemsAndQuantitiesShop = new(),
-				Money = character.Inventory.Money
+				Money = character.Inventory.Money,
+				Equipment = character.equipment.GetEquippedItems()
 			};
 
 			// Character inventory

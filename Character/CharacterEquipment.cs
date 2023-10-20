@@ -19,9 +19,22 @@ namespace Character
 		private readonly Dictionary<EquipmentSlot, EquipmentData> _equipmentSlots = new();
 		private GameObject _rightHandSocketObject;
 		public Weapon CurrentWeapon { get; private set; }
+		private readonly List<string> _equippedGuids = new();
 
-		public void Awake()
+		private bool _hasInitialized;
+
+		private void Awake()
 		{
+			if (_hasInitialized == false)
+			{
+				Initialize();
+			}
+		}
+
+		private void Initialize()
+		{
+			_hasInitialized = true;
+			
 			ResetAnimations();
 			
 			_characterBase = GetComponent<CharacterBase>();
@@ -31,10 +44,6 @@ namespace Character
 				
 				_equipmentSlots.Add(i, null);
 			}
-		}
-		
-		public void CheckEquipment()
-		{
 		}
 
 		public bool IsEquipped(EquipmentData data)
@@ -55,8 +64,18 @@ namespace Character
 			animator.runtimeAnimatorController = unarmedAnimationSet;
 		}
 
+		public List<string> GetEquippedItems()
+		{
+			return _equippedGuids;
+		}
+
 		public void EquipItem(ItemData itemData, EquipmentData data)
 		{
+			if (_hasInitialized == false)
+			{
+				Initialize();
+			}
+
 			if (data.EquipmentSlot is EquipmentSlot.UNDEFINED or EquipmentSlot.MAX)
 			{
 				Debug.LogError("Item has invalid equipment slot");
@@ -65,7 +84,7 @@ namespace Character
 			var currentItem = _equipmentSlots[data.EquipmentSlot];
 			if (currentItem != null)
 			{
-				UnequipItem(currentItem);
+				UnequipItem(itemData, currentItem);
 			}
 
 			_equipmentSlots[data.EquipmentSlot] = data;
@@ -93,12 +112,14 @@ namespace Character
 				}
 			}
 			
+			_equippedGuids.Add(itemData.RpgObject.Guid);
+			
 			_characterBase.UpdateCustomizationData();
 			
 			SetAnimations(data);
 		}
 		
-		public void UnequipItem(EquipmentData data)
+		public void UnequipItem(ItemData itemData, EquipmentData data)
 		{
 			if (data.EquipmentSlot is EquipmentSlot.UNDEFINED or EquipmentSlot.MAX)
 			{
@@ -124,6 +145,8 @@ namespace Character
 					CurrentWeapon = null;
 				}
 			}
+
+			_equippedGuids.Remove(itemData.RpgObject.Guid);
 			
 			_characterBase.UpdateCustomizationData();
 			

@@ -194,7 +194,7 @@ namespace Character
 					var equipmentData = itemObject.GetComponent<EquipmentData>();
 					if (equipment.IsEquipped(equipmentData))
 					{
-						equipment.UnequipItem(equipmentData);
+						equipment.UnequipItem(item, equipmentData);
 					}
 					else
 					{
@@ -202,6 +202,21 @@ namespace Character
 					}
 					break;
 			}
+		}
+
+		public void EquipItem(string guid)
+		{
+			var obj = RPGDatabase.GetObject(guid);
+			var itemData = obj.GetComponent<ItemData>();
+			var equipmentData = obj.GetComponent<EquipmentData>();
+
+			if (itemData == null || equipmentData == null)
+			{
+				Debug.LogError("Object is not valid equipment");
+				return;
+			}
+			
+			equipment.EquipItem(itemData, equipmentData);
 		}
 		
 		#region Combat

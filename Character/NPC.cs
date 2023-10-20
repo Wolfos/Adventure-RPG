@@ -93,8 +93,6 @@ namespace Character
 			CharacterComponent.Position = transform1.position;
 			CharacterComponent.Rotation = transform1.rotation;
 			
-			equipment.CheckEquipment();
-			
 			base.Start();
 		}
 
