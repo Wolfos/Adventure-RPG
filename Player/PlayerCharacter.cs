@@ -90,7 +90,18 @@ namespace Player
 				Guid = guid
 			});
 		}
-		
+
+		public static List<QuestProgress> GetAllQuestProgress()
+		{
+			var list = new List<QuestProgress>();
+			foreach (var qp in _instance.QuestProgress)
+			{
+				list.Add(qp.Value);
+			}
+
+			return list;
+		}
+
 		public override QuestProgress GetQuestProgress(string guid)
 		{
 			return QuestProgress[guid];
@@ -141,8 +152,8 @@ namespace Player
 				if (stage.Type == QuestStageType.KillX &&
 				    stage.Target.Guid == characterGuid)
 				{
-					stage.Progress++;
-					if (stage.Progress >= stage.Number)
+					questProgress.StageProgress++;
+					if (questProgress.StageProgress >= stage.Number)
 					{
 						Quest.ProgressToNextStage(questProgress);
 					}

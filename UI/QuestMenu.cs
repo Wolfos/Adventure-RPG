@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Utility;
+using WolfRPG.Core.Quests;
 
 namespace UI
 {
@@ -17,22 +18,24 @@ namespace UI
         [SerializeField] private RectTransform content;
         [SerializeField] private Text title;
         [SerializeField] private Text stages;
-        private int minVisible;
-        private int maxVisible;
-        private GameObject lastSelectedObject;
-        private List<Button> buttons;
-        //private List<Quest> quests;
+        private int _minVisible;
+        private int _maxVisible;
+        private GameObject _lastSelectedObject;
+        private List<Button> _buttons;
+        private List<QuestProgress> _questProgress;
+        
 
         private void OnEnable()
         {
-            buttons = new List<Button>();
-            //quests = SystemContainer.GetSystem<PlayerCharacter>().data.quests;
+            _buttons = new();
+            _questProgress = PlayerCharacter.GetAllQuestProgress();
+
             CreateQuestButtons();
         }
 
         private void OnDisable()
         {
-            foreach (var button in buttons)
+            foreach (var button in _buttons)
             {
                 Destroy(button.gameObject);
             }
@@ -42,16 +45,16 @@ namespace UI
 
         private void CreateQuestButtons()
         {
-            // foreach (var quest in quests)
-            // {
-            //     var go = Instantiate(buttonPrefab, content);
-            //     go.SetActive(true);
-            //     var button = go.GetComponent<Button>();
-            //     button.onClick.AddListener(() => ButtonPressed(go));
-            //     buttons.Add(button);
-            //     go.GetComponentInChildren<Text>().text = quest.questName;
-            // }
-            if(InputMapper.UsingController && buttons.Count > 0) buttons[0].Select();
+            foreach (var quest in _questProgress)
+            {
+                var go = Instantiate(buttonPrefab, content);
+                go.SetActive(true);
+                var button = go.GetComponent<Button>();
+                button.onClick.AddListener(() => ButtonPressed(go));
+                _buttons.Add(button);
+                go.GetComponentInChildren<Text>().text = quest.GetQuest().QuestName.Get();
+            }
+            if(InputMapper.UsingController && _buttons.Count > 0) _buttons[0].Select();
         }
         
         private void ButtonPressed(GameObject button)
@@ -61,60 +64,65 @@ namespace UI
         
         private void Update()
         {
-            if (EventSystem.current.currentSelectedGameObject != lastSelectedObject)
+            if (EventSystem.current.currentSelectedGameObject != _lastSelectedObject)
             {
-                lastSelectedObject = EventSystem.current.currentSelectedGameObject;
-                SelectedObject(lastSelectedObject);
+                _lastSelectedObject = EventSystem.current.currentSelectedGameObject;
+                SelectedObject(_lastSelectedObject);
             }
         }
         
         private void SelectedObject(GameObject selected)
         {
-            for (int i = 0; i < buttons.Count; i++)
+            for (int i = 0; i < _buttons.Count; i++)
             {
-                if (selected != buttons[i].gameObject) continue;
+                if (selected != _buttons[i].gameObject) continue;
                 
-                // var quest = quests[i];
-                // title.text = quest.questName.ToUpper();
-                // string stageText = "";
-                // foreach (var stage in quest.stages)
-                // {
-                //     if (stage.complete)
-                //     {
-                //         stageText += "◉ ";
-                //         stageText += stage.description + "\n";
-                //     }
-                //     else
-                //     {
-                //         stageText += "○ ";
-                //         stageText += stage.description;
-                //         break;
-                //     }
-                // }
+                var questProgress = _questProgress[i];
+                var quest = questProgress.GetQuest();
+                title.text = quest.QuestName.Get().ToUpper();
+                string stageText = "";
+                for(int j = 0; j < quest.Stages.Length; j++)
+                {
+                    if (questProgress.CurrentStage > j || questProgress.Complete)
+                    {
+                        stageText += "◉ ";
+                        stageText += quest.Stages[j].Description + "\n";
+                    }
+                    else
+                    {
+                        stageText += "○ ";
+                        stageText += quest.Stages[j].Description + "\n";
+                    }
 
-               // stages.text = stageText;
+                    if (j >= questProgress.CurrentStage)
+                    {
+                        break;
+                    }
+                }
+
+                stages.text = stageText;
                 
                 // Scrolling the list for gamepads
                 if(!InputMapper.UsingController) continue;
                 
                 var scrollRectTransform = scrollRect.transform as RectTransform;
-                var buttonTransform = buttons[0].transform as RectTransform;
+                var buttonTransform = _buttons[0].transform as RectTransform;
                 var buttonSize = buttonTransform.sizeDelta.y;
-                maxVisible = Mathf.RoundToInt(scrollRectTransform.sizeDelta.y / buttonSize);
+                _maxVisible = Mathf.RoundToInt(scrollRectTransform.sizeDelta.y / buttonSize);
                     
                 Debug.Log($"Button{i} was selected");
-                Debug.Log(maxVisible);
+                Debug.Log(_maxVisible);
                     
-                if (i >= maxVisible)
+                if (i >= _maxVisible)
                 {
-                    minVisible++;
-                    maxVisible++;
+                    _minVisible++;
+                    _maxVisible++;
                     scrollRect.verticalNormalizedPosition -= GetNormalizedButtonSize();
                 }
-                if (i < minVisible)
+                if (i < _minVisible)
                 {
-                    minVisible--;
-                    maxVisible--;
+                    _minVisible--;
+                    _maxVisible--;
                     scrollRect.verticalNormalizedPosition += GetNormalizedButtonSize();
                 }
 
@@ -124,7 +132,7 @@ namespace UI
 
         private float GetNormalizedButtonSize()
         {
-            var buttonTransform = buttons[0].transform as RectTransform;
+            var buttonTransform = _buttons[0].transform as RectTransform;
             var scrollRectTransform = scrollRect.transform as RectTransform;
             var contentSize = content.sizeDelta.y;
             var buttonSize = buttonTransform.sizeDelta.y;
