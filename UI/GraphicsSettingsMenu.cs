@@ -17,10 +17,12 @@ public static class DropdownExtension
 public class GraphicsSettingsMenu : MonoBehaviour
 {
     [SerializeField] private Dropdown resolution;
+    [SerializeField] private Toggle vsync;
     [SerializeField] private Dropdown upscaling;
     [SerializeField] private Dropdown lighting;
     [SerializeField] private Dropdown reflections;
     [SerializeField] private Dropdown shadowQuality;
+    [SerializeField] private Dropdown objectQuality;
     [SerializeField] private Text fpsCounter;
     [SerializeField] private Text averageFPSCounter;
 
@@ -41,11 +43,11 @@ public class GraphicsSettingsMenu : MonoBehaviour
             }
             i++;
         }
-        
+
         // TODO: Localize
         // It's very important that the order of these settings match their respective enums (defined in GraphicsSettings.cs)
         upscaling.AddOption("None");
-        upscaling.AddOption("FSR (not implemented yet, will use DLSS instead)");
+        upscaling.AddOption("FidelityFX Super Resolution");
         if (HDDynamicResolutionPlatformCapabilities.DLSSDetected)
         {
             upscaling.AddOption("DLSS Quality");
@@ -75,16 +77,19 @@ public class GraphicsSettingsMenu : MonoBehaviour
         shadowQuality.AddOption("Medium");
         shadowQuality.AddOption("High");
         shadowQuality.AddOption("Ultra");
-
+        
+        objectQuality.AddOption("Low");
+        objectQuality.AddOption("Medium");
+        objectQuality.AddOption("High");
+        
         resolution.onValueChanged.AddListener(OnResolutionChanged);
         upscaling.onValueChanged.AddListener(OnUpscalingChanged);
         lighting.onValueChanged.AddListener(OnLightingQualityChanged);
         reflections.onValueChanged.AddListener(OnReflectiongQualityChanged);
         shadowQuality.onValueChanged.AddListener(OnShadowQualityChanged);
-    }
-
-    private void OnEnable()
-    {
+        objectQuality.onValueChanged.AddListener(OnObjectQualityChanged);
+        vsync.onValueChanged.AddListener(OnVsyncChanged);
+        
         LoadOptions();
     }
 
@@ -92,10 +97,12 @@ public class GraphicsSettingsMenu : MonoBehaviour
     {
         // Resolution is handled in Awake loop
         
+        vsync.SetIsOnWithoutNotify(QualitySettings.vSyncCount == 1);
         upscaling.SetValueWithoutNotify(PlayerPrefs.GetInt("UpscalingMode", 0));
         reflections.SetValueWithoutNotify(PlayerPrefs.GetInt("ReflectionQuality", 0));
         lighting.SetValueWithoutNotify(PlayerPrefs.GetInt("LightingQuality", 0));
         shadowQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("ShadowQuality", 0));
+        objectQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("LodQuality", 1));
     }
 
     private void Update()
@@ -150,5 +157,15 @@ public class GraphicsSettingsMenu : MonoBehaviour
     private void OnShadowQualityChanged(int option)
     {
         GraphicsSettings.SetShadowQuality((ShadowQualityMode)option);
+    }
+    
+    private void OnObjectQualityChanged(int option)
+    {
+        GraphicsSettings.SetLodQuality(option);
+    }
+
+    private void OnVsyncChanged(bool vsync)
+    {
+        GraphicsSettings.SetVsync(vsync);
     }
 }

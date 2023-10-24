@@ -31,6 +31,7 @@ namespace Utility
 		[SerializeField] private HDAdditionalCameraData hdCameraData;
 
 		[SerializeField] private VolumeProfile postFXProfile;
+		[SerializeField] private HDDynamicResolution hdDynamicResolution;
 
 		public static Action<ShadowQualityMode> OnShadowQualityChanged;
 
@@ -44,11 +45,12 @@ namespace Utility
 		{
 			var res = Screen.currentResolution;
 			SetResolution(PlayerPrefs.GetInt("ResolutionWidth", res.width), PlayerPrefs.GetInt("ResolutionHeight", res.height), true);
-			
+			SetVsync(PlayerPrefs.GetInt("VSync", 1) == 1);
 			SetUpscaling((UpscalingMode)PlayerPrefs.GetInt("UpscalingMode", 0));
 			SetLightingQuality((LightingQualityMode)PlayerPrefs.GetInt("LightingQuality", 0));
 			SetReflectionQuality((ReflectionQualityMode)PlayerPrefs.GetInt("ReflectionQuality", 0));
 			SetShadowQuality((ShadowQualityMode)PlayerPrefs.GetInt("ShadowQuality", 0));
+			SetLodQuality(PlayerPrefs.GetInt("LodQuality", 1));
 		}
 
 		public static void SetResolution(int width, int height, bool fullscreen)
@@ -68,38 +70,54 @@ namespace Utility
 			{
 				case UpscalingMode.None:
 					_instance.hdCameraData.allowDynamicResolution = false;
+					_instance.hdDynamicResolution.enabled = false;
 					break;
 				case UpscalingMode.FSR:
 					_instance.hdCameraData.allowDynamicResolution = true;
+					_instance.hdDynamicResolution.enabled = true;
+					_instance.hdCameraData.allowDeepLearningSuperSampling = false;
 					break;
 				case UpscalingMode.DLSSQuality:
 					_instance.hdCameraData.allowDynamicResolution = true;
 					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
 					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
 					_instance.hdCameraData.deepLearningSuperSamplingQuality = 2;
+					_instance.hdDynamicResolution.enabled = false;
 					break;
 				case UpscalingMode.DLSSBalanced:
 					_instance.hdCameraData.allowDynamicResolution = true;
 					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
 					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
 					_instance.hdCameraData.deepLearningSuperSamplingQuality = 1;
+					_instance.hdDynamicResolution.enabled = false;
 					break;
 				case UpscalingMode.DLSSPerformance:
 					_instance.hdCameraData.allowDynamicResolution = true;
 					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
 					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
 					_instance.hdCameraData.deepLearningSuperSamplingQuality = 0;
+					_instance.hdDynamicResolution.enabled = false;
 					break;
 				case UpscalingMode.DLSSUltraPerformance:
 					_instance.hdCameraData.allowDynamicResolution = true;
 					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
 					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
 					_instance.hdCameraData.deepLearningSuperSamplingQuality = 3;
+					_instance.hdDynamicResolution.enabled = false;
 					break;
 				
 				default:
 					throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
 			}
+		}
+
+		public static void SetVsync(bool vsync)
+		{
+			var vs = vsync ? 1 : 0;
+			QualitySettings.vSyncCount = vs;
+			
+			PlayerPrefs.SetInt("VSync", vs);
+			PlayerPrefs.Save();
 		}
 
 		public static void SetLightingQuality(LightingQualityMode mode)
@@ -144,6 +162,13 @@ namespace Utility
 				default:
 					throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
 			}
+		}
+
+		public static void SetLodQuality(int quality)
+		{
+			PlayerPrefs.SetInt("LodQuality", quality);
+			PlayerPrefs.Save();
+			_instance.hdCameraData.renderingPathCustomFrameSettings.lodBiasQualityLevel = quality;
 		}
 		
 		public static void SetReflectionQuality(ReflectionQualityMode mode)

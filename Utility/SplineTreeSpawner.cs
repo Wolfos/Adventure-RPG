@@ -28,9 +28,10 @@ namespace Utility
 		[SerializeField] private float noiseScale = 1;
 		[SerializeField] private float noiseCutoff = 0.5f;
 		[SerializeField] private float noiseCutoffRandom = 0.1f;
+		[Range(0, 1), SerializeField] private float maxDensity = 1;
 		[SerializeField] private Terrain[] terrains;
 		[SerializeField] private byte uniqueIdentifier;
-		//[SerializeField] private SplineContainer[] excluders;
+		[SerializeField] private SplineContainer[] excluders;
 		[SerializeField] private SplineContainer[] roads;
 		[SerializeField] private float maxDistanceFromRoad = 3;
 
@@ -57,6 +58,7 @@ namespace Utility
 						pos.x += rng.NextFloat(-resolution / 2, resolution / 2);
 						pos.z += rng.NextFloat(-resolution / 2, resolution / 2);
 						var perlin = Mathf.PerlinNoise(pos.x * noiseScale, pos.z * noiseScale);
+						perlin = math.clamp(perlin, 1 - maxDensity, 1);
 
 						if(perlin > noiseCutoff + rng.NextFloat() * noiseCutoffRandom) continue;
 						
@@ -64,18 +66,24 @@ namespace Utility
 						{
 							var worldPosition = pos + position;
 							
-							// TODO: This doesn't work
-							// foreach (var excluder in excluders)
-							// {
-							// 	foreach (var s in excluder.Splines)
-							// 	{
-							// 		if (IsInsideSpline(worldPosition - (float3)excluder.transform.position, s))
-							// 		{
-							// 			_excluded.Add(worldPosition);
-							// 			goto Excluded;
-							// 		}
-							// 	}
-							// }
+							var terrain = GetTerrainAtPosition(worldPosition);
+							if (terrain == null) continue;
+
+							var samplePos = (Vector3) worldPosition;
+							var height = terrain.SampleHeight(samplePos);
+							worldPosition.y = height;
+							
+							foreach (var excluder in excluders)
+							{
+								foreach (var s in excluder.Splines)
+								{
+									if (IsInsideSpline(worldPosition - (float3)excluder.transform.position, s))
+									{
+										_excluded.Add(worldPosition);
+										goto Excluded;
+									}
+								}
+							}
 
 							foreach (var road in roads)
 							{
@@ -90,13 +98,6 @@ namespace Utility
 									}
 								}
 							}
-							
-							var terrain = GetTerrainAtPosition(worldPosition);
-							if (terrain == null) continue;
-
-							var samplePos = (Vector3) worldPosition;
-							var height = terrain.SampleHeight(samplePos);
-							worldPosition.y = height;
 							
 							AddTree(terrain, worldPosition, rng);
 							//terrain.terrainData.treeInstances = Array.Empty<TreeInstance>();
