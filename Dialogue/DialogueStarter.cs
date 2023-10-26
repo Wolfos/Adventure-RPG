@@ -11,8 +11,8 @@ namespace Dialogue
     public class DialogueStarter : MonoBehaviour, IInteractable
     {
         public DialogueNodeGraph dialogueAsset;
-        public string friendlyName = "test";
-        [SerializeField] private float tooltipOffset = 3;
+        public string friendlyName = "talk";
+        [SerializeField] private float tooltipOffset = 2;
         
         public void OnCanInteract(CharacterBase character)
         {

@@ -14,6 +14,9 @@ namespace Character
 		[SerializeField] private GameObject[] backAttachment;
 		[SerializeField] private Material[] materials;
 		[SerializeField] private SkinnedMeshRenderer[] objectsAffectedBySkinColor;
+		[SerializeField] private MeshRenderer[] moreObjectsAffectedBySkinColor;
+		[SerializeField] private EyeController[] eyeControllers;
+		[SerializeField] private int numEyes = 3;
 		
 		#region Female
 		// Female
@@ -51,6 +54,11 @@ namespace Character
 		private void SetSkinColour(Material material)
 		{
 			foreach (var mr in objectsAffectedBySkinColor)
+			{
+				mr.material = material;
+			}
+
+			foreach (var mr in moreObjectsAffectedBySkinColor)
 			{
 				mr.material = material;
 			}
@@ -155,8 +163,21 @@ namespace Character
 			{
 				return materials.Length;
 			}
+
+			if (part == CharacterCustomizationPart.Eyes)
+			{
+				return numEyes;
+			}
 			var array = PartToArray(data.Gender, part);
 			return array?.Length ?? 0;
+		}
+
+		public void SetEyes(int eyes)
+		{
+			foreach (var ec in eyeControllers)
+			{
+				ec.SetEye(eyes);
+			}
 		}
 
 		public void SelectPart(CharacterCustomizationData data, CharacterCustomizationPart part, int selectionIndex)
@@ -164,6 +185,11 @@ namespace Character
 			if (part == CharacterCustomizationPart.SkinColor)
 			{
 				SetSkinColour(materials[selectionIndex]);
+				return;
+			}
+			else if (part == CharacterCustomizationPart.Eyes)
+			{
+				SetEyes(selectionIndex);
 				return;
 			}
 			

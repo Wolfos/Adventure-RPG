@@ -11,6 +11,7 @@ using WolfRPG.Character;
 using WolfRPG.Core;
 using WolfRPG.Inventory;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
+using Random = UnityEngine.Random;
 
 namespace Character
 {
@@ -21,6 +22,9 @@ namespace Character
 		[SerializeField] private float meleeAttackRange = 1;
 		[SerializeField] private float maxPursueDistance = 20;
 		[SerializeField] private float startChaseDistance = 10;
+
+		private const float WanderWalkSpeed = 1;
+		private const float CombatWalkSpeed = 2.5f;
 		
 		public Bounds Bounds { get; set; }
 		public bool Respawn { get; set; }
@@ -201,6 +205,8 @@ namespace Character
 			}
 
 			if (!agent.enabled) agent.enabled = true;
+
+			_movementSpeed = CombatWalkSpeed;
 			
 			while (true)
 			{
@@ -274,9 +280,12 @@ namespace Character
 			}
 
 			if (!agent.enabled) agent.enabled = true;
+
+			_movementSpeed = WanderWalkSpeed;
 			
 			while (true)
 			{
+				// Proceed means proceed from saved game
 				if (proceed) agent.velocity = CharacterComponent.Velocity;
 				else NpcComponent.Destination = Bounds.RandomPos();
 
@@ -301,6 +310,10 @@ namespace Character
 					}
 					yield return null;
 				}
+
+				// Wait for 0 to 30 seconds before finding a new position to walk to
+				var idleTime = Random.Range(0, 30);
+				yield return new WaitForSeconds(idleTime);
 
 				proceed = false;
 				
