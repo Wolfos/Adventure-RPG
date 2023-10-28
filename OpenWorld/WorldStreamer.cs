@@ -223,7 +223,7 @@ namespace OpenWorld
                 {
                     SelectPrevious();
                 }
-                UpdateSelectionChunks();
+                //UpdateSelectionChunks();
             }
 #endif
             var cameraPos = mainCamera.transform.position;

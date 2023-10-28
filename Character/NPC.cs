@@ -251,9 +251,15 @@ namespace Character
 		{
 			animator.SetTrigger("Telegraph");
 			yield return null;
-			var clip = animator.GetCurrentAnimatorClipInfo(0)[0].clip;
-			var length = clip.length;
-			yield return new WaitForSeconds(length - 0.1f);
+			var clipInfo = animator.GetCurrentAnimatorClipInfo(0);
+			float duration = 0;
+			if (clipInfo.Length > 0)
+			{
+				var clip = animator.GetCurrentAnimatorClipInfo(0)[0].clip;
+				duration = clip.length;
+			}
+
+			yield return new WaitForSeconds(duration - 0.1f);
 			Attack();
 		}
 

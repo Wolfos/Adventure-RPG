@@ -93,6 +93,8 @@ namespace Character
 
 		public void UpdateCustomizationData()
 		{
+			if (partPicker == null) return;
+			
 			CustomizationData.Hips = 0;
 			CustomizationData.Torso = 0;
 			CustomizationData.BackAttachment = 0;

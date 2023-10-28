@@ -143,21 +143,20 @@ namespace Utility
 				case LightingQualityMode.RayTracingLow:
 					gi.enable.Override(true);
 					gi.tracing.Override(RayCastingMode.Mixed);
-					
 					gi.fullResolution = false;
-					gi.mode = new(RayTracingMode.Performance);
+					gi.mode.Override(RayTracingMode.Performance);
 					break;
 				case LightingQualityMode.RaytracingMedium:
 					gi.enable.Override(true);
 					gi.tracing.Override(RayCastingMode.Mixed);
 					gi.fullResolution = true;
-					gi.mode = new(RayTracingMode.Performance);
+					gi.mode.Override(RayTracingMode.Performance);
 					break;
 				case LightingQualityMode.RaytracingHigh:
 					gi.enable.Override(true);
 					gi.tracing.Override(RayCastingMode.RayTracing);
 					gi.fullResolution = true;
-					gi.mode = new(RayTracingMode.Quality);
+					gi.mode.Override(RayTracingMode.Quality);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
