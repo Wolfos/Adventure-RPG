@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Combat;
 using Data;
 using Interface;
@@ -52,7 +51,7 @@ namespace Character
 		protected bool IsInHitRecoil => animator.GetBool(Recoil);
 		protected bool IsBlocking;
 
-		private Weapon Weapon => equipment.CurrentWeapon;
+		public Weapon Weapon => equipment.CurrentWeapon;
 		
 		public void Initialize(RPGObjectReference characterObjectReference)
 		{
@@ -277,7 +276,6 @@ namespace Character
 			bool willAttack;
 			if (Weapon != null)
 			{
-				//Weapon.baseDamage.source = CharacterComponent.CharacterId;
 				if (Weapon is RangedWeapon rangedWeapon)
 				{
 					//rangedWeapon.ammunition = GetAmmo();

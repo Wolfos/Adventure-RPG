@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Character;
 using UnityEngine;
+using Utility;
 using WolfRPG.Inventory;
 
 namespace Items
@@ -22,6 +23,7 @@ namespace Items
 		{
 			_weaponData = rpgObjectReference.GetComponent<MeleeWeaponData>();
 			AttackSound = _weaponData.AttackSound?.GetAsset<AudioClip>();
+			HitSound = _weaponData.HitSound?.GetAsset<AudioClip>();
 		}
 
 		public override void Attack(Vector3 direction, LayerMask attackLayerMask, LayerMask blockLayerMask, Action onStagger)
@@ -138,6 +140,7 @@ namespace Items
 
 		private void AttackHit(CharacterBase otherCharacter, Vector3 hitPosition)
 		{
+			SFXPlayer.PlaySound(HitSound);
 			if (otherCharacter != null && otherCharacter != Character)
 			{
 				//var position = transform.position;

@@ -121,7 +121,7 @@ namespace Player
                     if (_canDoSecondAttack && Time.time - _cachedAttackTime < inputCacheDuration * 2 &&
                         _characterController.isGrounded)
                     {
-                        //_playerCharacter.equipment.currentWeapon.Attacking = false;
+                        _playerCharacter.Weapon.Attacking = false;
                         _cachedAttackTime = 0;
                         _playerCharacter.Attack();
                         _hasCachedAttack = false;

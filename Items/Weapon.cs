@@ -22,6 +22,7 @@ namespace Items
 		private int _defaultLayer;
 
 		protected AudioClip AttackSound;
+		protected AudioClip HitSound;
 
 		private void Awake()
 		{
