@@ -25,6 +25,7 @@ public class GraphicsSettingsMenu : MonoBehaviour
     [SerializeField] private Dropdown objectQuality;
     [SerializeField] private Dropdown motionBlurQuality;
     [SerializeField] private Slider motionBlurAmount;
+    [SerializeField] private Text motionBlurAmountText;
     [SerializeField] private Text fpsCounter;
     [SerializeField] private Text averageFPSCounter;
 
@@ -112,7 +113,9 @@ public class GraphicsSettingsMenu : MonoBehaviour
         shadowQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("ShadowQuality", 0));
         objectQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("LodQuality", 1));
         motionBlurQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("MotionBlurQuality", 2));
-        motionBlurAmount.SetValueWithoutNotify(PlayerPrefs.GetFloat("MotionBlurAmount", 1));
+        var mbAmount = PlayerPrefs.GetFloat("MotionBlurAmount", 1);
+        motionBlurAmount.SetValueWithoutNotify(mbAmount);
+        motionBlurAmountText.text = mbAmount.ToString("0.00");
     }
 
     private void Update()
@@ -187,5 +190,6 @@ public class GraphicsSettingsMenu : MonoBehaviour
     private void OnMotionBlurAmountChanged(float amount)
     {
         GraphicsSettings.SetMotionBlurIntensity(amount);
+        motionBlurAmountText.text = amount.ToString("0.00");
     }
 }
