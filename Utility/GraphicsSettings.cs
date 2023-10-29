@@ -51,6 +51,8 @@ namespace Utility
 			SetReflectionQuality((ReflectionQualityMode)PlayerPrefs.GetInt("ReflectionQuality", 0));
 			SetShadowQuality((ShadowQualityMode)PlayerPrefs.GetInt("ShadowQuality", 0));
 			SetLodQuality(PlayerPrefs.GetInt("LodQuality", 1));
+			SetMotionBlurQuality(PlayerPrefs.GetInt("MotionBlurQuality", 2));
+			SetMotionBlurIntensity(PlayerPrefs.GetFloat("MotionBlurAmount", 1));
 		}
 
 		public static void SetResolution(int width, int height, bool fullscreen)
@@ -169,7 +171,33 @@ namespace Utility
 			PlayerPrefs.Save();
 			_instance.hdCameraData.renderingPathCustomFrameSettings.lodBiasQualityLevel = quality;
 		}
+
+		public static void SetMotionBlurQuality(int quality)
+		{
+			PlayerPrefs.SetInt("MotionBlurQuality", quality);
+			PlayerPrefs.Save();
+			if (_instance.postFXProfile.TryGet<MotionBlur>(out var motionBlur) == false)
+			{
+				Debug.LogError("No motion blur component found");
+				return;
+			}
+			
+			motionBlur.quality.Override(quality);
+		}
 		
+		public static void SetMotionBlurIntensity(float intensity)
+		{
+			PlayerPrefs.SetFloat("MotionBlurAmount", intensity);
+			PlayerPrefs.Save();
+			
+			if (_instance.postFXProfile.TryGet<MotionBlur>(out var motionBlur) == false)
+			{
+				Debug.LogError("No motion blur component found");
+				return;
+			}
+			
+			motionBlur.intensity.Override(intensity);
+		}
 		public static void SetReflectionQuality(ReflectionQualityMode mode)
 		{
 			PlayerPrefs.SetInt("ReflectionQuality", (int)mode);

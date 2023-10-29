@@ -23,6 +23,8 @@ public class GraphicsSettingsMenu : MonoBehaviour
     [SerializeField] private Dropdown reflections;
     [SerializeField] private Dropdown shadowQuality;
     [SerializeField] private Dropdown objectQuality;
+    [SerializeField] private Dropdown motionBlurQuality;
+    [SerializeField] private Slider motionBlurAmount;
     [SerializeField] private Text fpsCounter;
     [SerializeField] private Text averageFPSCounter;
 
@@ -82,6 +84,10 @@ public class GraphicsSettingsMenu : MonoBehaviour
         objectQuality.AddOption("Medium");
         objectQuality.AddOption("High");
         
+        motionBlurQuality.AddOption("Low");
+        motionBlurQuality.AddOption("Medium");
+        motionBlurQuality.AddOption("High");
+        
         resolution.onValueChanged.AddListener(OnResolutionChanged);
         upscaling.onValueChanged.AddListener(OnUpscalingChanged);
         lighting.onValueChanged.AddListener(OnLightingQualityChanged);
@@ -89,6 +95,8 @@ public class GraphicsSettingsMenu : MonoBehaviour
         shadowQuality.onValueChanged.AddListener(OnShadowQualityChanged);
         objectQuality.onValueChanged.AddListener(OnObjectQualityChanged);
         vsync.onValueChanged.AddListener(OnVsyncChanged);
+        motionBlurQuality.onValueChanged.AddListener(OnMotionBlurQualityChanged);
+        motionBlurAmount.onValueChanged.AddListener(OnMotionBlurAmountChanged);
         
         LoadOptions();
     }
@@ -103,6 +111,8 @@ public class GraphicsSettingsMenu : MonoBehaviour
         lighting.SetValueWithoutNotify(PlayerPrefs.GetInt("LightingQuality", 0));
         shadowQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("ShadowQuality", 0));
         objectQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("LodQuality", 1));
+        motionBlurQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("MotionBlurQuality", 2));
+        motionBlurAmount.SetValueWithoutNotify(PlayerPrefs.GetFloat("MotionBlurAmount", 1));
     }
 
     private void Update()
@@ -167,5 +177,15 @@ public class GraphicsSettingsMenu : MonoBehaviour
     private void OnVsyncChanged(bool vsync)
     {
         GraphicsSettings.SetVsync(vsync);
+    }
+    
+    private void OnMotionBlurQualityChanged(int option)
+    {
+        GraphicsSettings.SetMotionBlurQuality(option);
+    }
+    
+    private void OnMotionBlurAmountChanged(float amount)
+    {
+        GraphicsSettings.SetMotionBlurIntensity(amount);
     }
 }
