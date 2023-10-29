@@ -30,6 +30,7 @@ namespace Player
 
         private static readonly int CanWalk = Animator.StringToHash("CanWalk");
         private static readonly int Jumping = Animator.StringToHash("Jumping");
+        private static readonly int StartJump = Animator.StringToHash("StartJump");
         private static readonly int Speed = Animator.StringToHash("Speed");
         private static readonly int IsAttacking = Animator.StringToHash("IsAttacking");
         private static readonly int Dodge1 = Animator.StringToHash("Dodge");
@@ -85,12 +86,15 @@ namespace Player
         
         private void Movement()
         {
+            if (_characterController.isGrounded)
+            {
+                animator.SetBool(Jumping, false);
+            }
+
             if (!animator.GetBool(CanWalk) || _isDodging) return;
             
             if (_characterController.isGrounded)
             {
-                animator.SetBool(Jumping, false);
-                
                 var forward = playerCamera.forward;
                 var right = playerCamera.right;
                 forward *= _movementInput.y;
@@ -176,6 +180,7 @@ namespace Player
             _jump = false;
             _velocity.y = jumpSpeed;
             animator.SetBool(Jumping, true);
+            animator.SetTrigger(StartJump);
         }
         
         public static void SetInputActive(bool enable)

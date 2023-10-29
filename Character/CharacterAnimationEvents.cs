@@ -38,5 +38,10 @@ namespace Character
         private void FootR()
         {
         }
+        
+        [Preserve]
+        private void Land()
+        {
+        }
     }
 }
