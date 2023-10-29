@@ -15,9 +15,14 @@ namespace Player
 		[SerializeField] private float zoomSpeed;
 		[SerializeField] private Transform targetTransform;
 		[SerializeField] private Vector3 offset;
+		[SerializeField] private LayerMask blockLayerMask;
+		[SerializeField] private float recoverySmoothness = 0.5f;
+		[SerializeField] private float zoomSmoothness = 0.35f;
 		
 		private Vector2 _movementInput;
 		private float _zoomInput;
+		private float _desiredZoom;
+		private bool _wasBlocked;
 
 		private void OnEnable()
 		{
@@ -35,6 +40,7 @@ namespace Player
 		private void Start()
 		{
 			Camera.main.depthTextureMode = DepthTextureMode.Depth;
+			_desiredZoom = camera.localPosition.z;
 		}
 
 		private void Update()
@@ -59,9 +65,45 @@ namespace Player
 			verticalPivot.localRotation = Quaternion.Euler(eulerAngles);
 			
 			// Zoom
-			var position = camera.localPosition;
-			position.z += _zoomInput * zoomSpeed;
+			var localPosition = camera.localPosition;
+			var position = localPosition;
+			
+			if (_zoomInput != 0 && _wasBlocked)
+			{
+				_wasBlocked = false; // Zoom input cancels slow recovery
+				_desiredZoom = position.z;
+			}
+			
+			_desiredZoom += _zoomInput * zoomSpeed;
+			_desiredZoom = Mathf.Clamp(_desiredZoom, cameraDistance.start, cameraDistance.end);
+		
+			if (_wasBlocked) // Slow recovery after being blocked
+			{
+				position.z = Mathf.Lerp(position.z, _desiredZoom, recoverySmoothness);
+			}
+			else
+			{
+				position.z = Mathf.Lerp(position.z, _desiredZoom, zoomSmoothness); // Smooth towards desired zoom position
+			}
+			
+			
+			// Check if visibility is blocked and zoom in if true
+			Physics.queriesHitBackfaces = true;
+			if (Physics.Raycast(transform.position, -camera.forward, out var hit, Mathf.Abs(position.z), blockLayerMask))
+			{
+				if (hit.collider.isTrigger == false)
+				{
+					var distance = Vector3.Distance(hit.point, transform.position);
+					position.z = Mathf.Lerp(localPosition.z, -distance, 0.5f);
+					
+					_wasBlocked = true;
+				}
+			}
+
+			Physics.queriesHitBackfaces = false;
+			
 			position.z = Mathf.Clamp(position.z, cameraDistance.start, cameraDistance.end);
+			
 			camera.localPosition = position;
 		}
 		
