@@ -46,6 +46,11 @@ namespace Character
 			}
 		}
 
+		public bool IsEquipped(string guid)
+		{
+			return _equippedGuids.Contains(guid);
+		}
+
 		public bool IsEquipped(EquipmentData data)
 		{
 			return Equipment.Contains(data);

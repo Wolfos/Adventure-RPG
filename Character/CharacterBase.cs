@@ -69,6 +69,7 @@ namespace Character
 				Owner = Data
 			};
 			Inventory.OnItemUsed += OnItemUsed;
+			Inventory.OnItemRemoved += OnItemRemoved;
 			
 			if (SaveGameManager.NewGame)
 			{
@@ -129,6 +130,7 @@ namespace Character
 		protected void OnDestroy()
 		{
 			Inventory.OnItemUsed -= OnItemUsed;
+			Inventory.OnItemRemoved -= OnItemRemoved;
 		}
 
 		protected void Start()
@@ -184,6 +186,14 @@ namespace Character
 
 		public int GetAttributeValue(Attribute attribute) => Data.GetAttributeValue(attribute);
 		public int GetSkillValue(Skill skill) => Data.GetSkillValue(skill);
+
+		public void OnItemRemoved(ItemData item, int slotIndex)
+		{
+			if (equipment.IsEquipped(item.RpgObject.Guid))
+			{
+				equipment.UnequipItem(item, item.RpgObject.GetComponent<EquipmentData>());
+			}
+		}
 
 		public void OnItemUsed(ItemData item, int slot)
 		{
