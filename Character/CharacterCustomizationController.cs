@@ -82,6 +82,8 @@ namespace Character
 			partPicker.SelectPart(data, CharacterCustomizationPart.LegRight, data.LegRight);
 			partPicker.SelectPart(data, CharacterCustomizationPart.LegLeft, data.LegLeft);
 			partPicker.SelectPart(data, CharacterCustomizationPart.SkinColor, data.SkinColor);
+			
+			partPicker.OverrideMaterials(data);
 		}
 	}
 }

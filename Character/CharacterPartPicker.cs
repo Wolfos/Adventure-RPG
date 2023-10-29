@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using WolfRPG.Character;
 
@@ -8,16 +9,23 @@ namespace Character
 	public class CharacterPartPicker: MonoBehaviour
 	{
 		public Transform handSocketRight;
+
+		[Serializable]
+		private class SkinColorMaterial
+		{
+			public Material[] materials;
+		}
 		
 		// Common
 		[SerializeField] private GameObject[] hair;
 		[SerializeField] private GameObject[] backAttachment;
-		[SerializeField] private Material[] materials;
-		[SerializeField] private SkinnedMeshRenderer[] objectsAffectedBySkinColor;
-		[SerializeField] private MeshRenderer[] moreObjectsAffectedBySkinColor;
+		[SerializeField] private SkinColorMaterial[] skinColorMaterials;
+		[SerializeField] private Renderer[] affectedBySkinColor;
 		[SerializeField] private EyeController[] eyeControllers;
 		[SerializeField] private int numEyes = 3;
-		
+
+		private Dictionary<CharacterCustomizationPart, GameObject> _activeParts = new();
+
 		#region Female
 		// Female
 		[SerializeField] private GameObject[] femaleHead;
@@ -51,19 +59,6 @@ namespace Character
 		[SerializeField] private GameObject[] maleLegLeft;
 		#endregion
 		
-		private void SetSkinColour(Material material)
-		{
-			foreach (var mr in objectsAffectedBySkinColor)
-			{
-				mr.material = material;
-			}
-
-			foreach (var mr in moreObjectsAffectedBySkinColor)
-			{
-				mr.material = material;
-			}
-		}
-
 		private void DisableObjects(IEnumerable<GameObject> objects)
 		{
 			foreach (var obj in objects)
@@ -71,7 +66,14 @@ namespace Character
 				if(obj != null) obj.SetActive(false);
 			}
 		}
-		
+
+		public void SetSkinColor(int skinColor)
+		{
+			foreach (var renderer in affectedBySkinColor)
+			{
+				renderer.material = skinColorMaterials[skinColor].materials[0];
+			}
+		}
 
 		private void DisableFemaleObjects()
 		{
@@ -110,6 +112,8 @@ namespace Character
 
 		public void DisableAllObjects()
 		{
+			_activeParts.Clear();
+			
 			DisableObjects(hair);
 			DisableObjects(backAttachment);
 			DisableFemaleObjects();
@@ -161,7 +165,7 @@ namespace Character
 		{
 			if (part == CharacterCustomizationPart.SkinColor)
 			{
-				return materials.Length;
+				return skinColorMaterials.Length;
 			}
 
 			if (part == CharacterCustomizationPart.Eyes)
@@ -179,15 +183,43 @@ namespace Character
 				ec.SetEye(eyes);
 			}
 		}
+		
+		
+		public void OverrideMaterials(CharacterCustomizationData data)
+		{
+			if (data.MaterialOverrides == null) return;
+			
+			foreach (var ovrride in data.MaterialOverrides)
+			{
+				if (_activeParts.TryGetValue(ovrride.Key, out var part))
+				{
+					var renderer = part.GetComponent<Renderer>();
+					if (renderer != null)
+					{
+						renderer.material = skinColorMaterials[data.SkinColor].materials[ovrride.Value];
+					}
+				}
+			}
+		}
+		
+		private void EnablePart(GameObject[] array, int selectionIndex, CharacterCustomizationPart part)
+		{
+			var obj = array[selectionIndex];
+			if (obj != null)
+			{
+				_activeParts.Add(part, obj);
+				obj.SetActive(true);
+			}
+		}
 
 		public void SelectPart(CharacterCustomizationData data, CharacterCustomizationPart part, int selectionIndex)
 		{
 			if (part == CharacterCustomizationPart.SkinColor)
 			{
-				SetSkinColour(materials[selectionIndex]);
+				SetSkinColor(selectionIndex);
 				return;
 			}
-			else if (part == CharacterCustomizationPart.Eyes)
+			if (part == CharacterCustomizationPart.Eyes)
 			{
 				SetEyes(selectionIndex);
 				return;
@@ -195,9 +227,11 @@ namespace Character
 			
 			var array = PartToArray(data.Gender, part);
 			if (array == null) return;
+
+			_activeParts.Remove(part);
 			
 			DisableObjects(array);
-			if(array[selectionIndex] != null) array[selectionIndex].SetActive(true);
+			EnablePart(array, selectionIndex, part);
 		}
 	}
 }

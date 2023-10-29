@@ -105,6 +105,8 @@ namespace Character
 			CustomizationData.ArmLowerRight = 0;
 			CustomizationData.ArmUpperLeft = 0;
 			CustomizationData.ArmUpperRight = 0;
+			
+			CustomizationData.MaterialOverrides.Clear();
 			// Add equipment
 			foreach (var item in equipment.Equipment)
 			{
@@ -113,6 +115,10 @@ namespace Character
 				foreach (var part in item.EquipmentParts)
 				{
 					CharacterCustomizationController.SetPart(part.Part, CustomizationData, part.Index);
+					if (item.Material != 0)
+					{
+						CustomizationData.MaterialOverrides.Add(part.Part, item.Material);
+					}
 				}
 			}
 			
