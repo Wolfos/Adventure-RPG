@@ -8,6 +8,7 @@ namespace World
 {
     public class TimedFog : MonoBehaviour
     {
+        [HideInInspector] public float minFog = 800; // Minimum fog for weather type
         [SerializeField] private LocalVolumetricFog fog;
         [SerializeField] private AnimationCurve fogCurve;
         [SerializeField] private float minDistance;
@@ -16,7 +17,7 @@ namespace World
         public void Update()
         {
             var time = TimeManager.RealTime() / 24;
-            fog.parameters.meanFreePath = Mathf.Lerp(minDistance, maxDistance, fogCurve.Evaluate(time));
+            fog.parameters.meanFreePath = Mathf.Min(Mathf.Lerp(minDistance, maxDistance, fogCurve.Evaluate(time)), minFog);
         }
     }
 }

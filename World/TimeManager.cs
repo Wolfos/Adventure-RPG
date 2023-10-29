@@ -1,5 +1,6 @@
 ﻿using System;
 using Models;
+using UnityEngine;
 
 
 public class TimeManager
@@ -40,6 +41,21 @@ public class TimeManager
 		if(_instance == null) _instance = this;
 
 		Time = time;
+	}
+
+	public static int GetHoursPassedSince(int day, int hour)
+	{
+		var days = Day - day;
+		var hours = Mathf.FloorToInt(Time) - hour;
+
+		return Mathf.FloorToInt(days * 24 + hours);
+	}
+
+	public static void GetTime(out int day, out int hour, out int minute)
+	{
+		day = Day;
+		hour = Mathf.FloorToInt(Time);
+		minute = Mathf.FloorToInt((Time - hour) * 60);
 	}
 
 	public static float RealTime()
