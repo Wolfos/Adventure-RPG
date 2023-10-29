@@ -18,6 +18,7 @@ namespace Character
 			// GUID, item quantity
 			public List<Tuple<string, int>> ItemsAndQuantities { get; set; }
 			public List<Tuple<string, int>> ItemsAndQuantitiesShop { get; set; }
+			public int ShopMoney { get; set; }
 			public Dictionary<string, QuestProgress> QuestProgress { get; set; }
 			public List<string> Equipment { get; set; }
 		}
@@ -54,11 +55,13 @@ namespace Character
 			if (saveData.ItemsAndQuantitiesShop != null && character is NPC {ShopInventory: not null} npc)
 			{
 				npc.ShopInventory.Clear();
-				foreach (var tuple in saveData.ItemsAndQuantities)
+				foreach (var tuple in saveData.ItemsAndQuantitiesShop)
 				{
 					npc.ShopInventory.AddItem(tuple.Item1, tuple.Item2);
 				}
-				
+
+				npc.ShopInventory.Money = saveData.ShopMoney;
+
 			}
 			
 			if (character is PlayerCharacter player)
@@ -101,8 +104,10 @@ namespace Character
 					{
 						var guid = npc.ShopInventory.GetItemBySlot(i).RpgObject.Guid;
 						var quantity = npc.ShopInventory.GetQuantityFromSlot(i);
-						saveData.ItemsAndQuantities.Add(new(guid,quantity));
+						saveData.ItemsAndQuantitiesShop.Add(new(guid,quantity));
 					}
+
+					saveData.ShopMoney = npc.ShopInventory.Money;
 				}
 			}
 			else if (character is PlayerCharacter player)

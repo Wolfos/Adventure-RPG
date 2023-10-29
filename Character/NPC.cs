@@ -56,7 +56,6 @@ namespace Character
 				foreach (var shopItem in shopComponent.ShopInventory)
 				{
 					ShopInventory.AddItem(shopItem.Item.Guid, shopItem.Quantity);
-					ShopInventory.Money = shopComponent.BarteringMoney;
 				}
 			
 				ShopInventory.Money = shopComponent.BarteringMoney;

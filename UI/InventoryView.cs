@@ -238,6 +238,8 @@ namespace UI
 					if (OtherContainer.Money >= cost)
 					{
 						OtherContainer.Money -= cost;
+						Container.Money += cost;
+						UpdateMoney();
 						
 						// Transfer one quantity of item at a time
 						Container.RemoveItem(item.RpgObject);
@@ -251,7 +253,11 @@ namespace UI
 					var listPrice = _priceList.GetPrice(item.RpgObject.Guid);
 					if (listPrice == -1) listPrice = item.BaseValue; // Item wasn't on price list, pay default value
 					
-					Container.Money += Mathf.CeilToInt(listPrice * PriceMultiplier);
+					var price = Mathf.CeilToInt(listPrice * PriceMultiplier);
+					if (price > OtherContainer.Money) return; // Shopkeeper could not afford to buy
+
+					Container.Money += price;
+					OtherContainer.Money -= price;
 					UpdateMoney();
 					
 					// Transfer one quantity of item at a time
