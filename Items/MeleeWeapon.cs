@@ -95,6 +95,7 @@ namespace Items
 					alreadyHit.Add(collider.attachedRigidbody);
 					
 					var otherCharacter = collider.attachedRigidbody.GetComponent<CharacterBase>();
+					if(otherCharacter.Data.CharacterComponent.IsDead) continue;
 					if (otherCharacter == Character) continue;
 					if (otherCharacter == null) continue;
 					AttackHit(otherCharacter, transform.position);

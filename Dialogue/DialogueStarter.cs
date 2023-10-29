@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Character;
@@ -13,6 +14,7 @@ namespace Dialogue
         public DialogueNodeGraph dialogueAsset;
         public string friendlyName = "talk";
         [SerializeField] private float tooltipOffset = 2;
+        public NPC dialogueCharacter;
         
         public void OnCanInteract(CharacterBase character)
         {
@@ -21,11 +23,16 @@ namespace Dialogue
 
         public void OnInteract(CharacterBase character)
         {
-            DialogueWindow.SetData(dialogueAsset, GetComponent<NPC>(), character);
+            DialogueWindow.SetData(dialogueAsset, dialogueCharacter, character);
             WindowManager.Open<DialogueWindow>();
         }
 		
         public void OnEndInteract(CharacterBase character)
+        {
+            Tooltip.DeActivate();
+        }
+
+        private void OnDestroy()
         {
             Tooltip.DeActivate();
         }

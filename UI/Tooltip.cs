@@ -51,6 +51,8 @@ namespace UI
 
 		public static void DeActivate()
 		{
+			if (instance == null || instance.gameObject == null) return;
+			
 			instance.gameObject.SetActive(false);
 		}
 	}

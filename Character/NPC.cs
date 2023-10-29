@@ -22,6 +22,7 @@ namespace Character
 		[SerializeField] private float meleeAttackRange = 1;
 		[SerializeField] private float maxPursueDistance = 20;
 		[SerializeField] private float startChaseDistance = 10;
+		[SerializeField] private Collider collider;
 
 		private const float WanderWalkSpeed = 1;
 		private const float CombatWalkSpeed = 2.5f;
@@ -46,6 +47,7 @@ namespace Character
 			if (NpcComponent.Dialogue != null)
 			{
 				var dialogueStarter = gameObject.AddComponent<DialogueStarter>();
+				dialogueStarter.dialogueCharacter = this;
 				dialogueStarter.dialogueAsset = NpcComponent.Dialogue.GetAsset<DialogueNodeGraph>();
 			}
 
@@ -101,6 +103,11 @@ namespace Character
 
 		public void UpdateData()
 		{
+			if (Data.GetAttributeValue(Attribute.Health) <= 0)
+			{
+				animator.SetTrigger("AlreadyDead");
+			}
+			
 			SetHealth(Data.GetAttributeValue(Attribute.Health));
 			transform.position = Data.CharacterComponent.Position;
 			transform.rotation = Data.CharacterComponent.Rotation;
@@ -184,6 +191,8 @@ namespace Character
 			
 			if (GetAttributeValue(Attribute.Health) - damage <= 0) // Dying
 			{
+				Destroy(GetComponent<DialogueStarter>());
+				collider.enabled = false;
 				OnDeath?.Invoke();
 				CharacterPool.GetCharacter(source)?.Killed(characterObjectRef.Guid);
 			}
