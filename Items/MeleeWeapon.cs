@@ -14,7 +14,7 @@ namespace Items
 		[SerializeField] private TrailRenderer attackFx;
 		[SerializeField] private ParticleSystem hitParticles;
 		[SerializeField] private BoxCollider hitCollider;
-		[SerializeField] private GameObject blockCollider;
+		[SerializeField] private Collider blockCollider;
 
 		private List<Matrix4x4> _cubeMatrices = new();
 		private MeleeWeaponData _weaponData;
@@ -35,12 +35,12 @@ namespace Items
 
 		public override void StartBlock()
 		{
-			blockCollider.SetActive(true);
+			blockCollider.gameObject.SetActive(true);
 		}
 		
 		public override void EndBlock()
 		{
-			blockCollider.SetActive(false);
+			blockCollider.gameObject.SetActive(false);
 		}
 
 		private IEnumerator AttackRoutine(Action onStagger)
@@ -71,7 +71,7 @@ namespace Items
 					var rotation = Quaternion.Lerp(previousRotation, currentRotation, (float) i / amount);
 
 					var blockResult = Physics.OverlapBox(center, hitCollider.size, rotation, BlockLayerMask);
-					if (blockResult.Length > 0)
+					if (blockResult.Length > 0 && blockResult[0] != blockCollider) // This works because if it's not at 0, there's multiple hits
 					{
 						onStagger?.Invoke();
 						goto EndAttack;

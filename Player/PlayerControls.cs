@@ -34,6 +34,7 @@ namespace Player
         private static readonly int Speed = Animator.StringToHash("Speed");
         private static readonly int IsAttacking = Animator.StringToHash("IsAttacking");
         private static readonly int Dodge1 = Animator.StringToHash("Dodge");
+        private static readonly int SkipAttackAnticipation = Animator.StringToHash("SkipAttackAnticipation");
 
         public static bool InputActive { get; private set; }
 
@@ -135,6 +136,7 @@ namespace Player
                 else if (Time.time - _cachedAttackTime < inputCacheDuration && _characterController.isGrounded)
                 {
                     _cachedAttackTime = 0;
+                    animator.SetBool(SkipAttackAnticipation, true);
                     _playerCharacter.Attack();
                     _hasCachedAttack = false;
                 }

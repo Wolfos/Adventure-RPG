@@ -19,8 +19,10 @@ namespace Player
 		[SerializeField] public AnimationCurve dodgeSpeed;
 
 		private static readonly int IsAttacking = Animator.StringToHash("IsAttacking");
-
+		private static readonly int SkipAttackAnticipation = Animator.StringToHash("SkipAttackAnticipation");
+		
 		private static PlayerCharacter _instance;
+		
 
 		public Dictionary<string, QuestProgress> QuestProgress { get; set; }= new();
 
@@ -36,7 +38,7 @@ namespace Player
 			{
 				OnFinishedLoading();
 			}
-			animator.SetBool("SkipAttackAnticipation", true);
+			animator.SetBool(SkipAttackAnticipation, true);
 		}
 
 		// TODO: Refactor into event
