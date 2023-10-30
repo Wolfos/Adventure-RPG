@@ -19,5 +19,15 @@ namespace World
             var time = TimeManager.RealTime() / 24;
             fog.parameters.meanFreePath = Mathf.Min(Mathf.Lerp(minDistance, maxDistance, fogCurve.Evaluate(time)), minFog);
         }
+
+        public Color GetColor()
+        {
+            return fog.parameters.albedo;
+        }
+
+        public void SetColor(Color color)
+        {
+            fog.parameters.albedo = color;
+        }
     }
 }

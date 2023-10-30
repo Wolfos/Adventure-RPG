@@ -30,6 +30,8 @@ namespace World
             public float chance = 50;
             public float minFog = 800;
             public float cloudShapeFactor = 0.9f;
+            public bool backgroundClouds;
+            public Color fogColor;
         }
 
         [SerializeField] private WeatherTypeDefinition[] weatherTypes;
@@ -38,6 +40,7 @@ namespace World
         [SerializeField] private TimedFog fogManager;
         [SerializeField] private VolumeProfile environmentProfile;
         [SerializeField] private float lerpTime;
+        [SerializeField] private float rainStartTime = 60;
         [SerializeField] private WeatherType defaultWeather;
         private Random random;
 
@@ -132,44 +135,91 @@ namespace World
         private void SetWeather(WeatherTypeDefinition weather, bool instant = false)
         {
             StopAllCoroutines();
+
+            
             
             if(environmentProfile.TryGet<VolumetricClouds>(out var clouds) == false)
             {
                 Debug.LogError("No volumetric clouds component found");
                 return;
             }
+            
+            if(environmentProfile.TryGet<CloudLayer>(out var cloudLayer) == false)
+            {
+                Debug.LogError("No cloud layer component found");
+                return;
+            }
 
             if (instant)
             {
                 fogManager.minFog = weather.minFog;
+                fogManager.SetColor(weather.fogColor);
                 clouds.shapeFactor.Override(weather.cloudShapeFactor);
+                cloudLayer.opacity.Override(weather.backgroundClouds ? 1 : 0);
+                
+                if (weather.type == WeatherType.Rainy)
+                {
+                    Rain.StartRain(true);
+                }
+                else
+                {
+                    Rain.StopRain(true);
+                }
             }
             else
             {
-                StartCoroutine(SetFogRoutine(weather.minFog));
-                StartCoroutine(SetCloudsRoutine(weather.cloudShapeFactor, clouds));
+                if (weather.type == WeatherType.Rainy)
+                {
+                    StartCoroutine(StartRainRoutine());
+                }
+                else
+                {
+                    StartCoroutine(StopRainRoutine());
+                }
+                StartCoroutine(SetFogRoutine(weather));
+                StartCoroutine(SetCloudsRoutine(weather, clouds, cloudLayer));
             }
         }
 
-        private IEnumerator SetFogRoutine(float nextFog)
+        private IEnumerator SetFogRoutine(WeatherTypeDefinition weather)
         {
             var startFog = fogManager.minFog;
+            var startColor = fogManager.GetColor();
+            var endColor = weather.fogColor;
             for (float t = 0; t < lerpTime; t += Time.deltaTime)
             {
-                fogManager.minFog = Mathf.Lerp(startFog, nextFog, t / lerpTime);
+                fogManager.minFog = Mathf.Lerp(startFog, weather.minFog, t / lerpTime);
+                fogManager.SetColor(Color.Lerp(startColor, endColor, t / lerpTime));
                 yield return null;
             }
         }
         
-        private IEnumerator SetCloudsRoutine(float nextShapeFactor, VolumetricClouds clouds)
+        private IEnumerator SetCloudsRoutine(WeatherTypeDefinition weather, VolumetricClouds clouds, CloudLayer cloudLayer)
         {
             var startShapeFactor = clouds.shapeFactor.value;
+            var startCloudLayerOpacity = cloudLayer.opacity.value;
+            float endCloudLayerOpacity = weather.backgroundClouds ? 1 : 0;
            
             for (float t = 0; t < lerpTime; t += Time.deltaTime)
             {
-                clouds.shapeFactor.Override(Mathf.Lerp(startShapeFactor, nextShapeFactor, t / lerpTime));
+                clouds.shapeFactor.Override(Mathf.Lerp(startShapeFactor, weather.cloudShapeFactor, t / lerpTime));
+                cloudLayer.opacity.Override(Mathf.Lerp(startCloudLayerOpacity, endCloudLayerOpacity, t / lerpTime * 2));
                 yield return null;
             }
+        }
+
+        private IEnumerator StartRainRoutine()
+        {
+            yield return new WaitForSeconds(rainStartTime);
+            
+            Rain.StartRain();
+        }
+        
+        private IEnumerator StopRainRoutine()
+        {
+            yield return new WaitForSeconds(rainStartTime);
+            
+            Rain.StopRain();
         }
     }
 }
