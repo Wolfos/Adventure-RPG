@@ -4,6 +4,7 @@ using Combat;
 using Data;
 using Dialogue;
 using UI;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.AI;
 using Utility;
@@ -17,6 +18,7 @@ namespace Character
 {
 	public class NPC : CharacterBase
 	{
+		[Header("NPC")]
 		[SerializeField] private NavMeshAgent agent;
 
 		[SerializeField] private float meleeAttackRange = 1;
@@ -26,6 +28,8 @@ namespace Character
 
 		private const float WanderWalkSpeed = 1;
 		private const float CombatWalkSpeed = 2.5f;
+
+		private float _previousAngularVelocity;
 		
 		public Bounds Bounds { get; set; }
 		public bool Respawn { get; set; }
@@ -38,6 +42,7 @@ namespace Character
 		public NpcComponent NpcComponent => Data.NpcComponent;
 		
 		private static readonly int Speed = Animator.StringToHash("Speed");
+		private static readonly int SidewaysSpeed = Animator.StringToHash("SidewaysSpeed");
 
 		public new void Initialize(RPGObjectReference characterObjectReference)
 		{
@@ -165,12 +170,31 @@ namespace Character
 			// }
 			//else
 			//{
-				agent.speed = _movementSpeed;
+				agent.speed = _movementSpeed * SpeedMultiplier;
 			//}
-			
-			animator.SetFloat(Speed, agent.velocity.magnitude);
 
+			var speed = agent.velocity.magnitude;
+			if (math.abs(speed) < 0.12f) speed = 0;
+			
+			animator.SetFloat(Speed, speed);
 			var transform1 = transform;
+
+			var previousRotation = CharacterComponent.Rotation.eulerAngles.y;
+			var currentRotation = transform1.rotation.eulerAngles.y;
+			var angularVelocity = (currentRotation - previousRotation) * Time.deltaTime;
+			angularVelocity = Mathf.Lerp(_previousAngularVelocity, angularVelocity, 0.5f);
+
+			if (math.abs(angularVelocity) > 0.05f)
+			{
+				animator.SetFloat(SidewaysSpeed, angularVelocity);
+			}
+			else
+			{
+				animator.SetFloat(SidewaysSpeed, 0);
+			}
+			_previousAngularVelocity = angularVelocity;
+
+			
 			CharacterComponent.Position = transform1.position;
 			CharacterComponent.Rotation = transform1.rotation;
 			CharacterComponent.Velocity = agent.velocity;

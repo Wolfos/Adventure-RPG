@@ -14,6 +14,7 @@ namespace Player
 {
 	public class PlayerCharacter : CharacterBase
 	{	
+		[Header("PlayerCharacter")]
 		[HideInInspector] public CharacterController characterController;
 		
 		[SerializeField] public AnimationCurve dodgeSpeed;

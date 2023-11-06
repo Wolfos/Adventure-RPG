@@ -40,6 +40,10 @@ namespace Character
 		[SerializeField] public CharacterAnimationEvents animationEvents;
 		[SerializeField] private CharacterPartPicker partPicker;
 
+		[Header("Movement speeds")]
+		[SerializeField] private float crouchSpeedMultiplier = 0.5f;
+		[SerializeField] private float blockSpeedMultiplier = 0.5f;
+
 		private List<CharacterBase> _currentTargets = new();
 		private Collider _currentInteraction;
 
@@ -51,8 +55,13 @@ namespace Character
 		protected bool IsInHitRecoil => animator.GetBool(Recoil);
 		protected bool IsBlocking;
 
+		private CharacterMovementStates _movementState;
+
 		public Weapon Weapon => equipment.CurrentWeapon;
-		
+
+		public float SpeedMultiplier => _movementState.GetSpeedMultiplier();
+		public bool StrafeMovement => _movementState.HasStrafeMovement();
+
 		public void Initialize(RPGObjectReference characterObjectReference)
 		{
 			characterObjectRef = characterObjectReference;
@@ -84,6 +93,8 @@ namespace Character
 			}
 			equipment = GetComponent<CharacterEquipment>();
 			animationEvents.onHit += MeleeHitCallback;
+
+			_movementState = new(crouchSpeedMultiplier, blockSpeedMultiplier);
 		}
 
 		private void LoadCustomizationData()
@@ -276,6 +287,8 @@ namespace Character
 			IsBlocking = true;
 			animator.SetBool(Blocking, true);
 			if(Weapon != null) Weapon.StartBlock();
+			
+			_movementState.SetStateActive(MovementStates.Blocking);
 		}
 
 		public void EndBlock()
@@ -283,6 +296,8 @@ namespace Character
 			IsBlocking = false;
 			animator.SetBool(Blocking, false);
 			if(Weapon != null) Weapon.EndBlock();
+			
+			_movementState.SetStateInactive(MovementStates.Blocking);
 		}
 
 		public virtual void Attack()

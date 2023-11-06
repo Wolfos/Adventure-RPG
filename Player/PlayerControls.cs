@@ -16,6 +16,8 @@ namespace Player
         [SerializeField] private float inputCacheDuration = 0.2f;
         [SerializeField] private Transform playerCamera;
         [SerializeField] private float overWeightMultiplier = 0.4f;
+        [SerializeField] private float transitionSmoothing = 0.3f;
+        [SerializeField, Range(0, 0.9f)] private float inputSmoothing = 0.5f;
         
         private PlayerCharacter _playerCharacter;
         private CharacterController _characterController;
@@ -27,14 +29,19 @@ namespace Player
         private bool _hasCachedAttack;
         private bool _canDoSecondAttack;
         private bool _isOverweight;
+        private float _lastSpeed;
+        private float _lastHorizontalSpeed;
+        private float _lastAngle;
 
         private static readonly int CanWalk = Animator.StringToHash("CanWalk");
         private static readonly int Jumping = Animator.StringToHash("Jumping");
         private static readonly int StartJump = Animator.StringToHash("StartJump");
         private static readonly int Speed = Animator.StringToHash("Speed");
+        private static readonly int SidewaysSpeed = Animator.StringToHash("SidewaysSpeed");
         private static readonly int IsAttacking = Animator.StringToHash("IsAttacking");
         private static readonly int Dodge1 = Animator.StringToHash("Dodge");
         private static readonly int SkipAttackAnticipation = Animator.StringToHash("SkipAttackAnticipation");
+        private static readonly int Strafing = Animator.StringToHash("Strafing");
 
         public static bool InputActive { get; private set; }
 
@@ -93,15 +100,26 @@ namespace Player
             }
 
             if (!animator.GetBool(CanWalk) || _isDodging) return;
-            
+
+            var localVelocity = new Vector2();
             if (_characterController.isGrounded)
             {
                 var forward = playerCamera.forward;
                 var right = playerCamera.right;
                 forward *= _movementInput.y;
                 right *= _movementInput.x;
+                localVelocity.x = _movementInput.x;
+                localVelocity.y = _movementInput.y;
+                
                 _velocity = (forward + right) * movementSpeed;
-                if (_isOverweight) _velocity *= overWeightMultiplier;
+                localVelocity *= movementSpeed;
+                if (_isOverweight)
+                {
+                    _velocity *= overWeightMultiplier;
+                    localVelocity *= overWeightMultiplier;
+                }
+                _velocity *= _playerCharacter.SpeedMultiplier;
+                localVelocity *= _playerCharacter.SpeedMultiplier;
                 
                 if(_jump) Jump();
             }
@@ -111,7 +129,36 @@ namespace Player
             }
 
             var horizontalVelocity = new Vector3(_velocity.x, 0, _velocity.z);
-            animator.SetFloat(Speed, horizontalVelocity.magnitude);
+
+           
+            if (_playerCharacter.StrafeMovement)
+            {
+                animator.SetBool(Strafing, true);
+                
+                var speed = Mathf.Lerp(_lastSpeed, localVelocity.y, transitionSmoothing);
+                var sidewaysSpeed = Mathf.Lerp(_lastHorizontalSpeed, localVelocity.x, transitionSmoothing);
+                if (_characterController.isGrounded)
+                {
+                    _lastSpeed = speed;
+                    _lastHorizontalSpeed = sidewaysSpeed;
+                }
+                animator.SetFloat(Speed, speed);
+                animator.SetFloat(SidewaysSpeed, sidewaysSpeed);
+            }
+            else
+            {
+                animator.SetBool(Strafing, false);
+                
+                var speed = Mathf.Lerp(_lastSpeed, horizontalVelocity.magnitude, transitionSmoothing);
+                var sidewaysSpeed = 0;
+                if (_characterController.isGrounded)
+                {
+                    _lastSpeed = speed;
+                    _lastHorizontalSpeed = sidewaysSpeed;
+                }
+                animator.SetFloat(Speed, speed);
+                animator.SetFloat(SidewaysSpeed, sidewaysSpeed);
+            }
             _velocity.y -= gravity * Time.deltaTime;
             _characterController.Move(_velocity * Time.deltaTime);
         }
@@ -194,16 +241,35 @@ namespace Player
         
         private void Rotation()
         {
-            if (_movementInput.magnitude > 0.1f)
+            var strafe = _playerCharacter.StrafeMovement;
+            if (_movementInput.magnitude > 0.1f || strafe)
             {
                 var forward = playerCamera.forward;
                 var right = playerCamera.right;
-                forward *= _movementInput.y;
-                right *= _movementInput.x;
+                if (strafe)
+                {
+                    right *= 0;
+                }
+                else
+                {
+                    forward *= _movementInput.y;
+                    right *= _movementInput.x;
+                }
+
                 var direction = forward + right;
 				
                 var angle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-                _playerCharacter.graphic.rotation = Quaternion.Euler(new Vector3(0, angle, 0));
+                var sidewaysSpeed = (angle - _lastAngle) * Time.deltaTime;
+                if (strafe == false)
+                {
+                    animator.SetFloat(SidewaysSpeed, sidewaysSpeed);
+                }
+                //angle = Mathf.Lerp(_lastAngle, angle, transitionSmoothing);
+
+                
+
+                _playerCharacter.graphic.rotation = Quaternion.Euler(new(0, angle, 0));
+                _lastAngle = angle;
             }
         }
 
@@ -211,6 +277,7 @@ namespace Player
         private void OnMove(InputAction.CallbackContext context)
         {
             if (InputActive == false) return;
+            //_movementInput = Vector2.Lerp(_movementInput, context.ReadValue<Vector2>(), 1 - inputSmoothing);
             _movementInput = context.ReadValue<Vector2>();
         }
 
