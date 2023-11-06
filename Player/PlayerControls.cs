@@ -18,6 +18,8 @@ namespace Player
         [SerializeField] private float overWeightMultiplier = 0.4f;
         [SerializeField] private float transitionSmoothing = 0.3f;
         [SerializeField, Range(0, 0.9f)] private float inputSmoothing = 0.5f;
+        [SerializeField, Range(0, 0.9f)] private float rotationSmoothing = 0.5f;
+        [SerializeField, Range(0, 0.9f)] private float movementSmoothing = 0.5f;
         
         private PlayerCharacter _playerCharacter;
         private CharacterController _characterController;
@@ -32,6 +34,8 @@ namespace Player
         private float _lastSpeed;
         private float _lastHorizontalSpeed;
         private float _lastAngle;
+        private Vector2 _smoothInputVelocity;
+        private Vector3 _movementSmoothVelocity;
 
         private static readonly int CanWalk = Animator.StringToHash("CanWalk");
         private static readonly int Jumping = Animator.StringToHash("Jumping");
@@ -160,7 +164,12 @@ namespace Player
                 animator.SetFloat(SidewaysSpeed, sidewaysSpeed);
             }
             _velocity.y -= gravity * Time.deltaTime;
-            _characterController.Move(_velocity * Time.deltaTime);
+
+            var smoothVelocity = Vector3.SmoothDamp(_characterController.velocity, _velocity,
+                ref _movementSmoothVelocity, movementSmoothing);
+            if (smoothVelocity.sqrMagnitude < 0.1f) smoothVelocity = Vector3.zero;
+            
+            _characterController.Move(smoothVelocity * Time.deltaTime);
         }
         
         private void Actions()
@@ -264,11 +273,11 @@ namespace Player
                 {
                     animator.SetFloat(SidewaysSpeed, sidewaysSpeed);
                 }
-                //angle = Mathf.Lerp(_lastAngle, angle, transitionSmoothing);
 
                 
-
-                _playerCharacter.graphic.rotation = Quaternion.Euler(new(0, angle, 0));
+                var targetRotation = Quaternion.Euler(new(0, angle, 0));
+                _playerCharacter.graphic.rotation = Quaternion.Lerp(_playerCharacter.graphic.rotation, targetRotation,
+                    1 - rotationSmoothing);
                 _lastAngle = angle;
             }
         }
@@ -277,8 +286,7 @@ namespace Player
         private void OnMove(InputAction.CallbackContext context)
         {
             if (InputActive == false) return;
-            //_movementInput = Vector2.Lerp(_movementInput, context.ReadValue<Vector2>(), 1 - inputSmoothing);
-            _movementInput = context.ReadValue<Vector2>();
+            _movementInput = Vector2.SmoothDamp(_movementInput, context.ReadValue<Vector2>(), ref _smoothInputVelocity, inputSmoothing * 0.01f);
         }
 
         private void OnJump(InputAction.CallbackContext context)
