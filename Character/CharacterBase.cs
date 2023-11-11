@@ -502,7 +502,7 @@ namespace Character
 
 		private void OnFootStep()
 		{
-			PlaySound(SoundClips.RandomFootStepRock, 0.25f);
+			PlaySound(SoundClips.RandomFootStepRock, 0.1f);
 		}
 	}
 }
