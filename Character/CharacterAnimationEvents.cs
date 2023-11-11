@@ -9,6 +9,8 @@ namespace Character
         public Action onHit;
         public Action onCanDoSecondAttack;
         public Action OnEndDoSecondAttack;
+        public Action OnFootL;
+        public Action OnFootR;
         
         // Attack animation hit moment
         [Preserve]
@@ -32,11 +34,13 @@ namespace Character
         [Preserve]
         private void FootL()
         {
+            OnFootL?.Invoke();
         }
         
         [Preserve]
         private void FootR()
         {
+            OnFootR?.Invoke();
         }
         
         [Preserve]

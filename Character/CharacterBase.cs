@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Audio;
 using Combat;
 using Data;
 using Interface;
@@ -39,6 +40,7 @@ namespace Character
 		[SerializeField] private AudioClip hitSound;
 		[SerializeField] public CharacterAnimationEvents animationEvents;
 		[SerializeField] private CharacterPartPicker partPicker;
+		[SerializeField] private AudioSource audioSource;
 
 		[Header("Movement speeds")]
 		[SerializeField] private float crouchSpeedMultiplier = 0.5f;
@@ -92,7 +94,10 @@ namespace Character
 				}
 			}
 			equipment = GetComponent<CharacterEquipment>();
+			
 			animationEvents.onHit += MeleeHitCallback;
+			animationEvents.OnFootL += OnFootStep;
+			animationEvents.OnFootR += OnFootStep;
 
 			_movementState = new(crouchSpeedMultiplier, blockSpeedMultiplier);
 		}
@@ -142,6 +147,10 @@ namespace Character
 		{
 			Inventory.OnItemUsed -= OnItemUsed;
 			Inventory.OnItemRemoved -= OnItemRemoved;
+			
+			animationEvents.onHit -= MeleeHitCallback;
+			animationEvents.OnFootL -= OnFootStep;
+			animationEvents.OnFootR -= OnFootStep;
 		}
 
 		protected void Start()
@@ -481,6 +490,19 @@ namespace Character
 			// {
 			// 	Quest.ProgressToNextStage(quest);
 			// }
+		}
+
+		private void PlaySound(AudioClip clip, float volume = 1)
+		{
+			if (audioSource != null)
+			{
+				audioSource.PlayOneShot(clip, volume);
+			}
+		}
+
+		private void OnFootStep()
+		{
+			PlaySound(SoundClips.RandomFootStepRock, 0.25f);
 		}
 	}
 }
