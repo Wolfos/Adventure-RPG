@@ -88,7 +88,7 @@ namespace Character
 				var npc = newNPC.GetComponent<NPC>();
 				npc.Initialize(characterObjectRef);
 				newNPC.SetActive(true);
-				npc.Bounds = _bounds;
+				npc.boundaries = _bounds;
 				
 				_npcs.Add(npc);
 			}

@@ -39,7 +39,7 @@ namespace Character
 		[SerializeField] private Damage unarmedDamage;
 		[SerializeField] private AudioClip hitSound;
 		[SerializeField] public CharacterAnimationEvents animationEvents;
-		[SerializeField] private CharacterPartPicker partPicker;
+		[SerializeField] protected CharacterPartPicker partPicker;
 		[SerializeField] private AudioSource audioSource;
 
 		[Header("Movement speeds")]
@@ -502,7 +502,7 @@ namespace Character
 
 		private void OnFootStep()
 		{
-			PlaySound(SoundClips.RandomFootStepRock, 0.1f);
+			PlaySound(SoundClips.RandomFootStepRock, 0.2f);
 		}
 	}
 }

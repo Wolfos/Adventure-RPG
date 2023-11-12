@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using Player;
 using WolfRPG.Character;
 using WolfRPG.Core.Quests;
-using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Character
 {

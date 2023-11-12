@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections;
-using Combat;
+using AI;
 using Data;
 using Dialogue;
+using Sirenix.OdinInspector;
 using UI;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.AI;
-using Utility;
+using UnityEngine.Serialization;
 using WolfRPG.Character;
 using WolfRPG.Core;
 using WolfRPG.Inventory;
@@ -30,8 +31,8 @@ namespace Character
 		private const float CombatWalkSpeed = 2.5f;
 
 		private float _previousAngularVelocity;
-		
-		public Bounds Bounds { get; set; }
+
+		public Bounds boundaries;
 		public bool Respawn { get; set; }
 
 		public ItemContainer ShopInventory { get; set; }
@@ -43,6 +44,7 @@ namespace Character
 		
 		private static readonly int Speed = Animator.StringToHash("Speed");
 		private static readonly int SidewaysSpeed = Animator.StringToHash("SidewaysSpeed");
+		
 
 		public new void Initialize(RPGObjectReference characterObjectReference)
 		{
@@ -70,11 +72,12 @@ namespace Character
 			}
 		}
 
-		private new void OnEnable()
+		private void Awake()
 		{
-			if(agent.enabled) Debug.LogError("NavmeshAgent was enabled by default. Due to a bug in Unity, it should start disabled");
-
-			if (Respawn)
+			boundaries.center = transform.position;
+			Initialize(characterObjectRef);
+			
+			if (Respawn) // TODO: Respawn probably broken, definitely not used atm
 			{
 				Debug.Log("Respawning");
 				animator.SetTrigger("Spawn");
@@ -84,7 +87,14 @@ namespace Character
 			{
 				ActivateRoutine(NpcComponent.DefaultRoutine, true);
 			}
+			
+			NPCManager.Register(this);
+			
+			if(agent.enabled) Debug.LogError("NavmeshAgent was enabled by default. Due to a bug in Unity, it should start disabled");
+		}
 
+		private new void OnEnable()
+		{
 			onDamaged += OnDamaged;
 			
 			base.OnEnable();
@@ -104,6 +114,11 @@ namespace Character
 			CharacterComponent.Rotation = transform1.rotation;
 			
 			base.Start();
+		}
+
+		public void Resume()
+		{
+			ActivateRoutine(Data.NpcComponent.CurrentRoutine, true, true);
 		}
 
 		public void UpdateData()
@@ -325,7 +340,7 @@ namespace Character
 			{
 				// Proceed means proceed from saved game
 				if (proceed) agent.velocity = CharacterComponent.Velocity;
-				else NpcComponent.Destination = Bounds.RandomPos();
+				else NpcComponent.Destination = boundaries.RandomPos();
 
 				agent.destination = NpcComponent.Destination;
 
@@ -362,6 +377,34 @@ namespace Character
 		private void OnDisable()
 		{
 			onDamaged -= OnDamaged;
+		}
+
+		[Button("Render")]
+		private void RenderNPC()
+		{
+			var characterComponent = characterObjectRef.GetComponent<CharacterComponent>().CreateInstance();
+			var loadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
+
+			var visualData = characterComponent.VisualData;
+
+			foreach (var item in loadoutComponent.StartingInventory)
+			{
+				var equipment = item.ItemObject.GetComponent<EquipmentData>();
+				if(equipment.EquipmentParts == null) continue;
+				
+				foreach (var part in equipment.EquipmentParts)
+				{
+					CharacterCustomizationController.SetPart(part.Part, visualData, part.Index);
+					if (equipment.Material != 0)
+					{
+						visualData.MaterialOverrides.Add(part.Part, equipment.Material);
+					}
+				}
+			}
+			
+			CharacterCustomizationController.SetData(visualData, partPicker);
+
+			gameObject.name = characterObjectRef.GetObject().Name;
 		}
 	}
 }
