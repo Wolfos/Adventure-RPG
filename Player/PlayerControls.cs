@@ -20,6 +20,7 @@ namespace Player
         [SerializeField, Range(0, 0.9f)] private float inputSmoothing = 0.5f;
         [SerializeField, Range(0, 0.9f)] private float rotationSmoothing = 0.5f;
         [SerializeField, Range(0, 0.9f)] private float movementSmoothing = 0.5f;
+        [SerializeField] private float movementDeadzone = 0.05f;
         
         private PlayerCharacter _playerCharacter;
         private CharacterController _characterController;
@@ -132,8 +133,17 @@ namespace Player
                 animator.SetFloat(Speed, 0);
             }
 
-            var horizontalVelocity = new Vector3(_velocity.x, 0, _velocity.z);
+            
+            _velocity.y -= gravity * Time.deltaTime;
 
+            var smoothVelocity = Vector3.SmoothDamp(_characterController.velocity, _velocity,
+                ref _movementSmoothVelocity, movementSmoothing);
+            var horizontalVelocity = new Vector3(smoothVelocity.x, 0, smoothVelocity.z);
+            
+            // if (smoothVelocity.sqrMagnitude < 0.1f)
+            // {
+            //     smoothVelocity = Vector3.zero;
+            // }
            
             if (_playerCharacter.StrafeMovement)
             {
@@ -163,11 +173,8 @@ namespace Player
                 animator.SetFloat(Speed, speed);
                 animator.SetFloat(SidewaysSpeed, sidewaysSpeed);
             }
-            _velocity.y -= gravity * Time.deltaTime;
-
-            var smoothVelocity = Vector3.SmoothDamp(_characterController.velocity, _velocity,
-                ref _movementSmoothVelocity, movementSmoothing);
-            if (smoothVelocity.sqrMagnitude < 0.1f) smoothVelocity = Vector3.zero;
+            
+            
             
             _characterController.Move(smoothVelocity * Time.deltaTime);
         }
@@ -271,7 +278,8 @@ namespace Player
                 var sidewaysSpeed = (angle - _lastAngle) * Time.deltaTime;
                 if (strafe == false)
                 {
-                    animator.SetFloat(SidewaysSpeed, sidewaysSpeed);
+                    // TODO: Reimplement lean
+                    //animator.SetFloat(SidewaysSpeed, sidewaysSpeed);
                 }
 
                 
@@ -287,6 +295,7 @@ namespace Player
         {
             if (InputActive == false) return;
             _movementInput = Vector2.SmoothDamp(_movementInput, context.ReadValue<Vector2>(), ref _smoothInputVelocity, inputSmoothing * 0.01f);
+            if (_movementInput.magnitude < movementDeadzone) _movementInput = Vector2.zero;
         }
 
         private void OnJump(InputAction.CallbackContext context)
