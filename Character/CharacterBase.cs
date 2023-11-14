@@ -43,11 +43,14 @@ namespace Character
 		[SerializeField] private AudioSource audioSource;
 
 		[Header("Movement speeds")]
+		[SerializeField] private float generalSpeedMultiplier = 1;
 		[SerializeField] private float crouchSpeedMultiplier = 0.5f;
 		[SerializeField] private float blockSpeedMultiplier = 0.5f;
+		
 
 		private List<CharacterBase> _currentTargets = new();
 		private Collider _currentInteraction;
+		
 
 
 		protected Action<float, string> onDamaged;
@@ -99,7 +102,7 @@ namespace Character
 			animationEvents.OnFootL += OnFootStep;
 			animationEvents.OnFootR += OnFootStep;
 
-			_movementState = new(crouchSpeedMultiplier, blockSpeedMultiplier);
+			_movementState = new(generalSpeedMultiplier, crouchSpeedMultiplier, blockSpeedMultiplier);
 		}
 
 		private void LoadCustomizationData()
@@ -467,6 +470,8 @@ namespace Character
 
 		public void TakeDamage(float damage, Vector3 point, CharacterBase other)
 		{
+			if (CharacterComponent.Invulnerable) return;
+			
 			if(Weapon != null) Weapon.InterruptAttack();
 			if (CharacterComponent.IsDead) return;
 			

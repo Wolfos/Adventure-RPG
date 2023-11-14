@@ -18,9 +18,12 @@ namespace Character
 	public class CharacterMovementStates
 	{
 		private readonly MovementState[] _movementStates;
+		private float _generalSpeedMultiplier;
 
-		public CharacterMovementStates(float crouchSpeedMultiplier, float blockSpeedMultiplier)
+		public CharacterMovementStates(float generalSpeedMultiplier, float crouchSpeedMultiplier, float blockSpeedMultiplier)
 		{
+			_generalSpeedMultiplier = generalSpeedMultiplier;
+			
 			_movementStates = new MovementState[(int) MovementStates.MAX];
 			
 			_movementStates[(int) MovementStates.Crouching].SpeedMultiplier = crouchSpeedMultiplier;
@@ -52,7 +55,7 @@ namespace Character
 				}
 			}
 
-			return multiplier;
+			return multiplier * _generalSpeedMultiplier;
 		}
 
 		public bool HasStrafeMovement()

@@ -66,6 +66,7 @@ namespace Character
 
 		public void ResetAnimations()
 		{
+			if (unarmedAnimationSet == null) return;
 			animator.runtimeAnimatorController = unarmedAnimationSet;
 		}
 

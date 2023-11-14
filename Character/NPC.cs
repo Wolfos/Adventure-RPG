@@ -8,7 +8,6 @@ using UI;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 using WolfRPG.Character;
 using WolfRPG.Core;
 using WolfRPG.Inventory;
