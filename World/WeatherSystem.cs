@@ -4,10 +4,37 @@ using Data;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
+using WolfRPG.Core.CommandConsole;
 using Random = Unity.Mathematics.Random;
 
 namespace World
 {
+    
+    public class SetWeatherCommand : IConsoleCommand
+    {
+        public string Word => "setweather";
+        public ConsoleArgumentType[] Arguments { get; } = { ConsoleArgumentType.String };
+        public void Execute(object[] arguments, Action<string> onError)
+        {
+            var argument = arguments[0] as string;
+            if (argument == "rain")
+            {
+                WeatherSystem.SetWeatherInstantStatic(WeatherSystem.WeatherType.Rainy);
+            }
+            if (argument == "overcast")
+            {
+                WeatherSystem.SetWeatherInstantStatic(WeatherSystem.WeatherType.Overcast);
+            }
+            if (argument is "sunny" or "clear")
+            {
+                WeatherSystem.SetWeatherInstantStatic(WeatherSystem.WeatherType.Sunny);
+            }
+            if (argument == "cloudy")
+            {
+                WeatherSystem.SetWeatherInstantStatic(WeatherSystem.WeatherType.Cloudy);
+            }
+        }
+    }
     public class WeatherSystem : SaveableObject
     {
         private class WeatherSystemData: ISaveData
@@ -18,7 +45,7 @@ namespace World
             public WeatherType WeatherType { get; set; }
         }
 
-        private enum WeatherType
+        public enum WeatherType
         {
             Sunny, Cloudy, Overcast, Rainy
         }
@@ -31,6 +58,7 @@ namespace World
             public float minFog = 800;
             public float cloudShapeFactor = 0.9f;
             public bool backgroundClouds;
+            public float cloudShadows;
             public Color fogColor;
         }
 
@@ -43,6 +71,7 @@ namespace World
         [SerializeField] private float rainStartTime = 60;
         [SerializeField] private WeatherType defaultWeather;
         private Random random;
+        private static WeatherSystem _instance;
 
 
 
@@ -50,6 +79,8 @@ namespace World
         
         private void Start()
         {
+            CommandConsole.RegisterCommand(new SetWeatherCommand());
+            _instance = this;
             var seed = (uint)DateTime.Now.Ticks;
             random = new (seed);
             if (SaveGameManager.HasData(id))
@@ -121,6 +152,11 @@ namespace World
             }
         }
 
+        public static void SetWeatherInstantStatic(WeatherType type)
+        {
+            _instance.SetWeatherInstant(type);
+        }
+        
         private void SetWeatherInstant(WeatherType type)
         {
             foreach (var weather in weatherTypes)
@@ -132,6 +168,8 @@ namespace World
                 }
             }
         }
+
+        
         private void SetWeather(WeatherTypeDefinition weather, bool instant = false)
         {
             StopAllCoroutines();
@@ -155,6 +193,7 @@ namespace World
                 fogManager.minFog = weather.minFog;
                 fogManager.SetColor(weather.fogColor);
                 clouds.shapeFactor.Override(weather.cloudShapeFactor);
+                clouds.shadowOpacity.Override(weather.cloudShadows);
                 cloudLayer.opacity.Override(weather.backgroundClouds ? 1 : 0);
                 
                 if (weather.type == WeatherType.Rainy)
@@ -199,10 +238,13 @@ namespace World
             var startShapeFactor = clouds.shapeFactor.value;
             var startCloudLayerOpacity = cloudLayer.opacity.value;
             float endCloudLayerOpacity = weather.backgroundClouds ? 1 : 0;
+            float startShadowOpacity = clouds.shadowOpacity.value;
+            float endShadowOpacity = weather.cloudShadows;
            
             for (float t = 0; t < lerpTime; t += Time.deltaTime)
             {
                 clouds.shapeFactor.Override(Mathf.Lerp(startShapeFactor, weather.cloudShapeFactor, t / lerpTime));
+                clouds.shadowOpacity.Override(Mathf.Lerp(startShadowOpacity, endShadowOpacity, t / lerpTime * 2));
                 cloudLayer.opacity.Override(Mathf.Lerp(startCloudLayerOpacity, endCloudLayerOpacity, t / lerpTime * 2));
                 yield return null;
             }

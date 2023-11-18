@@ -34,8 +34,7 @@ namespace Character
 		public Transform graphic;
 		[SerializeField] protected Animator animator;
 		[SerializeField] private float deathAnimationLength;
-		[SerializeField] private CollisionCallbacks interactionTrigger, meleeAttackTrigger;
-		[SerializeField] private LayerMask interactionLayerMask, attackLayerMask, blockLayerMask;
+		[SerializeField] protected LayerMask interactionLayerMask, attackLayerMask, blockLayerMask;
 		[SerializeField] private Damage unarmedDamage;
 		[SerializeField] private AudioClip hitSound;
 		[SerializeField] public CharacterAnimationEvents animationEvents;
@@ -46,10 +45,8 @@ namespace Character
 		[SerializeField] private float generalSpeedMultiplier = 1;
 		[SerializeField] private float crouchSpeedMultiplier = 0.5f;
 		[SerializeField] private float blockSpeedMultiplier = 0.5f;
-		
 
-		private List<CharacterBase> _currentTargets = new();
-		private Collider _currentInteraction;
+		protected Collider CurrentInteraction;
 		
 
 
@@ -179,32 +176,11 @@ namespace Character
 					}
 				}
 			}
-
-			if (meleeAttackTrigger != null)
-			{
-				meleeAttackTrigger.onTriggerEnter += TargetTriggerEnter;
-				meleeAttackTrigger.onTriggerExit += TargetTriggerExit;
-			}
-
-			if (interactionTrigger != null)
-			{
-				interactionTrigger.onTriggerEnter += InteractionTriggerEnter;
-				interactionTrigger.onTriggerStay += InteractionTriggerStay;
-				interactionTrigger.onTriggerExit += InteractionTriggerExit;
-			}
-
-			_currentTargets = new List<CharacterBase>();
-		}
-
-		protected void OnEnable()
-		{
-			//data.maxHealth = startHealth;
-			//SetHealth();
+			
 		}
 
 		protected void Update()
 		{
-			CheckTargetsAlive();
 		}
 
 		public int GetAttributeValue(Attribute attribute) => Data.GetAttributeValue(attribute);
@@ -260,40 +236,6 @@ namespace Character
 		}
 		
 		#region Combat
-		private void CheckTargetsAlive()
-		{
-			// Iterate in reverse for safe removal
-			for (int i = _currentTargets.Count - 1; i >= 0; i--)
-			{
-				var target = _currentTargets[i];
-				if (target == null || target.GetAttributeValue(Attribute.Health) <= 0)
-				{
-					_currentTargets.RemoveAt(i);
-				}
-			}
-		}
-
-		private void TargetTriggerEnter(Collider other)
-		{
-			if (((1<<other.gameObject.layer) & attackLayerMask) != 0)
-			{
-				var character = other.GetComponent<CharacterBase>();
-				if(character != this) _currentTargets.Add(character);
-			}
-		}
-
-		private void TargetTriggerExit(Collider other)
-		{
-			if (((1 << other.gameObject.layer) & attackLayerMask) != 0)
-			{
-				var character = other.GetComponent<CharacterBase>();
-				if (_currentTargets.Contains(character))
-				{
-					_currentTargets.Remove(character);
-				}
-			}
-		}
-
 		public void StartBlock()
 		{
 			IsBlocking = true;
@@ -340,11 +282,11 @@ namespace Character
 			// Unarmed
 			if (Weapon == null)
 			{
-				foreach (var target in _currentTargets)
-				{
-					//unarmedDamage.source = CharacterComponent.CharacterId;
-					//target.TakeDamage(unarmedDamage, transform.position);
-				}
+				// foreach (var target in _currentTargets)
+				// {
+				// 	//unarmedDamage.source = CharacterComponent.CharacterId;
+				// 	//target.TakeDamage(unarmedDamage, transform.position);
+				// }
 			}
 			//Armed
 			else
@@ -363,36 +305,36 @@ namespace Character
 
 		public void Interact()
 		{
-			if (_currentInteraction != null)
+			if (CurrentInteraction != null)
 			{
-				if (_currentInteraction.enabled)
+				if (CurrentInteraction.enabled)
 				{
-					var interactables = _currentInteraction.GetComponents<IInteractable>();
+					var interactables = CurrentInteraction.GetComponents<IInteractable>();
 					foreach (var interactable in interactables)
 					{
 						interactable.OnInteract(this);
 					}
 				}
-				else _currentInteraction = null;
+				else CurrentInteraction = null;
 			}
 		}
-		private void InteractionTriggerEnter(Collider other)
+		protected void InteractionStart(Collider other)
 		{
 			if (((1<<other.gameObject.layer) & interactionLayerMask) != 0)
 			{
-				if (_currentInteraction != null)
+				if (CurrentInteraction != null)
 				{
-					var currentDistance = Vector3.Distance(_currentInteraction.transform.position, transform.position);
+					var currentDistance = Vector3.Distance(CurrentInteraction.transform.position, transform.position);
 					var newDistance = Vector3.Distance(other.transform.position, transform.position);
 					if (newDistance > currentDistance) return;
 				}
-				_currentInteraction = other;
+				CurrentInteraction = other;
 			}
 		}
 
-		private void InteractionTriggerStay(Collider other)
+		protected void InteractionUpdate(Collider other)
 		{
-			if (other == _currentInteraction)
+			if (other == CurrentInteraction)
 			{
 				var interactables = other.GetComponents<IInteractable>();
 				foreach (var interactable in interactables)
@@ -411,14 +353,14 @@ namespace Character
 
 		private void InteractionTriggerExit(Collider other)
 		{
-			if (other == _currentInteraction)
+			if (other == CurrentInteraction)
 			{
 				var interactables = other.GetComponents<IInteractable>();
 				foreach (var interactable in interactables)
 				{
 					interactable.OnEndInteract(this);
 				}
-				_currentInteraction = null;
+				CurrentInteraction = null;
 			}
 		}
 		#endregion

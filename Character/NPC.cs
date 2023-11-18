@@ -96,7 +96,7 @@ namespace Character
 		{
 			onDamaged += OnDamaged;
 			
-			base.OnEnable();
+			//base.OnEnable();
 		}
 
 		private IEnumerator SpawnAnimation()

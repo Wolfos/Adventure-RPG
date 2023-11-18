@@ -18,5 +18,10 @@ namespace UI
 			var go = Instantiate(instance.healthDisplayPrefab, instance.transform);
 			return go.GetComponent<HealthDisplay>();
 		}
+
+		public static void Disable()
+		{
+			instance.gameObject.SetActive(false);
+		}
 	}
 }

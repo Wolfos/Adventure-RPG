@@ -5,6 +5,7 @@ using System.Linq;
 using Data;
 using UnityEngine;
 using Character;
+using UI;
 using Utility;
 using WolfRPG.Core.Quests;
 using WolfRPG.Inventory;
@@ -18,6 +19,8 @@ namespace Player
 		[HideInInspector] public CharacterController characterController;
 		
 		[SerializeField] public AnimationCurve dodgeSpeed;
+		[SerializeField] private new Transform camera;
+		[SerializeField] private float interactionDistance = 1.0f;
 
 		private static readonly int IsAttacking = Animator.StringToHash("IsAttacking");
 		private static readonly int SkipAttackAnticipation = Animator.StringToHash("SkipAttackAnticipation");
@@ -40,6 +43,38 @@ namespace Player
 				OnFinishedLoading();
 			}
 			animator.SetBool(SkipAttackAnticipation, true);
+		}
+
+		private new void Update()
+		{
+			base.Update();
+
+			Interaction();
+		}
+
+		private void Interaction()
+		{
+			if (WindowManager.IsAnyWindowOpen()) return;
+			
+				// Subtract camera zoom
+			var castDistance = interactionDistance - camera.localPosition.z;
+			if (Physics.Raycast(camera.position, camera.forward, out var hit, castDistance, interactionLayerMask))
+			{
+				var other = hit.collider;
+				if (CurrentInteraction == other)
+				{
+					InteractionUpdate(other);
+				}
+				else
+				{
+					EndInteraction(CurrentInteraction);
+					InteractionStart(other);
+				}
+			}
+			else
+			{
+				EndInteraction(CurrentInteraction);
+			}
 		}
 
 		// TODO: Refactor into event
