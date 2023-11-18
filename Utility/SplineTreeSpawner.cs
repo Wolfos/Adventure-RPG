@@ -28,6 +28,7 @@ namespace Utility
 		[SerializeField] private float noiseScale = 1;
 		[SerializeField] private float noiseCutoff = 0.5f;
 		[SerializeField] private float noiseCutoffRandom = 0.1f;
+		[SerializeField] private float noiseOffset;
 		[Range(0, 1), SerializeField] private float maxDensity = 1;
 		[SerializeField] private Terrain[] terrains;
 		[SerializeField] private byte uniqueIdentifier;
@@ -57,7 +58,7 @@ namespace Utility
 						var pos = new float3(x, 0, z);
 						pos.x += rng.NextFloat(-resolution / 2, resolution / 2);
 						pos.z += rng.NextFloat(-resolution / 2, resolution / 2);
-						var perlin = Mathf.PerlinNoise(pos.x * noiseScale, pos.z * noiseScale);
+						var perlin = Mathf.PerlinNoise(pos.x * noiseScale + noiseOffset, pos.z * noiseScale + noiseOffset);
 						perlin = math.clamp(perlin, 1 - maxDensity, 1);
 
 						if(perlin > noiseCutoff + rng.NextFloat() * noiseCutoffRandom) continue;
@@ -215,6 +216,13 @@ namespace Utility
 		/// <returns>Whether the point is inside the spline</returns>
 		private bool IsInsideSpline(float3 point, Spline spline)
 		{
+			var bounds = spline.GetBounds();
+			// Is outside of bounds?
+			if (point.x < bounds.min.x || point.x > bounds.max.x ||
+			    point.z < bounds.min.z || point.z > bounds.max.z)
+			{
+				return false;
+			}
 			SplineUtility.GetNearestPoint(spline, point, out var splinePoint, out var t);
 			spline.Evaluate(t, out _, out var tangent, out _);
 			
