@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Utility;
@@ -47,6 +48,9 @@ namespace Player
         private static readonly int Dodge1 = Animator.StringToHash("Dodge");
         private static readonly int SkipAttackAnticipation = Animator.StringToHash("SkipAttackAnticipation");
         private static readonly int Strafing = Animator.StringToHash("Strafing");
+        private static readonly int DodgeRight = Animator.StringToHash("Dodge right");
+        private static readonly int DodgeLeft = Animator.StringToHash("Dodge left");
+        private static readonly int DodgeBack = Animator.StringToHash("Dodge back");
 
         public static bool InputActive { get; private set; }
 
@@ -212,15 +216,38 @@ namespace Player
             
             
             _isDodging = true;
-            _playerCharacter.EndBlock();
-			
-            animator.SetTrigger(Dodge1);
+            
 
             const float duration = 0.5f;
-            var forward = _playerCharacter.graphic.forward;
+            var direction = _playerCharacter.graphic.forward;
+            if (_playerCharacter.StrafeMovement && (math.abs(_movementInput.x) > 0.1f || _movementInput.y < 0))
+            {
+                if (_movementInput.y < 0 && math.abs(_movementInput.x) < 0.1f)
+                {
+                    direction = -_playerCharacter.graphic.forward;
+                    animator.SetTrigger(DodgeBack);
+                }
+                else if (_movementInput.x < 0)
+                {
+                    direction = -_playerCharacter.graphic.right;
+                    animator.SetTrigger(DodgeLeft);
+                }
+                else
+                {
+                    direction = _playerCharacter.graphic.right;
+                    animator.SetTrigger(DodgeRight);
+                }
+            }
+            else
+            {
+                animator.SetTrigger(Dodge1);
+                //_playerCharacter.EndBlock();
+            }
+
+
             for (float t = 0; t < duration; t += Time.deltaTime)
             {
-                _velocity = forward * (movementSpeed * _playerCharacter.dodgeSpeed.Evaluate(t));
+                _velocity = direction * (movementSpeed * _playerCharacter.dodgeSpeed.Evaluate(t));
                 _velocity.y -= gravity * Time.deltaTime;
                 _characterController.Move(_velocity * Time.deltaTime);
                 yield return null;
