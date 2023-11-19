@@ -190,7 +190,7 @@ namespace World
 
             if (instant)
             {
-                fogManager.minFog = weather.minFog;
+                fogManager.MinFog = weather.minFog;
                 fogManager.SetColor(weather.fogColor);
                 clouds.shapeFactor.Override(weather.cloudShapeFactor);
                 clouds.shadowOpacity.Override(weather.cloudShadows);
@@ -222,12 +222,12 @@ namespace World
 
         private IEnumerator SetFogRoutine(WeatherTypeDefinition weather)
         {
-            var startFog = fogManager.minFog;
+            var startFog = fogManager.MinFog;
             var startColor = fogManager.GetColor();
             var endColor = weather.fogColor;
             for (float t = 0; t < lerpTime; t += Time.deltaTime)
             {
-                fogManager.minFog = Mathf.Lerp(startFog, weather.minFog, t / lerpTime);
+                fogManager.MinFog = Mathf.Lerp(startFog, weather.minFog, t / lerpTime);
                 fogManager.SetColor(Color.Lerp(startColor, endColor, t / lerpTime));
                 yield return null;
             }

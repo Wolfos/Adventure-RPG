@@ -70,6 +70,7 @@ namespace OpenWorld
         private Chunk GetChunkByChunkPosition(int x, int z)
         {
             if(_sortedChunks == null || _sortedChunks.Length == 0) SortChunks();
+            if (z + x * chunksX < 0 || z + x * chunksX > _sortedChunks.Length) return null;
             return _sortedChunks[z + x * chunksX];
         }
 

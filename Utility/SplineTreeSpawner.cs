@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sirenix.OdinInspector;
 using Unity.Mathematics;
 using UnityEngine;
@@ -37,6 +38,31 @@ namespace Utility
 		[SerializeField] private float maxDistanceFromRoad = 3;
 
 		private List<Vector3> _excluded = new();
+
+		[Button("Add trees to terrains")]
+		public void AddTrees()
+		{
+			foreach (var terrain in terrains)
+			{
+				var terrainData = terrain.terrainData;
+				var prototypes = terrainData.treePrototypes.ToList();
+				
+				foreach (var tree in trees)
+				{
+					// If terrain doesn't have this tree
+					if (terrainData.treePrototypes.Count(p => p.prefab == tree.prefab) == 0)
+					{
+						var prototype = new TreePrototype
+						{
+							prefab = tree.prefab
+						};
+						prototypes.Add(prototype);
+					}
+				}
+
+				terrainData.treePrototypes = prototypes.ToArray();
+			}
+		}
 
 		[Button("Update")]
 		public void UpdateTrees()

@@ -3,12 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.Serialization;
 
 namespace World
 {
     public class TimedFog : MonoBehaviour
     {
-        [HideInInspector] public float minFog = 800; // Minimum fog for weather type
+        public float MinFog { get; set; } = 1000; // Minimum fog for weather type
+        
         [SerializeField] private LocalVolumetricFog fog;
         [SerializeField] private AnimationCurve fogCurve;
         [SerializeField] private float minDistance;
@@ -17,7 +19,7 @@ namespace World
         public void Update()
         {
             var time = TimeManager.RealTime() / 24;
-            fog.parameters.meanFreePath = Mathf.Min(Mathf.Lerp(minDistance, maxDistance, fogCurve.Evaluate(time)), minFog);
+            fog.parameters.meanFreePath = Mathf.Min(Mathf.Lerp(minDistance, maxDistance, fogCurve.Evaluate(time)), MinFog);
         }
 
         public Color GetColor()
