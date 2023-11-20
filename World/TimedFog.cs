@@ -1,15 +1,11 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
-using UnityEngine.Serialization;
 
 namespace World
 {
     public class TimedFog : MonoBehaviour
     {
-        public float MinFog { get; set; } = 1000; // Minimum fog for weather type
+        public float MinFog { get; set; } = 5000; // Minimum fog for weather type
         
         [SerializeField] private LocalVolumetricFog fog;
         [SerializeField] private AnimationCurve fogCurve;

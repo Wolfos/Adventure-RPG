@@ -12,18 +12,19 @@ namespace Items
 	{
 		[Header("Melee weapon")]
 		[SerializeField] private TrailRenderer attackFx;
-		[SerializeField] private ParticleSystem hitParticles;
 		[SerializeField] private BoxCollider hitCollider;
 		[SerializeField] private Collider blockCollider;
 
 		private List<Matrix4x4> _cubeMatrices = new();
 		private MeleeWeaponData _weaponData;
+		private ParticleSystem _hitParticles;
 
 		private void Start()
 		{
 			_weaponData = rpgObjectReference.GetComponent<MeleeWeaponData>();
 			AttackSound = _weaponData.AttackSound?.GetAsset<AudioClip>();
 			HitSound = _weaponData.HitSound?.GetAsset<AudioClip>();
+			_hitParticles = Instantiate(_weaponData.HitParticles.GetAsset<GameObject>()).GetComponent<ParticleSystem>(); // TODO: More performant to use only one of these throughout the game
 		}
 
 		public override void Attack(Vector3 direction, LayerMask attackLayerMask, LayerMask blockLayerMask, Action onStagger)
@@ -59,12 +60,16 @@ namespace Items
 			{
 				yield return new WaitForFixedUpdate();
 				
+				if(alreadyHit.Count > 0) continue;
+				
 				// Do a sweep to interpolate between animation frames
 				var currentPosition = transform.TransformPoint(hitCollider.center);
 				var currentRotation = transform.rotation;
 				var distance = Vector3.Distance(previousPosition, currentPosition);
 				var amount = distance / (hitCollider.size.x / 2);
-				var colliders = new List<Collider>();
+				
+				// Colliders we hit, position we hit them at
+				var hits = new List<Tuple<Collider[], Vector3>>();
 				for (var i = 0; i < amount; i++)
 				{
 					var center = Vector3.Lerp(previousPosition, currentPosition, (float) i / amount);
@@ -83,22 +88,28 @@ namespace Items
 					var matrix = Matrix4x4.TRS(center, rotation, hitCollider.size);
 					_cubeMatrices.Add(matrix);
 					
-					colliders.AddRange(result);
+					hits.Add(new (result, center));
 				}
 				
 				// ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
 				// Check each collider if it's an enemy and not already hit during this attack
-				foreach (var collider in colliders)
+				foreach (var tuple in hits)
 				{
-					if (collider.attachedRigidbody == null) continue;
-					if(alreadyHit.Contains(collider.attachedRigidbody)) continue;
-					alreadyHit.Add(collider.attachedRigidbody);
+					var colliders = tuple.Item1;
+					var hitPosition = tuple.Item2;
 					
-					var otherCharacter = collider.attachedRigidbody.GetComponent<CharacterBase>();
-					if(otherCharacter.Data.CharacterComponent.IsDead) continue;
-					if (otherCharacter == Character) continue;
-					if (otherCharacter == null) continue;
-					AttackHit(otherCharacter, transform.position);
+					foreach (var collider in colliders)
+					{
+						if (collider.attachedRigidbody == null) continue;
+						if (alreadyHit.Contains(collider.attachedRigidbody)) continue;
+						alreadyHit.Add(collider.attachedRigidbody);
+
+						var otherCharacter = collider.attachedRigidbody.GetComponent<CharacterBase>();
+						if (otherCharacter.Data.CharacterComponent.IsDead) continue;
+						if (otherCharacter == Character) continue;
+						if (otherCharacter == null) continue;
+						AttackHit(otherCharacter, collider.ClosestPoint(hitPosition));
+					}
 				}
 				
 				previousPosition = currentPosition;
@@ -146,10 +157,10 @@ namespace Items
 			{
 				//var position = transform.position;
 				otherCharacter.TakeDamage(_weaponData.BaseDamage, hitPosition, Character);
-				if (hitParticles != null)
+				if (_hitParticles != null)
 				{
-					hitParticles.transform.position = hitPosition;
-					hitParticles.Play();
+					_hitParticles.transform.position = hitPosition;
+					_hitParticles.Play();
 				}
 			}
 		}

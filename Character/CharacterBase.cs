@@ -289,7 +289,7 @@ namespace Character
 				// }
 			}
 			//Armed
-			else
+			else if(Weapon.Attacking is false)
 			{
 				Weapon.Attack(graphic.forward, attackLayerMask, blockLayerMask, OnStagger);
 			}
