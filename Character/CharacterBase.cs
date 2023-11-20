@@ -6,7 +6,9 @@ using Combat;
 using Data;
 using Interface;
 using Items;
+using Player;
 using UnityEngine;
+using UnityEngine.AI;
 using Utility;
 using WolfRPG.Character;
 using WolfRPG.Core;
@@ -40,6 +42,7 @@ namespace Character
 		[SerializeField] public CharacterAnimationEvents animationEvents;
 		[SerializeField] protected CharacterPartPicker partPicker;
 		[SerializeField] private AudioSource audioSource;
+		[SerializeField] private Collider mainCollider;
 
 		[Header("Movement speeds")]
 		[SerializeField] private float generalSpeedMultiplier = 1;
@@ -58,6 +61,9 @@ namespace Character
 		protected bool IsBlocking;
 
 		private CharacterMovementStates _movementState;
+		private static readonly int PetAnimalTrigger = Animator.StringToHash("PetAnimal");
+		private static readonly int Height = Animator.StringToHash("Height");
+		private static readonly int Width = Animator.StringToHash("Width");
 
 		public Weapon Weapon => equipment.CurrentWeapon;
 
@@ -181,6 +187,45 @@ namespace Character
 
 		protected void Update()
 		{
+		}
+
+		public void PetAnimal(float width, float height, float animationLength)
+		{
+			animator.SetFloat(Width, width);
+			animator.SetFloat(Height, height);
+			animator.SetTrigger(PetAnimalTrigger);
+			
+			PetAnimal(animationLength);
+		}
+
+		public void PetAnimal(float animationLength)
+		{
+			StartCoroutine(PetAnimalRoutine(animationLength));
+		}
+
+		private IEnumerator PetAnimalRoutine(float animationLength)
+		{
+			mainCollider.enabled = false;
+			// TODO: wrap this stuff into a function on Player
+			var characterController = GetComponent<CharacterController>();
+			if (characterController != null) characterController.enabled = false;
+			
+			var navMeshObstacle = GetComponent<NavMeshObstacle>();
+			if (navMeshObstacle != null) navMeshObstacle.enabled = false;
+
+			var playerControls = GetComponent<PlayerControls>();
+			if (playerControls != null) playerControls.enabled = false;
+			
+			_movementState.SetStateActive(MovementStates.Stopped);
+			
+			yield return new WaitForSeconds(animationLength);
+			
+			_movementState.SetStateInactive(MovementStates.Stopped);
+			mainCollider.enabled = true;
+			
+			if (characterController != null) characterController.enabled = true;
+			if (navMeshObstacle != null) navMeshObstacle.enabled = true;
+			if (playerControls != null) playerControls.enabled = true;
 		}
 
 		public int GetAttributeValue(Attribute attribute) => Data.GetAttributeValue(attribute);

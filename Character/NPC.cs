@@ -200,11 +200,11 @@ namespace Character
 
 			if (math.abs(angularVelocity) > 0.05f)
 			{
-				animator.SetFloat(SidewaysSpeed, angularVelocity);
+				//animator.SetFloat(SidewaysSpeed, angularVelocity);
 			}
 			else
 			{
-				animator.SetFloat(SidewaysSpeed, 0);
+				//animator.SetFloat(SidewaysSpeed, 0);
 			}
 			_previousAngularVelocity = angularVelocity;
 
@@ -371,6 +371,19 @@ namespace Character
 				
 				yield return null;
 			}
+		}
+
+		public void WalkToAndStop(Vector3 destination, float totalTime)
+		{
+			StopAllCoroutines();
+			StartCoroutine(WalkToAndStopRoutine(destination, totalTime));
+		}
+
+		private IEnumerator WalkToAndStopRoutine(Vector3 destination, float totalTime)
+		{
+			agent.destination = destination;
+			yield return new WaitForSeconds(totalTime);
+			ActivateRoutine(NpcComponent.CurrentRoutine);
 		}
 
 		private void OnDisable()

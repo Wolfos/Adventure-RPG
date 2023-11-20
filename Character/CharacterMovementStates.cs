@@ -5,7 +5,7 @@ namespace Character
 {
 	public enum MovementStates
 	{
-		NONE, Crouching, Blocking, MAX
+		NONE, Crouching, Blocking, Stopped, MAX
 	}
 
 	public struct MovementState
@@ -29,6 +29,7 @@ namespace Character
 			_movementStates[(int) MovementStates.Crouching].SpeedMultiplier = crouchSpeedMultiplier;
 			_movementStates[(int) MovementStates.Blocking].SpeedMultiplier = blockSpeedMultiplier;
 			_movementStates[(int) MovementStates.Blocking].StrafeMovement = true;
+			_movementStates[(int) MovementStates.Stopped].SpeedMultiplier = 0;
 		}
 
 		public void SetStateActive(MovementStates state)
