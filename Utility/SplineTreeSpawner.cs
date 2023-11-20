@@ -37,6 +37,8 @@ namespace Utility
 		[SerializeField] private SplineContainer[] roads;
 		[SerializeField] private float maxDistanceFromRoad = 3;
 
+		private int _treesSpawned;
+
 		private List<Vector3> _excluded = new();
 
 		[Button("Add trees to terrains")]
@@ -69,6 +71,7 @@ namespace Utility
 		{
 			ClearTrees();
 			_excluded.Clear();
+			_treesSpawned = 0;
 			
 			var rng = new Random(randomSeed);
 			var splineContainer = GetComponent<SplineContainer>();
@@ -135,6 +138,8 @@ namespace Utility
 					}
 				}
 			}
+			
+			Debug.Log($"Spawned {_treesSpawned} trees");
 		}
 
 		[Button("Clear trees")]
@@ -181,6 +186,7 @@ namespace Utility
 			};
 			
 			terrain.AddTreeInstance(treeInstance);
+			_treesSpawned++;
 		}
 
 		private TreeDefinition SelectTreePrototype(TerrainData terrainData, Random rng)
