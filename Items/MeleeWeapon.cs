@@ -11,7 +11,7 @@ namespace Items
 	public class MeleeWeapon : Weapon
 	{
 		[Header("Melee weapon")]
-		[SerializeField] private TrailRenderer attackFx;
+		[SerializeField] private ParticleSystem attackFx;
 		[SerializeField] private BoxCollider hitCollider;
 		[SerializeField] private Collider blockCollider;
 
@@ -25,6 +25,7 @@ namespace Items
 			AttackSound = _weaponData.AttackSound?.GetAsset<AudioClip>();
 			HitSound = _weaponData.HitSound?.GetAsset<AudioClip>();
 			_hitParticles = Instantiate(_weaponData.HitParticles.GetAsset<GameObject>()).GetComponent<ParticleSystem>(); // TODO: More performant to use only one of these throughout the game
+			AssociatedSkill = _weaponData.AssociatedSkill;
 		}
 
 		public override void Attack(Vector3 direction, LayerMask attackLayerMask, LayerMask blockLayerMask, Action onStagger)
@@ -48,7 +49,7 @@ namespace Items
 		{
 			if (attackFx != null)
 			{
-				attackFx.emitting = true;
+				attackFx.Play();
 			}
 
 			Attacking = true;
@@ -78,6 +79,11 @@ namespace Items
 					var blockResult = Physics.OverlapBox(center, hitCollider.size, rotation, BlockLayerMask);
 					if (blockResult.Length > 0 && blockResult[0] != blockCollider) // This works because if it's not at 0, there's multiple hits
 					{
+						foreach (var blockCollider in blockResult)
+						{
+							var weapon = blockCollider.GetComponentInParent<Weapon>();
+							weapon.Blocked();
+						}
 						onStagger?.Invoke();
 						goto EndAttack;
 					}
@@ -119,8 +125,9 @@ namespace Items
 			EndAttack:
 			if (attackFx != null)
 			{
-				attackFx.emitting = false;
+				attackFx.Stop();
 			}
+
 
 			Attacking = false;
 		}
@@ -157,6 +164,7 @@ namespace Items
 			{
 				//var position = transform.position;
 				otherCharacter.TakeDamage(_weaponData.BaseDamage, hitPosition, Character);
+				Character.HitEnemy(otherCharacter);
 				if (_hitParticles != null)
 				{
 					_hitParticles.transform.position = hitPosition;

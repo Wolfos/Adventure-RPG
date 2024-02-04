@@ -12,7 +12,7 @@ namespace Utility
 
 	public enum LightingQualityMode
 	{
-		NoIndirect, ScreenSpace, RayTracingLow, RaytracingMedium, RaytracingHigh
+		NoIndirect, ScreenSpace, RayTracingLow, RaytracingHigh
 	}
 
 	public enum ReflectionQualityMode
@@ -31,6 +31,7 @@ namespace Utility
 		[SerializeField] private HDAdditionalCameraData hdCameraData;
 
 		[SerializeField] private VolumeProfile postFXProfile;
+		[SerializeField] private VolumeProfile fogProfile;
 		[SerializeField] private HDDynamicResolution hdDynamicResolution;
 
 		public static Action<ShadowQualityMode> OnShadowQualityChanged;
@@ -53,6 +54,7 @@ namespace Utility
 			SetLodQuality(PlayerPrefs.GetInt("LodQuality", 1));
 			SetMotionBlurQuality(PlayerPrefs.GetInt("MotionBlurQuality", 2));
 			SetMotionBlurIntensity(PlayerPrefs.GetFloat("MotionBlurAmount", 1));
+			SetFogQuality(PlayerPrefs.GetInt("FogQuality", 1));
 		}
 
 		public static void SetResolution(int width, int height, bool fullscreen)
@@ -148,18 +150,22 @@ namespace Utility
 					gi.fullResolution = false;
 					gi.mode.Override(RayTracingMode.Performance);
 					break;
-				case LightingQualityMode.RaytracingMedium:
-					gi.enable.Override(true);
-					gi.tracing.Override(RayCastingMode.Mixed);
-					gi.fullResolution = true;
-					gi.mode.Override(RayTracingMode.Performance);
-					break;
 				case LightingQualityMode.RaytracingHigh:
 					gi.enable.Override(true);
+					//gi.tracing.Override(RayCastingMode.Mixed);
 					gi.tracing.Override(RayCastingMode.RayTracing);
-					gi.fullResolution = true;
-					gi.mode.Override(RayTracingMode.Quality);
+					
+					//gi.fullResolution = true;
+					gi.fullResolution = false;
+					gi.mode.Override(RayTracingMode.Performance);
 					break;
+				// Quality mode removed because it's just too heavy
+				// case LightingQualityMode.RaytracingHigh:
+				// 	gi.enable.Override(true);
+				// 	gi.tracing.Override(RayCastingMode.RayTracing);
+				// 	gi.fullResolution = true;
+				// 	gi.mode.Override(RayTracingMode.Quality);
+				// 	break;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
 			}
@@ -229,8 +235,11 @@ namespace Utility
 				case ReflectionQualityMode.RaytracingHigh:
 					reflection.enabled.Override(true);
 					reflection.enabledTransparent.Override(true);
-					reflection.tracing.Override(RayCastingMode.Mixed);
-					reflection.fullResolution = true;
+					//reflection.tracing.Override(RayCastingMode.Mixed);
+					//reflection.fullResolution = true;
+					// TODO: Mixed
+					reflection.tracing.Override(RayCastingMode.RayTracing);
+					reflection.fullResolution = false;
 					reflection.mode = new(RayTracingMode.Performance);
 					break;
 				default:
@@ -244,6 +253,19 @@ namespace Utility
 			PlayerPrefs.Save();
 			
 			OnShadowQualityChanged?.Invoke(mode);
+		}
+
+		public static void SetFogQuality(int quality)
+		{
+			PlayerPrefs.SetInt("FogQuality", quality);
+			PlayerPrefs.Save();
+			if (_instance.fogProfile.TryGet<Fog>(out var fog) == false)
+			{
+				Debug.LogError("No motion blur component found");
+				return;
+			}
+			
+			fog.quality.Override(quality);
 		}
 	}
 }

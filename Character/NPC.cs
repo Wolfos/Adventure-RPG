@@ -200,11 +200,11 @@ namespace Character
 
 			if (math.abs(angularVelocity) > 0.05f)
 			{
-				//animator.SetFloat(SidewaysSpeed, angularVelocity);
+				animator.SetFloat(SidewaysSpeed, angularVelocity);
 			}
 			else
 			{
-				//animator.SetFloat(SidewaysSpeed, 0);
+				animator.SetFloat(SidewaysSpeed, 0);
 			}
 			_previousAngularVelocity = angularVelocity;
 
@@ -213,12 +213,16 @@ namespace Character
 			CharacterComponent.Rotation = transform1.rotation;
 			CharacterComponent.Velocity = agent.velocity;
 
+			// Some functions rotate the "graphic" instead but since NavmeshAgent rotates this object, we'll want to apply that
+			transform.rotation *= graphic.localRotation;
+			graphic.localRotation = Quaternion.identity;
+
 			base.Update();
 		}
 
-		private void OnDamaged(float damage, string source)
+		private void OnDamaged(float damage, Guid source)
 		{
-			if (!string.IsNullOrEmpty(source))
+			if (source != Guid.Empty)
 			{
 				CharacterComponent.CurrentTarget = source;
 				if (NpcComponent.CurrentRoutine != NPCRoutine.Combat)

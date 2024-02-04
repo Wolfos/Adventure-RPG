@@ -15,8 +15,10 @@ namespace World
 		    _followTransform = FindAnyObjectByType<AudioListener>().transform;
 	    }
 
-	    private void LateUpdate()
+	    private void Update()
 	    {
+		    if (_followTransform == null) return;
+		    
 		    var transform1 = transform;
 		    float3 nearestPoint = transform1.position;
 		    var nearestDistance = Mathf.Infinity;

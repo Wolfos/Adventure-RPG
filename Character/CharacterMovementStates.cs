@@ -5,7 +5,7 @@ namespace Character
 {
 	public enum MovementStates
 	{
-		NONE, Crouching, Blocking, Stopped, MAX
+		NONE, Crouching, Blocking, Stopped, Sprinting, MAX
 	}
 
 	public struct MovementState
@@ -13,6 +13,7 @@ namespace Character
 		public float SpeedMultiplier { get; set; }
 		public bool IsActive { get; set; }
 		public bool StrafeMovement { get; set; }
+		public bool Increase { get; set; }
 	}
 	
 	public class CharacterMovementStates
@@ -30,6 +31,8 @@ namespace Character
 			_movementStates[(int) MovementStates.Blocking].SpeedMultiplier = blockSpeedMultiplier;
 			_movementStates[(int) MovementStates.Blocking].StrafeMovement = true;
 			_movementStates[(int) MovementStates.Stopped].SpeedMultiplier = 0;
+			_movementStates[(int) MovementStates.Sprinting].SpeedMultiplier = 1.5f;
+			_movementStates[(int) MovementStates.Sprinting].Increase = true;
 		}
 
 		public void SetStateActive(MovementStates state)
@@ -52,7 +55,8 @@ namespace Character
 			{
 				if (state.IsActive)
 				{
-					multiplier = math.min(multiplier, state.SpeedMultiplier);
+					if(state.Increase) multiplier = math.max(multiplier, state.SpeedMultiplier);
+					else multiplier = math.min(multiplier, state.SpeedMultiplier);
 				}
 			}
 

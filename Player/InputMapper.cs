@@ -104,5 +104,10 @@ namespace Player
 		{
 			EventManager.OnToggleCommandConsole?.Invoke(context);
 		}
+
+		public void OnSprint(InputAction.CallbackContext context)
+		{
+			EventManager.OnSprint?.Invoke(context);
+		}
 	}
 }

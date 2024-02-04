@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Sirenix.OdinInspector;
+using System.Linq;
 using UnityEngine;
 using WolfRPG.Character;
 
@@ -20,9 +20,13 @@ namespace Character
 		[SerializeField] private GameObject[] hair;
 		[SerializeField] private GameObject[] backAttachment;
 		[SerializeField] private SkinColorMaterial[] skinColorMaterials;
-		[SerializeField] private Renderer[] affectedBySkinColor;
+		[SerializeField] public Renderer[] affectedBySkinColor;
+		[SerializeField] private Renderer[] affectedByHairColor;
+		[SerializeField] private Material[] hairColorMaterials;
 		[SerializeField] private EyeController[] eyeControllers;
 		[SerializeField] private int numEyes = 3;
+
+		public MouthController[] mouthControllers;
 
 		private Dictionary<CharacterCustomizationPart, GameObject> _activeParts = new();
 
@@ -72,6 +76,14 @@ namespace Character
 			foreach (var renderer in affectedBySkinColor)
 			{
 				renderer.material = skinColorMaterials[skinColor].materials[0];
+			}
+		}
+		
+		public void SetHairColor(int hairColor)
+		{
+			foreach (var renderer in affectedByHairColor)
+			{
+				renderer.material = hairColorMaterials[hairColor];
 			}
 		}
 
@@ -163,17 +175,20 @@ namespace Character
 
 		public int GetNumAvailableOptions(CharacterCustomizationData data, CharacterCustomizationPart part)
 		{
-			if (part == CharacterCustomizationPart.SkinColor)
+			switch (part)
 			{
-				return skinColorMaterials.Length;
+				case CharacterCustomizationPart.SkinColor:
+					return skinColorMaterials.Length;
+				case CharacterCustomizationPart.HairColor:
+					return hairColorMaterials.Length;
+				case CharacterCustomizationPart.Eyes:
+					return numEyes;
+				default:
+				{
+					var array = PartToArray(data.Gender, part);
+					return array?.Length ?? 0;
+				}
 			}
-
-			if (part == CharacterCustomizationPart.Eyes)
-			{
-				return numEyes;
-			}
-			var array = PartToArray(data.Gender, part);
-			return array?.Length ?? 0;
 		}
 
 		public void SetEyes(int eyes)
@@ -194,7 +209,7 @@ namespace Character
 				if (_activeParts.TryGetValue(ovrride.Key, out var part))
 				{
 					var renderer = part.GetComponent<Renderer>();
-					if (renderer != null)
+					if (renderer != null && affectedBySkinColor.Contains(renderer))
 					{
 						renderer.material = skinColorMaterials[data.SkinColor].materials[ovrride.Value];
 					}
@@ -214,15 +229,17 @@ namespace Character
 
 		public void SelectPart(CharacterCustomizationData data, CharacterCustomizationPart part, int selectionIndex)
 		{
-			if (part == CharacterCustomizationPart.SkinColor)
+			switch (part)
 			{
-				SetSkinColor(selectionIndex);
-				return;
-			}
-			if (part == CharacterCustomizationPart.Eyes)
-			{
-				SetEyes(selectionIndex);
-				return;
+				case CharacterCustomizationPart.SkinColor:
+					SetSkinColor(selectionIndex);
+					return;
+				case CharacterCustomizationPart.HairColor:
+					SetHairColor(selectionIndex);
+					return;
+				case CharacterCustomizationPart.Eyes:
+					SetEyes(selectionIndex);
+					return;
 			}
 			
 			var array = PartToArray(data.Gender, part);

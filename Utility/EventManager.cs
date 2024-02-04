@@ -1,4 +1,5 @@
 using System;
+using Character;
 using UnityEngine.InputSystem;
 
 namespace Utility
@@ -6,7 +7,12 @@ namespace Utility
 	public static class EventManager
 	{
 		// New health, max health
-		public static Action<int, int> OnPlayerHealthChanged;
+		public static Action<float, float> OnPlayerHealthChanged;
+		public static Action<float, float> OnPlayerStaminaChanged;
+		public static Action<float, float> OnPlayerManaChanged;
+
+		public static Action<CharacterBase> OnDialogueStarted;
+		public static Action OnDialogueEnded;
 		
 		// 
 		// Input
@@ -26,5 +32,6 @@ namespace Utility
 		public static Action<InputAction.CallbackContext> OnMenuRight;
 		public static Action<InputAction.CallbackContext> OnDialogueNext;
 		public static Action<InputAction.CallbackContext> OnToggleCommandConsole;
+		public static Action<InputAction.CallbackContext> OnSprint;
 	}
 }

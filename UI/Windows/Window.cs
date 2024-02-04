@@ -7,6 +7,7 @@ namespace UI
 		[SerializeField] private Canvas canvas;
 		public bool pauseWhenOpen = true;
 		public bool closeAble = true;
+		public bool disablePlayerControls = false;
 
 		public bool Active => gameObject.activeSelf;
 

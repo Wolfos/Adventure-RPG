@@ -1,9 +1,10 @@
+using System;
 using System.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Utility;
-using WolfRPG.Core.Statistics;
+using Attribute = WolfRPG.Core.Statistics.Attribute;
 
 namespace Player
 {
@@ -38,6 +39,7 @@ namespace Player
         private float _lastAngle;
         private Vector2 _smoothInputVelocity;
         private Vector3 _movementSmoothVelocity;
+        private float _teleportTime;
 
         private static readonly int CanWalk = Animator.StringToHash("CanWalk");
         private static readonly int Jumping = Animator.StringToHash("Jumping");
@@ -71,6 +73,7 @@ namespace Player
             EventManager.OnAttack += OnAttack;
             EventManager.OnBlock += OnBlock;
             EventManager.OnInteract += OnInteract;
+            EventManager.OnSprint += OnSprint;
         }
 
         private void OnDisable()
@@ -81,15 +84,20 @@ namespace Player
             EventManager.OnAttack -= OnAttack;
             EventManager.OnBlock -= OnBlock;
             EventManager.OnInteract -= OnInteract;
+            EventManager.OnSprint -= OnSprint;
         }
 
         private void Update()
         {
+            
             if (InputActive && !_isDodging)
             {
                 CheckOverWeight();
                 Movement();
                 Rotation();
+#if UNITY_EDITOR
+                if (Time.time < 0.5f) return; // Prevent accidentally hitting NPCs every time we hit play in the editor
+#endif
                 Actions();
             }
         }
@@ -103,6 +111,8 @@ namespace Player
         
         private void Movement()
         {
+            if (Time.time - _teleportTime < 0.1f) return;
+            
             if (_characterController.isGrounded)
             {
                 animator.SetBool(Jumping, false);
@@ -182,6 +192,12 @@ namespace Player
             
             _characterController.Move(smoothVelocity * Time.deltaTime);
         }
+
+        public void Teleport(Vector3 position)
+        {
+            transform.position = position;
+            _teleportTime = Time.time;
+        }
         
         private void Actions()
         {
@@ -193,7 +209,7 @@ namespace Player
                     if (_canDoSecondAttack && Time.time - _cachedAttackTime < inputCacheDuration * 2 &&
                         _characterController.isGrounded)
                     {
-                        _playerCharacter.Weapon.Attacking = false;
+                        if(_playerCharacter.Weapon) _playerCharacter.Weapon.Attacking = false;
                         _cachedAttackTime = 0;
                         _playerCharacter.Attack();
                         _hasCachedAttack = false;
@@ -322,7 +338,11 @@ namespace Player
         {
             if (InputActive == false) return;
             _movementInput = Vector2.SmoothDamp(_movementInput, context.ReadValue<Vector2>(), ref _smoothInputVelocity, inputSmoothing * 0.01f);
-            if (_movementInput.magnitude < movementDeadzone) _movementInput = Vector2.zero;
+            if (_movementInput.magnitude < movementDeadzone)
+            {
+                _movementInput = Vector2.zero;
+                _playerCharacter.StopSprint();
+            }
         }
 
         private void OnJump(InputAction.CallbackContext context)
@@ -367,6 +387,23 @@ namespace Player
                     break;
                 case InputActionPhase.Canceled:
                     _playerCharacter.EndBlock();
+                    break;
+            }
+        }
+
+        private void OnSprint(InputAction.CallbackContext context)
+        {
+            switch (context.phase)
+            {
+                case InputActionPhase.Started:
+                    if (_movementInput.magnitude > movementDeadzone)
+                    {
+                        _playerCharacter.StartSprint();
+                    }
+
+                    break;
+                case InputActionPhase.Canceled:
+                    _playerCharacter.StopSprint();
                     break;
             }
         }

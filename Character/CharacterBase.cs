@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Audio;
 using Combat;
 using Data;
@@ -17,6 +18,7 @@ using WolfRPG.Core.Statistics;
 using WolfRPG.Inventory;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
 using ItemType = WolfRPG.Inventory.ItemType;
+using Random = UnityEngine.Random;
 
 namespace Character
 {
@@ -25,7 +27,7 @@ namespace Character
 	{
 		public ItemContainer Inventory { get; set; }
 
-		[SerializeField, ObjectReference((int)DatabaseCategory.Characters)] protected RPGObjectReference characterObjectRef;
+		[SerializeField, ObjectReference((int)DatabaseCategory.Characters)] public RPGObjectReference characterObjectRef;
 		public CharacterComponent CharacterComponent => Data.CharacterComponent;
 		public CharacterData Data { get; set; }
 		public LoadoutComponent LoadoutComponent { get; set; }
@@ -51,9 +53,7 @@ namespace Character
 
 		protected Collider CurrentInteraction;
 		
-
-
-		protected Action<float, string> onDamaged;
+		protected Action<float, Guid> onDamaged;
 		public CharacterEquipment equipment;
 		private static readonly int Recoil = Animator.StringToHash("HitRecoil");
 		private static readonly int Blocking = Animator.StringToHash("Blocking");
@@ -64,11 +64,19 @@ namespace Character
 		private static readonly int PetAnimalTrigger = Animator.StringToHash("PetAnimal");
 		private static readonly int Height = Animator.StringToHash("Height");
 		private static readonly int Width = Animator.StringToHash("Width");
+		private static readonly int TalkAnimation = Animator.StringToHash("TalkAnimation");
+		private static readonly int Talking = Animator.StringToHash("Talking");
 
 		public Weapon Weapon => equipment.CurrentWeapon;
 
 		public float SpeedMultiplier => _movementState.GetSpeedMultiplier();
 		public bool StrafeMovement => _movementState.HasStrafeMovement();
+		public bool IsSprinting { get; set; }
+
+		private const float SprintStaminaDrain = 10;
+		private const float StaminaRecovery = 3;
+		
+		private Coroutine _talkRoutine;
 
 		public void Initialize(RPGObjectReference characterObjectReference)
 		{
@@ -90,11 +98,11 @@ namespace Character
 			
 			if (SaveGameManager.NewGame)
 			{
-				Data.CharacterComponent.CharacterId = CharacterPool.Register(this).ToString();
+				Data.CharacterComponent.CharacterId = CharacterPool.Register(this);
 			}
 			else
 			{
-				if (Data.CharacterComponent.CharacterId != null) // Saved game probably hasn't loaded yet
+				if (Data.CharacterComponent.CharacterId != Guid.Empty) // Saved game probably hasn't loaded yet
 				{
 					CharacterPool.Register(Data.CharacterComponent.CharacterId, this);
 				}
@@ -107,6 +115,7 @@ namespace Character
 
 			_movementState = new(generalSpeedMultiplier, crouchSpeedMultiplier, blockSpeedMultiplier);
 		}
+		
 
 		private void LoadCustomizationData()
 		{
@@ -187,6 +196,26 @@ namespace Character
 
 		protected void Update()
 		{
+			Data.Tick(Time.deltaTime);
+
+			StaminaUpdate();
+		}
+
+		private void StaminaUpdate()
+		{
+			// Sprint stamina drain
+			if (IsSprinting)
+			{
+				Data.Attributes.ModifyAttribute(Attribute.Stamina, -(SprintStaminaDrain * Time.deltaTime));
+				if (CanSprint() == false)
+				{
+					StopSprint();
+				}
+			}
+			else // Recovery
+			{
+				Data.Attributes.ModifyAttribute(Attribute.Stamina, (StaminaRecovery * Time.deltaTime));
+			}
 		}
 
 		public void PetAnimal(float width, float height, float animationLength)
@@ -203,18 +232,20 @@ namespace Character
 			StartCoroutine(PetAnimalRoutine(animationLength));
 		}
 
+		protected virtual void StartPet()
+		{
+			
+		}
+
+		protected virtual void EndPet()
+		{
+			
+		}
+
 		private IEnumerator PetAnimalRoutine(float animationLength)
 		{
 			mainCollider.enabled = false;
-			// TODO: wrap this stuff into a function on Player
-			var characterController = GetComponent<CharacterController>();
-			if (characterController != null) characterController.enabled = false;
-			
-			var navMeshObstacle = GetComponent<NavMeshObstacle>();
-			if (navMeshObstacle != null) navMeshObstacle.enabled = false;
-
-			var playerControls = GetComponent<PlayerControls>();
-			if (playerControls != null) playerControls.enabled = false;
+			StartPet();
 			
 			_movementState.SetStateActive(MovementStates.Stopped);
 			
@@ -222,10 +253,31 @@ namespace Character
 			
 			_movementState.SetStateInactive(MovementStates.Stopped);
 			mainCollider.enabled = true;
+	
+			EndPet();
+		}
+
+		public bool CanSprint()
+		{
+			return IsBlocking == false && GetAttributeValue(Attribute.Stamina) >= 0.01f;
+		}
+
+		public void StartSprint()
+		{
+			if (CanSprint() == false) return;
 			
-			if (characterController != null) characterController.enabled = true;
-			if (navMeshObstacle != null) navMeshObstacle.enabled = true;
-			if (playerControls != null) playerControls.enabled = true;
+			if (IsSprinting) return;
+			IsSprinting = true;
+			
+			_movementState.SetStateActive(MovementStates.Sprinting);
+		}
+
+		public void StopSprint()
+		{
+			if (IsSprinting == false) return;
+			IsSprinting = false;
+			
+			_movementState.SetStateInactive(MovementStates.Sprinting);
 		}
 
 		public int GetAttributeValue(Attribute attribute) => Data.GetAttributeValue(attribute);
@@ -422,6 +474,11 @@ namespace Character
 
 			return false;
 		}
+
+		// We hit an enemy
+		public virtual void HitEnemy(CharacterBase enemy)
+		{
+		}
 		
 		public void Die()
 		{
@@ -482,6 +539,70 @@ namespace Character
 			// {
 			// 	Quest.ProgressToNextStage(quest);
 			// }
+		}
+
+		// I blocked an attack
+		public virtual void DidBlock()
+		{
+		}
+
+		// World space
+		public virtual void Teleport(Vector3 position, Quaternion rotation)
+		{
+		}
+
+		
+		public void Talk(int talkAnimation, string text)
+		{
+			animator.SetInteger(TalkAnimation, Mathf.Clamp(talkAnimation, 1, 3));
+			animator.SetBool(Talking, true);
+
+			var mouthController = partPicker.mouthControllers.First(m => m.isActiveAndEnabled);
+			_talkRoutine = StartCoroutine(TalkRoutine(text, mouthController));
+		}
+
+		public void StopTalk(bool stopRoutine = true)
+		{
+			animator.SetBool(Talking, false);
+			partPicker.mouthControllers.First(m => m.isActiveAndEnabled).CloseMouth();
+			
+			if(stopRoutine && _talkRoutine != null) StopCoroutine(_talkRoutine);
+		}
+		
+		private IEnumerator TalkRoutine(string text, MouthController mouthController)
+		{
+			for (int i = 0; i < text.Length * 0.15f; i++)
+			{
+				mouthController.OpenMouth();
+				yield return new WaitForSeconds(Random.Range(0.1f, 0.4f));
+				mouthController.CloseMouth();
+				yield return new WaitForSeconds(Random.Range(0.1f, 0.3f));
+			}
+
+			StopTalk(false);
+		}
+
+		public void LookAt(Vector3 position)
+		{
+			var direction = (position - transform.position).normalized;
+			var lookRotation = Quaternion.LookRotation(direction);
+			var lr = lookRotation.eulerAngles;
+			lr.x = 0;
+			lr.z = 0;
+			lookRotation = Quaternion.Euler(lr);
+			StartCoroutine(RotateTowards(lookRotation));
+		}
+
+		private IEnumerator RotateTowards(Quaternion targetRotation)
+		{
+			var startRotation = graphic.rotation;
+			for (float t = 0; t < 1; t += Time.deltaTime * 3)
+			{
+				graphic.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+				yield return null;
+			}
+
+			graphic.rotation = targetRotation;
 		}
 
 		private void PlaySound(AudioClip clip, float volume = 1)

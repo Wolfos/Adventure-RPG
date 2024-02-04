@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Items;
 using UnityEngine;
@@ -117,8 +118,11 @@ namespace Character
 					}
 				}
 			}
-			
+
+
 			_equippedGuids.Add(itemData.RpgObject.Guid);
+
+			
 			
 			_characterBase.UpdateCustomizationData();
 			

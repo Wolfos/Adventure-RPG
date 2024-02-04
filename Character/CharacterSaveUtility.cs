@@ -73,7 +73,7 @@ namespace Character
 		{
 			var characterData = character.Data;
 			var transform = character.transform;
-				
+			
 			characterData.CharacterComponent.Position = transform.position;
 			characterData.CharacterComponent.Rotation = transform.rotation;
 	

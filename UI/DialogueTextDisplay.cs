@@ -1,5 +1,6 @@
 ﻿using System;
 using Player;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -9,7 +10,7 @@ namespace UI
 {
 	public class DialogueTextDisplay : MonoBehaviour
 	{
-		[SerializeField] private Text textField;
+		[SerializeField] private TextMeshProUGUI textField;
 
 		private Action<int> _callback;
 		private float _continueTimer = 0;

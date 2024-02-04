@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Character;
 using Dialogue;
-using Player;
 using UnityEngine;
+using Utility;
 using XNode;
 
 namespace UI
@@ -20,6 +19,7 @@ namespace UI
 		private static DialogueNodeGraph _nodeGraph;
 		private static NPC _dialogueNpc;
 		private static CharacterBase _interactingCharacter;
+		
 
 
 		public static void SetData(DialogueNodeGraph asset, NPC dialogueNpc, CharacterBase interactingCharacter)
@@ -50,11 +50,18 @@ namespace UI
 			yield return null;
 			// Start reading at the first inputless node
 			ReadNode(_nodeGraph.nodes.Find(x => x.Inputs.All(y => !y.IsConnected)));
+			
+			_dialogueNpc.LookAt(_interactingCharacter.transform.position);
+			_interactingCharacter.LookAt(_dialogueNpc.transform.position);
+			
+			EventManager.OnDialogueStarted?.Invoke(_dialogueNpc);
 		}
 
 		private void EndDialogue()
 		{
+			_dialogueNpc.StopTalk();
 			WindowManager.Close(this);
+			EventManager.OnDialogueEnded?.Invoke();
 		}
 
 		private void OnNodeEnded(int choice)
@@ -73,29 +80,34 @@ namespace UI
 			_nextNodes = new();
 			textDisplay?.DeActivate();
 			responseDisplay.DeActivate();
+			_dialogueNpc.StopTalk();
 
 			if (node == null)
 			{
 				EndDialogue();
 				return;
 			}
-
+			
 			switch (node)
 			{
+				
 				case TextNode tn:
 				{
-					textDisplay.Activate(tn.text, OnNodeEnded);
+					var text = tn.GetLocalized();
+					textDisplay.Activate(text, OnNodeEnded);
 
 					var port = tn.GetOutputPort("next");
 				
 					if(port.IsConnected && port.Connection != null) _nextNodes.Add(port.Connection.node);
+
+					_dialogueNpc.Talk(tn.animation, text);
 
 					break;
 				}
 
 				case ResponseNode rn:
 				{
-					responseDisplay.Activate(rn.answers, OnNodeEnded);
+					responseDisplay.Activate(rn.GetLocalized(), OnNodeEnded);
 					foreach (var np in rn.Outputs)
 					{
 						if(np.IsConnected) _nextNodes.Add(np.Connection.node);

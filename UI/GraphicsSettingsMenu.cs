@@ -25,6 +25,7 @@ public class GraphicsSettingsMenu : MonoBehaviour
     [SerializeField] private Dropdown objectQuality;
     [SerializeField] private Dropdown motionBlurQuality;
     [SerializeField] private Slider motionBlurAmount;
+    [SerializeField] private Dropdown fogQuality;
     [SerializeField] private Text motionBlurAmountText;
     [SerializeField] private Text fpsCounter;
     [SerializeField] private Text averageFPSCounter;
@@ -64,8 +65,8 @@ public class GraphicsSettingsMenu : MonoBehaviour
         if (SystemInfo.supportsRayTracing)
         {
             lighting.AddOption("Ray traced GI (low)");
-            lighting.AddOption("Ray traced GI (medium)");
             lighting.AddOption("Ray traced GI (high)");
+            //lighting.AddOption("Ray traced GI (high)");
         }
         
         reflections.AddOption("None");
@@ -89,6 +90,10 @@ public class GraphicsSettingsMenu : MonoBehaviour
         motionBlurQuality.AddOption("Medium");
         motionBlurQuality.AddOption("High");
         
+        fogQuality.AddOption("Low");
+        fogQuality.AddOption("Medium");
+        fogQuality.AddOption("High");
+        
         resolution.onValueChanged.AddListener(OnResolutionChanged);
         upscaling.onValueChanged.AddListener(OnUpscalingChanged);
         lighting.onValueChanged.AddListener(OnLightingQualityChanged);
@@ -98,6 +103,7 @@ public class GraphicsSettingsMenu : MonoBehaviour
         vsync.onValueChanged.AddListener(OnVsyncChanged);
         motionBlurQuality.onValueChanged.AddListener(OnMotionBlurQualityChanged);
         motionBlurAmount.onValueChanged.AddListener(OnMotionBlurAmountChanged);
+        fogQuality.onValueChanged.AddListener(OnFogQualityChanged);
         
         LoadOptions();
     }
@@ -116,6 +122,7 @@ public class GraphicsSettingsMenu : MonoBehaviour
         var mbAmount = PlayerPrefs.GetFloat("MotionBlurAmount", 1);
         motionBlurAmount.SetValueWithoutNotify(mbAmount);
         motionBlurAmountText.text = mbAmount.ToString("0.00");
+        fogQuality.SetValueWithoutNotify(PlayerPrefs.GetInt("FogQuality", 2));
     }
 
     private void Update()
@@ -172,6 +179,7 @@ public class GraphicsSettingsMenu : MonoBehaviour
         GraphicsSettings.SetShadowQuality((ShadowQualityMode)option);
     }
     
+    
     private void OnObjectQualityChanged(int option)
     {
         GraphicsSettings.SetLodQuality(option);
@@ -191,5 +199,10 @@ public class GraphicsSettingsMenu : MonoBehaviour
     {
         GraphicsSettings.SetMotionBlurIntensity(amount);
         motionBlurAmountText.text = amount.ToString("0.00");
+    }
+    
+    private void OnFogQualityChanged(int option)
+    {
+        GraphicsSettings.SetFogQuality(option);
     }
 }

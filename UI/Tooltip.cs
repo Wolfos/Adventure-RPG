@@ -31,7 +31,7 @@ namespace UI
 
 		private void Update()
 		{
-			if(WindowManager.IsAnyWindowOpen(false)) gameObject.SetActive(false);
+			if(WindowManager.IsAnyWindowOpen()) gameObject.SetActive(false);
 		}
 
 

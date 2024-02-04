@@ -17,6 +17,6 @@ public class ScreenshotTool : MonoBehaviour
 	[Button("Take Screenshot")]
 	public void TakeScreenshot()
 	{
-		ScreenCapture.CaptureScreenshot("Screenshot.png", 3);
+		ScreenCapture.CaptureScreenshot("Screenshot.png");
 	}
 }

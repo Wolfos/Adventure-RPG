@@ -82,6 +82,10 @@ namespace UI
 				Time.timeScale = 0;
 				PlayerControls.SetInputActive(false);
 			}
+			else if (window.disablePlayerControls)
+			{
+				PlayerControls.SetInputActive(false);
+			}
 		}
 		
 		public static void Close<T>() where T : Window
@@ -99,18 +103,30 @@ namespace UI
 
 			if (IsAnyWindowOpen() == false)
 			{
-				Time.timeScale = 1;
 				PlayerControls.SetInputActive(true);
+			}
+			if (IsAnyPausingWindowOpen() == false)
+			{
+				Time.timeScale = 1;
 			}
 		}
 
-		public static bool IsAnyWindowOpen(bool pause = true)
+		public static bool IsAnyWindowOpen()
 		{
 			foreach (var window in _instance.windows)
 			{
-				if (window.Active && (!pause || window.pauseWhenOpen)) return true;
+				if (window != null && window.Active) return true;
 			}
 
+			return false;
+		}
+
+		public static bool IsAnyPausingWindowOpen()
+		{
+			foreach (var window in _instance.windows)
+			{
+				if (window.Active && window.pauseWhenOpen) return true;
+			}
 			return false;
 		}
 

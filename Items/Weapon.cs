@@ -6,6 +6,7 @@ using Character;
 using UnityEngine;
 using Utility;
 using WolfRPG.Core;
+using WolfRPG.Core.Statistics;
 
 namespace Items
 {
@@ -16,8 +17,9 @@ namespace Items
 		
 		protected LayerMask BlockLayerMask;
 		protected LayerMask AttackLayerMask;
-		[HideInInspector] public CharacterBase Character;
+		public CharacterBase Character { get; set; }
 		public bool Attacking { get; set; }
+		public Skill AssociatedSkill { get; set; }
 		
 		private int _defaultLayer;
 
@@ -59,6 +61,12 @@ namespace Items
 			AttackLayerMask = attackLayerMask;
 			BlockLayerMask = blockLayerMask;
 			SFXPlayer.PlaySound(AttackSound);
+		}
+
+		// We blocked an attack
+		public void Blocked()
+		{
+			Character.DidBlock();
 		}
 
 		public virtual void StartBlock() { }

@@ -21,9 +21,11 @@ namespace Utility
         [SerializeField] private float strengthVariationScale = 1f;
         [SerializeField] private TerrainLayer layer;
         [SerializeField, HideInInspector] private string guid;
-        [SerializeField] private bool limitHeight;
+        [FormerlySerializedAs("limitHeight")] [SerializeField] private bool useMinHeight;
+        [FormerlySerializedAs("heightLimitOffset")] [SerializeField] private float minHeightOffset;
+        [SerializeField] private bool useMaxHeight;
+        [SerializeField] private float maxHeightOffset;
         [SerializeField] private float heightSoftness;
-       
 
         private UndoBufferData _undoBuffer;
 
@@ -77,6 +79,7 @@ namespace Utility
             var terrains = FindObjectsByType<Terrain>(FindObjectsSortMode.None);
             foreach (var terrain in terrains)
             {
+                
                 Apply(terrain);
             }
             
@@ -243,7 +246,7 @@ namespace Utility
                 for (int yy = 0; yy < radius; yy++)
                 {
                     float hardnessModifier = 1;
-                    if (limitHeight) // Don't paint above spline position if this is enabled
+                    if (useMinHeight || useMaxHeight) // Don't paint above spline position if this is enabled
                     {
                         var pixelToWorldWidth = terrainData.size.x / terrainData.alphamapWidth;
                         var pixelToWorldHeight = terrainData.size.z / terrainData.alphamapHeight;
@@ -252,7 +255,9 @@ namespace Utility
                             worldPoint.y,
                             worldPoint.z + (float) (xx - radius / 2) * pixelToWorldHeight);
                         var terrainHeight = terrain.SampleHeight(samplePosition);
-                        if (worldPoint.y < terrainHeight)
+
+                        if ((useMinHeight && worldPoint.y + minHeightOffset < terrainHeight)
+                            || useMaxHeight && worldPoint.y + maxHeightOffset > terrainHeight)
                         {
                             continue;
                         }
