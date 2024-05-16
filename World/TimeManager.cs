@@ -67,9 +67,16 @@ public class TimeManager
 
 	public static bool IsBetween(TimeStamp start, TimeStamp end)
 	{
-		float time = RealTime();
-		if (time > end && time < start) return false;
+		var time = RealTime();
+		if (start > end)
+		{
+			if (time < end || time > start) return true;
+		}
+		else
+		{
+			if (time > start && time < end) return true;
+		}
 
-		return true;
+		return false;
 	}
 }
