@@ -3,15 +3,14 @@ using System.Collections;
 using AI;
 using Data;
 using Dialogue;
+using Items;
 using Sirenix.OdinInspector;
 using UI;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.AI;
-using WolfRPG.Character;
-using WolfRPG.Core;
-using WolfRPG.Inventory;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
+using ItemContainer = Items.ItemContainer;
 using Random = UnityEngine.Random;
 
 namespace Character
@@ -24,7 +23,7 @@ namespace Character
 		[SerializeField] private float meleeAttackRange = 1;
 		[SerializeField] private float maxPursueDistance = 20;
 		[SerializeField] private float startChaseDistance = 10;
-		[SerializeField] private Collider collider;
+		[SerializeField] private new Collider collider; // TODO: replace with mainCollider?
 
 		private const float WanderWalkSpeed = 1;
 		private const float CombatWalkSpeed = 2.5f;
@@ -39,42 +38,50 @@ namespace Character
 		private float _movementSpeed;
 
 		public Action OnDeath;
-		public NpcComponent NpcComponent => Data.NpcComponent;
+		public NPCDataObject NpcData { get; private set; }
 		
 		private static readonly int Speed = Animator.StringToHash("Speed");
 		private static readonly int SidewaysSpeed = Animator.StringToHash("SidewaysSpeed");
-		
+		private static readonly int AlreadyDead = Animator.StringToHash("AlreadyDead");
 
-		public new void Initialize(RPGObjectReference characterObjectReference)
+		private NPCRoutine _preDialogueRoutine;
+
+		public new void Initialize()
 		{
-			base.Initialize(characterObjectReference);
+			base.Initialize();
+			NpcData = dataObject as NPCDataObject;
+			if (NpcData is null)
+			{
+				Debug.LogError($"{dataObject.characterName.Get()} data object is not valid NPC data");
+				return;
+			}
 			_movementSpeed = agent.speed;
 
-			if (NpcComponent.Dialogue != null)
+			if (string.IsNullOrEmpty(NpcData.dialogueStartNode) == false)
 			{
 				var dialogueStarter = gameObject.AddComponent<DialogueStarter>();
 				dialogueStarter.dialogueCharacter = this;
-				dialogueStarter.dialogueAsset = NpcComponent.Dialogue.GetAsset<DialogueNodeGraph>();
+				dialogueStarter.startNode = NpcData.dialogueStartNode;
 			}
 
-			if (NpcComponent.IsShopKeeper)
+			if (NpcData.isShopKeeper)
 			{
 				ShopInventory = new();
-				var shopComponent = NpcComponent.Shop.GetComponent<ShopComponent>();
-				foreach (var shopItem in shopComponent.ShopInventory)
+				var shop = NpcData.shop;
+				foreach (var shopItem in shop.shopInventory)
 				{
-					ShopInventory.AddItem(shopItem.Item.Guid, shopItem.Quantity);
+					ShopInventory.AddItem(shopItem.item.Guid, shopItem.quantity);
 				}
 			
-				ShopInventory.Money = shopComponent.BarteringMoney;
-				ShopInventory.PriceList = shopComponent.PriceList.GetComponent<PriceList>();
+				ShopInventory.Money = shop.barteringMoney;
+				ShopInventory.PriceList = shop.priceList;
 			}
 		}
 
 		private void Awake()
 		{
 			boundaries.center = transform.position;
-			Initialize(characterObjectRef);
+			Initialize();
 			
 			if (Respawn) // TODO: Respawn probably broken, definitely not used atm
 			{
@@ -84,7 +91,7 @@ namespace Character
 			}
 			else
 			{
-				ActivateRoutine(NpcComponent.DefaultRoutine, true);
+				ActivateRoutine(NpcData.defaultRoutine, true);
 			}
 			
 			NPCManager.Register(this);
@@ -103,35 +110,36 @@ namespace Character
 		{
 			yield return new WaitForSeconds(1);
 			
-			ActivateRoutine(NpcComponent.DefaultRoutine, true);
+			ActivateRoutine(NpcData.defaultRoutine, true);
 		}
 
 		private void Start()
 		{
 			var transform1 = transform;
-			CharacterComponent.Position = transform1.position;
-			CharacterComponent.Rotation = transform1.rotation;
+			SaveData.Position = transform1.position;
+			SaveData.Rotation = transform1.rotation;
 			
 			base.Start();
 		}
 
 		public void Resume()
 		{
-			ActivateRoutine(Data.NpcComponent.CurrentRoutine, true, true);
+			ActivateRoutine(SaveData.CurrentRoutine, true, true);
 		}
 
 		public void UpdateData()
 		{
-			if (Data.GetAttributeValue(Attribute.Health) <= 0)
-			{
-				animator.SetTrigger("AlreadyDead");
-			}
-			
-			SetHealth(Data.GetAttributeValue(Attribute.Health));
-			transform.position = Data.CharacterComponent.Position;
-			transform.rotation = Data.CharacterComponent.Rotation;
-			graphic.localRotation = Quaternion.identity;
-			ActivateRoutine(Data.NpcComponent.CurrentRoutine, true, true);
+			// TODO: Attributes
+			// if (Data.GetAttributeValue(Attribute.Health) <= 0)
+			// {
+			// 	animator.SetTrigger(AlreadyDead);
+			// }
+			//
+			// SetHealth(Data.GetAttributeValue(Attribute.Health));
+			// transform.position = Data.CharacterComponent.Position;
+			// transform.rotation = Data.CharacterComponent.Rotation;
+			// graphic.localRotation = Quaternion.identity;
+			// ActivateRoutine(Data.NpcComponent.CurrentRoutine, true, true);
 		}
 
 		protected override void DeathAnimationStarted()
@@ -143,6 +151,21 @@ namespace Character
 		protected override void DeathAnimationFinished()
 		{
 			Respawn = true;
+
+			var go = new GameObject("Lootable Corpse");
+			go.transform.SetParent(transform);
+			go.layer = gameObject.layer;
+			var lootable = go.AddComponent<LootableCorpse>();
+			lootable.Npc = this;
+			lootable.trackTransform = middleSpine;
+			var sphereCollider = go.AddComponent<SphereCollider>();
+			sphereCollider.isTrigger = true;
+			sphereCollider.radius = 0.5f;
+
+			foreach (var c in GetComponents<Collider>())
+			{
+				c.enabled = false;
+			}
 			//gameObject.SetActive(false);
 		}
 
@@ -154,11 +177,11 @@ namespace Character
 		
 		private void ActivateRoutine(NPCRoutine routine, bool delayed = false, bool proceed = false)
 		{
-			if (Data.CharacterComponent.IsDead) return;
+			if (SaveData.IsDead) return;
 			
 			StopAllCoroutines();
 			
-			NpcComponent.CurrentRoutine = routine;
+			SaveData.CurrentRoutine = routine;
 			switch (routine)
 			{
 				case NPCRoutine.Idle:
@@ -175,6 +198,23 @@ namespace Character
 			}
 		}
 
+		private void AIUpdate()
+		{
+			// If we're hostile, always be on the lookout for the player
+			if (NpcData.demeanor == NPCDemeanor.Hostile)
+			{
+				var playerCharacter = CharacterPool.GetPlayer();
+				if (Vector3.SqrMagnitude(transform.position - playerCharacter.transform.position) < startChaseDistance * startChaseDistance)
+				{
+					SaveData.CurrentTarget = playerCharacter.GetId();
+					if (SaveData.CurrentRoutine != NPCRoutine.Combat)
+					{
+						ActivateRoutine(NPCRoutine.Combat);
+					}
+				}
+			}
+		}
+
 		private void Update()
 		{
 			// TODO: Fix when hit recoil is not present on animator
@@ -186,6 +226,8 @@ namespace Character
 			//{
 				agent.speed = _movementSpeed * SpeedMultiplier;
 			//}
+			
+			AIUpdate();
 
 			var speed = agent.velocity.magnitude;
 			if (math.abs(speed) < 0.12f) speed = 0;
@@ -193,7 +235,7 @@ namespace Character
 			animator.SetFloat(Speed, speed);
 			var transform1 = transform;
 
-			var previousRotation = CharacterComponent.Rotation.eulerAngles.y;
+			var previousRotation = SaveData.Rotation.eulerAngles.y;
 			var currentRotation = transform1.rotation.eulerAngles.y;
 			var angularVelocity = (currentRotation - previousRotation) * Time.deltaTime;
 			angularVelocity = Mathf.Lerp(_previousAngularVelocity, angularVelocity, 0.5f);
@@ -209,9 +251,9 @@ namespace Character
 			_previousAngularVelocity = angularVelocity;
 
 			
-			CharacterComponent.Position = transform1.position;
-			CharacterComponent.Rotation = transform1.rotation;
-			CharacterComponent.Velocity = agent.velocity;
+			SaveData.Position = transform1.position;
+			SaveData.Rotation = transform1.rotation;
+			SaveData.Velocity = agent.velocity;
 
 			// Some functions rotate the "graphic" instead but since NavmeshAgent rotates this object, we'll want to apply that
 			transform.rotation *= graphic.localRotation;
@@ -224,8 +266,8 @@ namespace Character
 		{
 			if (source != Guid.Empty)
 			{
-				CharacterComponent.CurrentTarget = source;
-				if (NpcComponent.CurrentRoutine != NPCRoutine.Combat)
+				SaveData.CurrentTarget = source;
+				if (SaveData.CurrentRoutine != NPCRoutine.Combat)
 				{
 					ActivateRoutine(NPCRoutine.Combat);
 				}
@@ -236,14 +278,25 @@ namespace Character
 				Destroy(GetComponent<DialogueStarter>());
 				collider.enabled = false;
 				OnDeath?.Invoke();
-				CharacterPool.GetCharacter(source)?.Killed(characterObjectRef.Guid);
+				CharacterPool.GetCharacter(source)?.Killed(SaveData.CharacterId.ToString());
 			}
 			
 		}
 
+		public void StartDialogue()
+		{
+			_preDialogueRoutine = SaveData.CurrentRoutine;
+			ActivateRoutine(NPCRoutine.Idle);
+		}
+
+		public void StopDialogue()
+		{
+			ActivateRoutine(_preDialogueRoutine);
+		}
+
 		private CharacterBase GetTarget()
 		{
-			return CharacterPool.GetCharacter(CharacterComponent.CurrentTarget);
+			return CharacterPool.GetCharacter(SaveData.CurrentTarget);
 		}
 
 		private IEnumerator CombatRoutine(bool delayed = false, bool proceed = false)
@@ -262,7 +315,7 @@ namespace Character
 			{
 				if (proceed) 
 				{
-					agent.velocity = CharacterComponent.Velocity;
+					agent.velocity = SaveData.Velocity;
 					yield return null;
 				}
 
@@ -271,7 +324,7 @@ namespace Character
 				Vector3 targetPos = GetTarget().transform.position;
 				Vector3 pos = transform.position;
 				
-				NpcComponent.Destination = targetPos;
+				SaveData.Destination = targetPos;
 				agent.destination = targetPos;
 				
 				float distance = Vector3.Distance(targetPos, pos);
@@ -281,14 +334,26 @@ namespace Character
 
 				if (distance > maxPursueDistance)
 				{
-					ActivateRoutine(NpcComponent.DefaultRoutine);
+					ActivateRoutine(NpcData.defaultRoutine);
 				}
-				else if (distance < meleeAttackRange && Mathf.Abs(angle) < 10)
+				else if (distance < meleeAttackRange && Mathf.Abs(angle) < 30) // Try to attack
 				{
-					NpcComponent.Destination = transform.position;
-					agent.destination = NpcComponent.Destination;
-					StartCoroutine(AttackRoutine());
-					yield return new WaitForSeconds(1);
+					SaveData.Destination = transform.position;
+					agent.destination = SaveData.Destination;
+					yield return AttackRoutine();
+				}
+				else if (distance < meleeAttackRange)
+				{
+					SaveData.Destination = transform.position;
+					agent.destination = SaveData.Destination;
+
+					const float speed = 10;
+					for (float t = 0; t < 1; t += Time.deltaTime * 4)
+					{
+						var newDirection = Vector3.RotateTowards(transform.forward, targetDir, speed * Time.deltaTime, 0.0f);
+						transform.rotation = Quaternion.LookRotation(newDirection);
+						yield return null;
+					}
 				}
 
 				proceed = false;
@@ -299,18 +364,19 @@ namespace Character
 
 		private IEnumerator AttackRoutine()
 		{
-			animator.SetTrigger("Telegraph");
-			yield return null;
-			var clipInfo = animator.GetCurrentAnimatorClipInfo(0);
-			float duration = 0;
-			if (clipInfo.Length > 0)
-			{
-				var clip = animator.GetCurrentAnimatorClipInfo(0)[0].clip;
-				duration = clip.length;
-			}
-
-			yield return new WaitForSeconds(duration - 0.1f);
+			//animator.SetTrigger("Telegraph"); // TODO: This is not a thing
+			//yield return null;
+			//var clipInfo = animator.GetCurrentAnimatorClipInfo(0);
+			//float duration = 0;
+			
+			// if (clipInfo.Length > 0)
+			// {
+			// 	var clip = animator.GetCurrentAnimatorClipInfo(0)[0].clip;
+			// 	duration = clip.length;
+			// }
 			Attack();
+
+			yield return new WaitForSeconds(1);
 		}
 
 		private IEnumerator IdleRoutine()
@@ -342,24 +408,16 @@ namespace Character
 			while (true)
 			{
 				// Proceed means proceed from saved game
-				if (proceed) agent.velocity = CharacterComponent.Velocity;
-				else NpcComponent.Destination = boundaries.RandomPos();
+				if (proceed) agent.velocity = SaveData.Velocity;
+				else SaveData.Destination = boundaries.RandomPos();
 
-				agent.destination = NpcComponent.Destination;
+				agent.destination = SaveData.Destination;
 
 				if (proceed) yield return null;
 
 				while (agent.hasPath)
 				{
-					if (NpcComponent.Demeanor == NPCDemeanor.Hostile)
-					{
-						var playerCharacter = CharacterPool.GetPlayer();
-						if (Vector3.SqrMagnitude(transform.position - playerCharacter.transform.position) < startChaseDistance * startChaseDistance)
-						{
-							CharacterComponent.CurrentTarget = playerCharacter.CharacterComponent.CharacterId;
-							ActivateRoutine(NPCRoutine.Combat);
-						}
-					}
+					
 					if (Mathf.Abs(agent.velocity.magnitude) < 0.01f) // Stuck
 					{
 						break;
@@ -387,7 +445,7 @@ namespace Character
 		{
 			agent.destination = destination;
 			yield return new WaitForSeconds(totalTime);
-			ActivateRoutine(NpcComponent.CurrentRoutine);
+			ActivateRoutine(SaveData.CurrentRoutine);
 		}
 
 		private void OnDisable()
@@ -398,19 +456,22 @@ namespace Character
 		[Button("Render")]
 		private void RenderNPC()
 		{
-			var characterComponent = characterObjectRef.GetComponent<CharacterComponent>().CreateInstance();
-			var loadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
+			var visualData = dataObject.visualData;
 
-			var visualData = characterComponent.VisualData;
-
-			foreach (var item in loadoutComponent.StartingInventory)
+			partPicker.EnableHair();
+			foreach (var item in dataObject.startingInventory)
 			{
-				var equipment = item.ItemObject.GetComponent<EquipmentData>();
-				if(equipment.EquipmentParts == null) continue;
+				var equipment = item.itemData as EquipmentData;
+				if(equipment == null || equipment.EquipmentParts == null) continue;
+
+				if (equipment.HideHair)
+				{
+					partPicker.DisableHair();
+				}
 				
 				foreach (var part in equipment.EquipmentParts)
 				{
-					CharacterCustomizationController.SetPart(part.Part, visualData, part.Index);
+					CharacterCustomizationController.SetPart(part.Part, ref visualData, part.Index);
 					if (equipment.Material != 0)
 					{
 						visualData.MaterialOverrides.Add(part.Part, equipment.Material);
@@ -418,9 +479,9 @@ namespace Character
 				}
 			}
 			
-			CharacterCustomizationController.SetData(visualData, partPicker);
+			CharacterCustomizationController.ApplyNewVisualData(visualData, partPicker);
 
-			gameObject.name = characterObjectRef.GetObject().Name;
+			gameObject.name = dataObject.characterName.Get(SystemLanguage.English);
 		}
 	}
 }

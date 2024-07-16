@@ -70,6 +70,7 @@ namespace World
         [SerializeField] private float lerpTime;
         [SerializeField] private float rainStartTime = 60;
         [SerializeField] private WeatherType defaultWeather;
+        [SerializeField] private WindZone mainWind;
         private Random random;
         private static WeatherSystem _instance;
 
@@ -79,7 +80,11 @@ namespace World
         
         private void Start()
         {
-            CommandConsole.RegisterCommand(new SetWeatherCommand());
+            var weatherCommand = new SetWeatherCommand();
+            if (CommandConsole.HasCommand(weatherCommand) == false)
+            {
+                CommandConsole.RegisterCommand(weatherCommand);
+            }
             _instance = this;
             var seed = (uint)DateTime.Now.Ticks;
             random = new (seed);
@@ -169,6 +174,40 @@ namespace World
             }
         }
 
+        public static Vector3 GetWindDirection(Vector3 position)
+        {
+            if (_instance.mainWind == null) return Vector3.zero;
+
+            return _instance.mainWind.transform.forward;
+        }
+
+        public static float GetWindMain(Vector3 position)
+        {
+            if (_instance.mainWind == null) return 0;
+            
+            return _instance.mainWind.windMain;
+        }
+
+        public static float GetWindPulseFrequency(Vector3 position)
+        {
+            if (_instance.mainWind == null) return 0;
+
+            return _instance.mainWind.windPulseFrequency;
+        }
+        
+        public static float GetWindPulseMagnitude(Vector3 position)
+        {
+            if (_instance.mainWind == null) return 0;
+
+            return _instance.mainWind.windPulseMagnitude;
+        }
+        
+        public static float GetWindTurbulence(Vector3 position)
+        {
+            if (_instance.mainWind == null) return 0;
+
+            return _instance.mainWind.windTurbulence;
+        }
         
         private void SetWeather(WeatherTypeDefinition weather, bool instant = false)
         {

@@ -1,30 +1,38 @@
 using System;
-using Items;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using WolfRPG.Inventory;
 
 namespace UI
 {
 	[RequireComponent(typeof(Button))]
-	public class InventoryItemButtonView: MonoBehaviour
+	public class InventoryItemButtonView: MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, ISelectable
 	{
-		public ItemData Item { get; private set; }
+		public Items.ItemData Item { get; private set; }
 
-		[SerializeField] private Text itemNameText;
-		[SerializeField] private Text typeText;
-		[SerializeField] private Text weightText;
-		[SerializeField] private Text valueText;
+		[SerializeField] private TextMeshProUGUI itemNameText;
+		[SerializeField] private TextMeshProUGUI typeText;
+		[SerializeField] private TextMeshProUGUI weightText;
+		[SerializeField] private TextMeshProUGUI valueText;
+
+		[SerializeField] private Color notEquippedColor;
+		[SerializeField] private Color equippedColor;
+
+		public bool IsPointerOver { get; private set; }
 
 		private Button _button;
 
 		private InventoryView _inventoryView;
-		
 
 		private void Awake()
 		{
 			_button = GetComponent<Button>();
+			var navigation = _button.navigation;
+			navigation.mode = Navigation.Mode.None;
+			_button.navigation = navigation;
 		}
+		
 
 		public void Initialize(InventoryView inventoryView, int slot, int quantity, Action onClick, bool isDragable)
 		{
@@ -35,16 +43,22 @@ namespace UI
 			SetQuantity(quantity);
 		}
 
-		public void Select()
+		public void SetEquipped()
 		{
-			//button.Select();
+			itemNameText.color = equippedColor;
+			typeText.color = equippedColor;
+			weightText.color = equippedColor;
+			valueText.color = equippedColor;
 		}
 
-		public void EquipStatusChanged(Item item, bool newStatus)
+		public void SetNotEquipped()
 		{
-			// backgroundImage.color =
-			// 	newStatus ? item.equippedInventoryBackgroundColor : item.inventoryBackgroundColor;
+			itemNameText.color = notEquippedColor;
+			typeText.color = notEquippedColor;
+			weightText.color = notEquippedColor;
+			valueText.color = notEquippedColor;
 		}
+		
 
 		private void SetQuantity(int quantity)
 		{
@@ -55,13 +69,8 @@ namespace UI
 			// }
 		}
 		
-		public void SetItem(ItemData item, int quantity, PriceList priceList)
+		public void SetItem(Items.ItemData item, int quantity, Items.PriceList priceList)
 		{
-			if (Item != null)
-			{
-				//Item.onQuantityChanged -= OnQuantityChanged;
-			}
-			
 			Item = item;
 			if (item != null)
 			{
@@ -69,6 +78,7 @@ namespace UI
 				if (item.Name != null)
 				{
 					text = quantity > 1 ? $"{item.Name.Get()} ({quantity})" : item.Name.Get();
+					gameObject.name = item.Name.Get();
 				}
 
 				itemNameText.text = text;	
@@ -78,7 +88,7 @@ namespace UI
 				var listPrice = item.BaseValue;
 				if (priceList != null)
 				{
-					listPrice = priceList.GetPrice(item.RpgObject.Guid);
+					listPrice = priceList.GetPrice(item.Guid);
 					if (listPrice == -1) listPrice = item.BaseValue; // Item wasn't on price list, pay default value
 				}
 
@@ -97,28 +107,32 @@ namespace UI
 			
 			//detailsPanel.SetItem(item, _inventoryView.PriceMultiplier);
 		}
-
-		private void OnQuantityChanged(ItemData item)
-		{
-			//SetQuantity(item.Quantity);
-		}
-
-		public void OnPointerEnter()
-		{
-			if (Item != null)
-			{
-				//detailsPanel.gameObject.SetActive(true);
-			}
-		}
 		
-		public void OnPointerExit()
+
+		public void OnPointerEnter(PointerEventData eventData)
 		{
-			//detailsPanel.gameObject.SetActive(false);
+			IsPointerOver = true;
 		}
 
-		private void OnDisable()
+		public void OnPointerExit(PointerEventData eventData)
 		{
-			//detailsPanel.gameObject.SetActive(false);
+			IsPointerOver = false;
+		}
+
+		public void OnSelect()
+		{
+			_button.Select();
+		}
+
+		public void OnDeselect()
+		{
+			EventSystem.current.SetSelectedGameObject(null);
+		}
+
+		public void Confirm()
+		{
+			// This one's handled by the UI system
+			//_button.onClick.Invoke();
 		}
 	}
 }

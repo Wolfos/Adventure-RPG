@@ -34,11 +34,10 @@ public class TerrainTrees : MonoBehaviour
 
                 var size = data.size;
                 var position = terrain.transform.position;
-                fakeTree.transform.position = new Vector3(treeInstance.position.x * size.x + position.x,
+                fakeTree.transform.position = new(treeInstance.position.x * size.x + position.x,
                     treeInstance.position.y * size.y + position.y,
                     treeInstance.position.z * size.z + position.z);
                 fakeTree.transform.localScale = prefab.transform.localScale;
-
                 
                 var capsuleCollider = fakeTree.AddComponent<CapsuleCollider>();
                 capsuleCollider.center = colliderPrefab.center;

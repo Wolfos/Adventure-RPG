@@ -3,51 +3,76 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using World;
 
 namespace OpenWorld
 {
     [ExecuteInEditMode]
     public class WorldStreamer : MonoBehaviour
     {
+        public static Action OnWorldSpaceChanged;
+        private static WorldSpace _currentWorldSpace;
+        public static WorldSpace CurrentWorldSpace
+        {
+            get
+            {
+                return _currentWorldSpace;
+            }
+            private set
+            {
+                _currentWorldSpace = value;
+                OnWorldSpaceChanged?.Invoke();
+            }
+        }
+
+        
         [SerializeField] private OpenWorldManager data;
         private readonly List<Chunk> _currentChunks = new();
-        private bool _streamingDisabled;
+        private static bool _streamingDisabled;
         private static WorldStreamer _instance;
         private AsyncOperation _unloadAssetsOperation;
         private const int MaxUnloadBeforeCleanup = 20;
         private int _unloadedSceneCounter;
         private Camera _mainCamera;
         public static bool BakingMode { get; private set; }
+        public static bool IsReady { get; private set; }
+        
 
         private void Start()
         {
             _instance = this;
             _mainCamera = Camera.main;
+            IsReady = true;
 
-            // Load terrain scene if not currently loaded
-#if UNITY_EDITOR
-            EditorApplication.wantsToQuit += OnQuit;
-            if (!EditorApplication.isPlaying)
+            if (CurrentWorldSpace == WorldSpace.World)
             {
-                foreach (var sceneSetup in EditorSceneManager.GetSceneManagerSetup())
+                // Load terrain scene if not currently loaded
+#if UNITY_EDITOR
+                EditorApplication.wantsToQuit += OnQuit;
+                if (!EditorApplication.isPlaying)
                 {
-                    if (sceneSetup.isLoaded && sceneSetup.path.Contains("Terrains.unity"))
+                    foreach (var sceneSetup in EditorSceneManager.GetSceneManagerSetup())
                     {
-                        return;
+                        if (sceneSetup.isLoaded && sceneSetup.path.Contains("Terrains.unity"))
+                        {
+                            return;
+                        }
                     }
+
+                    EditorSceneManager.OpenScene("Assets/Scenes/Terrains.unity", OpenSceneMode.Additive);
+                    return;
                 }
-                EditorSceneManager.OpenScene("Assets/Scenes/Terrains.unity", OpenSceneMode.Additive);
-                return;
-            }
 #endif
-            if (SceneManager.GetSceneByName("Terrains").isLoaded) return;
-            
-            SceneManager.LoadScene("Terrains", LoadSceneMode.Additive);
+                if (SceneManager.GetSceneByName("Terrains").isLoaded) return;
+
+                SceneManager.LoadScene("Terrains", LoadSceneMode.Additive);
+            }
         }
 
 #if UNITY_EDITOR
@@ -111,10 +136,10 @@ namespace OpenWorld
 
         private void SelectPrevious()
         {
-            if (selectedObject != null)
-            {
-                Selection.activeTransform = selectedObject;
-            }
+            // if (selectedObject != null)
+            // {
+            //     Selection.activeTransform = selectedObject;
+            // }
         }
 
         [MenuItem("eeStudio/Toggle baking mode")]
@@ -170,34 +195,142 @@ namespace OpenWorld
         }
 #endif
 
-        public static void EnterDungeon(string sceneName)
+        public static void EnterDungeon(WorldSpace worldSpace)
         {
+            CurrentWorldSpace = worldSpace;
+            IsReady = false;
+
+            var sceneName = WorldSpaces.GetSceneName(worldSpace);
             _instance.StartCoroutine(_instance.EnterDungeonCoroutine(sceneName));
         }
 
+        #if UNITY_EDITOR
+        public static void EnterWorldSpaceEditor(WorldSpace worldSpace, bool openScenes = true)
+        {
+            CurrentWorldSpace = worldSpace;
+            
+            if (worldSpace == WorldSpace.World)
+            {
+                if (openScenes)
+                {
+                    EditorSceneManager.OpenScene("Assets/Scenes/ManagerScene.unity");
+                    EditorSceneManager.OpenScene("Assets/Scenes/Game.unity", OpenSceneMode.Additive);
+                    EditorSceneManager.OpenScene("Assets/Scenes/GameUI.unity", OpenSceneMode.Additive);
+                }
+
+                _streamingDisabled = false;
+            }
+            else
+            {
+                //
+                if (openScenes)
+                {
+                    var sceneName = WorldSpaces.GetSceneName(worldSpace);
+                    EditorSceneManager.OpenScene("Assets/Scenes/ManagerScene.unity");
+                    EditorSceneManager.OpenScene("Assets/Scenes/Game.unity", OpenSceneMode.Additive);
+                    EditorSceneManager.OpenScene("Assets/Scenes/GameUI.unity", OpenSceneMode.Additive);
+                    EditorSceneManager.OpenScene($"Assets/Scenes/Dungeons/{sceneName}.unity", OpenSceneMode.Additive);
+                }
+
+                _streamingDisabled = true;
+            }
+        }
+        #endif
+
         private IEnumerator EnterDungeonCoroutine(string sceneName)
         {
-            var sceneLoad = SceneManager.LoadSceneAsync(sceneName);
+            var sceneLoad = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            sceneLoad.allowSceneActivation = false;
             _streamingDisabled = true;
-            while (sceneLoad.isDone == false)
+            while (sceneLoad.progress < 0.9f) // Last 10% needs to be synchronous
             {
-                // TODO: Show loading screen
                 yield return null;
             }
-            
+
+            sceneLoad.allowSceneActivation = true;
             foreach (var chunk in _currentChunks)
             {
-                SceneManager.UnloadSceneAsync(chunk.Name);
+                var chunkUnload = SceneManager.UnloadSceneAsync(chunk.Name);
+                while (chunkUnload.progress < 0.9f)
+                {
+                    yield return null;
+                }
             }
 
+            var terrainUnload = SceneManager.UnloadSceneAsync("Terrains");
+            while (terrainUnload.progress < 0.9f)
+            {
+                yield return null;
+            }
             _currentChunks.Clear();
+
+            
+            IsReady = true;
         }
 
-        public static void ExitDungeon()
+        public static void ExitDungeon(Vector3 exitPosition)
         {
-            _instance._streamingDisabled = false;
+            _instance.StartCoroutine(_instance.ExitDungeonRoutine(exitPosition));
         }
 
+        private IEnumerator ExitDungeonRoutine(Vector3 exitPosition)
+        {
+            IsReady = false;
+            var dungeon = WorldSpaces.GetSceneName(CurrentWorldSpace);
+            var unload = SceneManager.UnloadSceneAsync(dungeon);
+            while (unload.progress < 0.9f) // Last 10% needs to be synchronous
+            {
+                yield return null;
+            }
+            CurrentWorldSpace = WorldSpace.World;
+
+            var load = SceneManager.LoadSceneAsync("Terrains", LoadSceneMode.Additive);
+            while (load.progress < 0.9f) // Last 10% needs to be synchronous
+            {
+                yield return null;
+            }
+
+            yield return LoadChunksAtLocation(exitPosition);
+            
+            IsReady = true;
+            _streamingDisabled = false;
+        }
+
+        private IEnumerator LoadChunksAtLocation(Vector3 location)
+        {
+            var chunks = data.GetChunkAndAdjacent(location.x, location.z);
+            
+            // Iterate in reverse for safe removal
+            for (int i = _currentChunks.Count - 1; i >= 0; i--)
+            {
+                var chunk = _currentChunks[i];
+                if (chunks.Contains(chunk) == false)
+                {
+                    _currentChunks.RemoveAt(i);
+
+                    var async = SceneManager.UnloadSceneAsync(chunk.Name);
+                    while (async.isDone ==false)
+                    {
+                        yield return null;
+                    }
+                    _unloadedSceneCounter++;
+                }
+            }
+            
+            foreach (var chunk in chunks)
+            {
+                if (_currentChunks.Contains(chunk) == false)
+                {
+                    _currentChunks.Add(chunk); 
+                    var async = SceneManager.LoadSceneAsync(chunk.Name, LoadSceneMode.Additive);
+                    while (async.isDone == false)
+                    {
+                        yield return null;
+                    }
+                }
+            }
+        }
+        
         public static void ForceUpdate()
         {
             _instance.Update();
@@ -239,7 +372,7 @@ namespace OpenWorld
 #if UNITY_EDITOR
                     if (!EditorApplication.isPlaying)
                     {
-                        if (!chunk.scene.isDirty)
+                        if (chunk.scene.isDirty == false)
                         {
                             EditorSceneManager.CloseScene(chunk.scene, true);
                             SelectPrevious();
@@ -261,9 +394,8 @@ namespace OpenWorld
             
             foreach (var chunk in chunks)
             {
-                if (!_currentChunks.Contains(chunk))
+                if (_currentChunks.Contains(chunk) == false)
                 {
-                    
                     #if UNITY_EDITOR
                     if (!EditorApplication.isPlaying)
                     {
@@ -294,12 +426,28 @@ namespace OpenWorld
                     _currentChunks.Add(chunk);
                     SceneManager.LoadSceneAsync(chunk.Name, LoadSceneMode.Additive);
                     #endif
-                    
-                    
                 }
             }
-            
         }
+        
+        #if UNITY_EDITOR
+        [UnityEditor.Callbacks.DidReloadScripts]
+        private static void OnScriptsReloaded()
+        {
+            // Recompilation resets static vars, so we check active scenes to set the worldspace correctly after recompilation
+            for (var i = 0; i < Enum.GetNames(typeof(WorldSpace)).Length; i++)
+            {
+                var worldSpace = (WorldSpace) i;
+                var sceneName = WorldSpaces.GetSceneName(worldSpace);
+                var scene = EditorSceneManager.GetSceneByName(sceneName);
+                if (scene.IsValid())
+                {
+                    EnterWorldSpaceEditor(worldSpace, false);
+                    break;
+                }
+            }
+        }
+        #endif
         
         private void OnDrawGizmos()
         {

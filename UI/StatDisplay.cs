@@ -22,17 +22,17 @@ namespace UI
             if (displayLevel)
             {
                 skillNameField.text = LocalizationFile.Get("Level");
-                statField.text = playerData.GetLevel().ToString();
-                var levelProgress = playerData.GetProgressTowardsNextLevel();
-                slider.value = LevelingSystemConfiguration.GetNormalizedLevelProgress(levelProgress);
+                // statField.text = playerData.GetLevel().ToString();
+                // var levelProgress = playerData.GetProgressTowardsNextLevel();
+                // slider.value = LevelingSystemConfiguration.GetNormalizedLevelProgress(levelProgress);
             }
             else
             {
                 skillNameField.text = LocalizationFile.Get($"Skill{skill}");
-                var level = playerData.GetSkillValue(skill);
-                statField.text = level.ToString();
-                var xp = playerData.GetSkillXP(skill);
-                slider.value = LevelingSystemConfiguration.GetNormalizedSkillLevelProgress(xp, level);
+                // var level = playerData.GetSkillValue(skill);
+                // statField.text = level.ToString();
+                // var xp = playerData.GetSkillXP(skill);
+                //slider.value = LevelingSystemConfiguration.GetNormalizedSkillLevelProgress(xp, level);
             }
         }
     }

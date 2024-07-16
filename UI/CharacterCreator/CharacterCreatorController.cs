@@ -1,7 +1,6 @@
 using System;
 using Character;
 using UnityEngine;
-using WolfRPG.Character;
 
 namespace UI.CharacterCreator
 {
@@ -9,7 +8,7 @@ namespace UI.CharacterCreator
     {
         [SerializeField] private CharacterPartPicker partPicker;
 
-        private CharacterCustomizationData _data;
+        private CharacterVisualData _data;
         private CharacterCreatorSelector[] _selectors;
 
         private void Start()
@@ -18,7 +17,7 @@ namespace UI.CharacterCreator
             
             SetDefaults();
             
-            CharacterCustomizationController.SetData(_data, partPicker);
+            CharacterCustomizationController.ApplyNewVisualData(_data, partPicker);
 
             foreach (var selector in _selectors)
             {
@@ -44,7 +43,7 @@ namespace UI.CharacterCreator
             
             foreach (var s in _selectors)
             {
-                s.GenderUpdated(_data.Gender); 
+                s.BodyTypeUpdated(_data.BodyType); 
             }
         }
 
@@ -62,12 +61,12 @@ namespace UI.CharacterCreator
             
             switch (selector.partToCustomize)
             {
-                case CharacterCustomizationPart.Gender:
-                    _data.Gender = isLeft ? Gender.Female : Gender.Male;
+                case CharacterCustomizationPart.BodyType:
+                    _data.BodyType = isLeft ? BodyType.Female : BodyType.Male;
                     
                     foreach (var s in _selectors)
                     {
-                       s.GenderUpdated(_data.Gender); 
+                       s.BodyTypeUpdated(_data.BodyType); 
                     }
                     break;
                 case CharacterCustomizationPart.Hair:
@@ -119,7 +118,7 @@ namespace UI.CharacterCreator
                     throw new ArgumentOutOfRangeException();
             }
             
-            CharacterCustomizationController.SetData(_data, partPicker);
+            CharacterCustomizationController.ApplyNewVisualData(_data, partPicker);
         }
     }
 }

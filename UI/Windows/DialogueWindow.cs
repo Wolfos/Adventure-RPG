@@ -6,6 +6,7 @@ using Dialogue;
 using UnityEngine;
 using Utility;
 using XNode;
+using Yarn.Unity;
 
 namespace UI
 {
@@ -16,161 +17,87 @@ namespace UI
 
 		private List<Node> _nextNodes;
 		
-		private static DialogueNodeGraph _nodeGraph;
+		private static string _startNode;
 		private static NPC _dialogueNpc;
 		private static CharacterBase _interactingCharacter;
+		[SerializeField] private DialogueRunner yarnDialogueRunner;
+		[SerializeField] private LineView yarnLineView;
 		
 
-
-		public static void SetData(DialogueNodeGraph asset, NPC dialogueNpc, CharacterBase interactingCharacter)
+		public static void SetData(string startNode, NPC dialogueNpc, CharacterBase interactingCharacter)
 		{
 			_dialogueNpc = dialogueNpc;
-			_nodeGraph = asset;
+			_startNode = startNode;
 			_interactingCharacter = interactingCharacter;
 		}
 
 		private void OnEnable()
 		{
-			StartCoroutine(StartDialogue(_nodeGraph));
+			StartCoroutine(StartDialogue(_startNode));
 			ShopMenuWindow.OnShoppingDone += OnShoppingDone;
+			yarnDialogueRunner.onDialogueComplete.AddListener(EndDialogue);
+			yarnLineView.OnRunLine += OnRunLine;
+			yarnLineView.OnLinePresentFinished += OnLinePresentFinished;
 		}
 
 		private void OnDisable()
 		{
 			ShopMenuWindow.OnShoppingDone -= OnShoppingDone;
+			yarnDialogueRunner.onDialogueComplete.RemoveListener(EndDialogue);
+			yarnLineView.OnRunLine -= OnRunLine;
+			yarnLineView.OnLinePresentFinished -= OnLinePresentFinished;
+
 		}
 
 		private void OnShoppingDone()
 		{
-			OnNodeEnded(0);
 		}
 
-		private IEnumerator StartDialogue(DialogueNodeGraph asset)
+		private IEnumerator StartDialogue(string startNode)
 		{
 			yield return null;
-			// Start reading at the first inputless node
-			ReadNode(_nodeGraph.nodes.Find(x => x.Inputs.All(y => !y.IsConnected)));
 			
+			_dialogueNpc.StartDialogue();
 			_dialogueNpc.LookAt(_interactingCharacter.transform.position);
+
 			_interactingCharacter.LookAt(_dialogueNpc.transform.position);
 			
 			EventManager.OnDialogueStarted?.Invoke(_dialogueNpc);
+			yarnDialogueRunner.StartDialogue(startNode);
+		}
+
+		private void OnRunLine(LocalizedLine line)
+		{
+			var animation = 0;
+			if (ContainsKey(line.Metadata, "animation"))
+			{
+				animation = GetMetadataValue(line.Metadata, "animation");
+			}
+			_dialogueNpc.Talk(animation, line.TextWithoutCharacterName.Text);
+		}
+
+		private void OnLinePresentFinished()
+		{
+			_dialogueNpc.StopTalk();
+		}
+
+		private bool ContainsKey(string[] metadata, string key)
+		{
+			return metadata.Any(item => item.StartsWith($"{key}:"));
+		}
+
+		private int GetMetadataValue(string[] metadata, string key)
+		{
+			return (from item in metadata where item.StartsWith($"{key}:") select item.Split(':') into parts where parts.Length == 2 select int.Parse(parts[1])).FirstOrDefault();
 		}
 
 		private void EndDialogue()
 		{
 			_dialogueNpc.StopTalk();
+			_dialogueNpc.StopDialogue();
 			WindowManager.Close(this);
 			EventManager.OnDialogueEnded?.Invoke();
 		}
-
-		private void OnNodeEnded(int choice)
-		{
-			if (_nextNodes.Count <= choice)
-			{
-				EndDialogue();
-				return;
-			}
-			
-			ReadNode(_nextNodes[choice]);
-		}
 		
-		private void ReadNode(Node node)
-		{
-			_nextNodes = new();
-			textDisplay?.DeActivate();
-			responseDisplay.DeActivate();
-			_dialogueNpc.StopTalk();
-
-			if (node == null)
-			{
-				EndDialogue();
-				return;
-			}
-			
-			switch (node)
-			{
-				
-				case TextNode tn:
-				{
-					var text = tn.GetLocalized();
-					textDisplay.Activate(text, OnNodeEnded);
-
-					var port = tn.GetOutputPort("next");
-				
-					if(port.IsConnected && port.Connection != null) _nextNodes.Add(port.Connection.node);
-
-					_dialogueNpc.Talk(tn.animation, text);
-
-					break;
-				}
-
-				case ResponseNode rn:
-				{
-					responseDisplay.Activate(rn.GetLocalized(), OnNodeEnded);
-					foreach (var np in rn.Outputs)
-					{
-						if(np.IsConnected) _nextNodes.Add(np.Connection.node);
-					}
-					
-					break;
-				}
-
-				case StartQuestNode qn:
-				{
-					qn.Execute(_interactingCharacter);
-					var port = qn.GetOutputPort("next");
-				
-					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
-					
-					OnNodeEnded(0);
-					break;
-				}
-				
-				case SetQuestStageNode qn:
-				{
-					qn.Execute(_interactingCharacter);
-					EndDialogue();
-					var port = qn.GetOutputPort("next");
-					
-					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
-					
-					OnNodeEnded(0);
-					break;
-				}
-
-				case GetQuestStageNode qn:
-				{
-					var n = qn.GetNextNode(_interactingCharacter);
-					_nextNodes.Add(n);
-					OnNodeEnded(0);
-					break;
-				}
-
-				case GiveItemNode gin:
-				{
-					gin.Execute(_interactingCharacter);
-					var port = gin.GetOutputPort("next");
-				
-					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
-					
-					OnNodeEnded(0);
-					break;
-				}
-
-				case OpenShopNode osn:
-				{
-					var port = osn.GetOutputPort("next");
-					if(port.IsConnected) _nextNodes.Add(port.Connection.node);
-
-					_dialogueNpc?.OpenShop();
-					
-					break;
-				}
-
-				default:
-					throw new System.NotImplementedException();
-			}
-		}
 	}
 }

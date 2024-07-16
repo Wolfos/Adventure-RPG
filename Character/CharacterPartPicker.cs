@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using WolfRPG.Character;
 
 namespace Character
 {
@@ -18,6 +17,7 @@ namespace Character
 		
 		// Common
 		[SerializeField] private GameObject[] hair;
+		[SerializeField] private GameObject[] headCoverings;
 		[SerializeField] private GameObject[] backAttachment;
 		[SerializeField] private SkinColorMaterial[] skinColorMaterials;
 		[SerializeField] public Renderer[] affectedBySkinColor;
@@ -29,6 +29,7 @@ namespace Character
 		public MouthController[] mouthControllers;
 
 		private Dictionary<CharacterCustomizationPart, GameObject> _activeParts = new();
+		private bool _hairDisabled;
 
 		#region Female
 		// Female
@@ -132,48 +133,60 @@ namespace Character
 			DisableMaleObjects();
 		}
 
-		private GameObject[] PartToArray(Gender gender, CharacterCustomizationPart part)
+		public void DisableHair()
+		{
+			_hairDisabled = true;
+		}
+
+		public void EnableHair()
+		{
+			_hairDisabled = false;
+		}
+
+		private GameObject[] PartToArray(BodyType bodyType, CharacterCustomizationPart part)
 		{
 			switch (part)
 			{
-				case CharacterCustomizationPart.Gender:
+				case CharacterCustomizationPart.BodyType:
 					return null;
 				case CharacterCustomizationPart.Hair:
 					return hair;
 				case CharacterCustomizationPart.BackAttachment:
 					return backAttachment;
+				case CharacterCustomizationPart.HeadCovering:
+					return headCoverings;
 				case CharacterCustomizationPart.Head:
-					return gender == Gender.Female ? femaleHead : maleHead;
+					return bodyType == BodyType.Female ? femaleHead : maleHead;
 				case CharacterCustomizationPart.Eyebrows:
-					return gender == Gender.Female ? femaleEyebrows : maleEyebrows;
+					return bodyType == BodyType.Female ? femaleEyebrows : maleEyebrows;
 				case CharacterCustomizationPart.FacialHair:
-					return gender == Gender.Female ? null : maleFacialHair;
+					return bodyType == BodyType.Female ? null : maleFacialHair;
 				case CharacterCustomizationPart.Torso:
-					return gender == Gender.Female ? femaleTorso : maleTorso;
+					return bodyType == BodyType.Female ? femaleTorso : maleTorso;
 				case CharacterCustomizationPart.ArmUpperRight:
-					return gender == Gender.Female ? femaleArmUpperRight : maleArmUpperRight;
+					return bodyType == BodyType.Female ? femaleArmUpperRight : maleArmUpperRight;
 				case CharacterCustomizationPart.ArmUpperLeft:
-					return gender == Gender.Female ? femaleArmUpperLeft : maleArmUpperLeft;
+					return bodyType == BodyType.Female ? femaleArmUpperLeft : maleArmUpperLeft;
 				case CharacterCustomizationPart.ArmLowerRight:
-					return gender == Gender.Female ? femaleArmLowerRight : maleArmLowerRight;
+					return bodyType == BodyType.Female ? femaleArmLowerRight : maleArmLowerRight;
 				case CharacterCustomizationPart.ArmLowerLeft:
-					return gender == Gender.Female ? femaleArmLowerLeft : maleArmLowerLeft;
+					return bodyType == BodyType.Female ? femaleArmLowerLeft : maleArmLowerLeft;
 				case CharacterCustomizationPart.HandRight:
-					return gender == Gender.Female ? femaleHandRight : maleHandRight;
+					return bodyType == BodyType.Female ? femaleHandRight : maleHandRight;
 				case CharacterCustomizationPart.HandLeft:
-					return gender == Gender.Female ? femaleHandLeft : maleHandLeft;
+					return bodyType == BodyType.Female ? femaleHandLeft : maleHandLeft;
 				case CharacterCustomizationPart.Hips:
-					return gender == Gender.Female ? femaleHips : maleHips;
+					return bodyType == BodyType.Female ? femaleHips : maleHips;
 				case CharacterCustomizationPart.LegRight:
-					return gender == Gender.Female ? femaleLegRight : maleLegRight;
+					return bodyType == BodyType.Female ? femaleLegRight : maleLegRight;
 				case CharacterCustomizationPart.LegLeft:
-					return gender == Gender.Female ? femaleLegLeft : maleLegLeft;
+					return bodyType == BodyType.Female ? femaleLegLeft : maleLegLeft;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(part), part, null);
 			}
 		}
 
-		public int GetNumAvailableOptions(CharacterCustomizationData data, CharacterCustomizationPart part)
+		public int GetNumAvailableOptions(CharacterVisualData data, CharacterCustomizationPart part)
 		{
 			switch (part)
 			{
@@ -185,7 +198,7 @@ namespace Character
 					return numEyes;
 				default:
 				{
-					var array = PartToArray(data.Gender, part);
+					var array = PartToArray(data.BodyType, part);
 					return array?.Length ?? 0;
 				}
 			}
@@ -200,7 +213,7 @@ namespace Character
 		}
 		
 		
-		public void OverrideMaterials(CharacterCustomizationData data)
+		public void OverrideMaterials(CharacterVisualData data)
 		{
 			if (data.MaterialOverrides == null) return;
 			
@@ -227,8 +240,13 @@ namespace Character
 			}
 		}
 
-		public void SelectPart(CharacterCustomizationData data, CharacterCustomizationPart part, int selectionIndex)
+		public void SelectPart(CharacterVisualData data, CharacterCustomizationPart part, int selectionIndex)
 		{
+			if (part == CharacterCustomizationPart.Hair && _hairDisabled)
+			{
+				selectionIndex = 0;
+			}
+			
 			switch (part)
 			{
 				case CharacterCustomizationPart.SkinColor:
@@ -242,7 +260,7 @@ namespace Character
 					return;
 			}
 			
-			var array = PartToArray(data.Gender, part);
+			var array = PartToArray(data.BodyType, part);
 			if (array == null) return;
 
 			_activeParts.Remove(part);

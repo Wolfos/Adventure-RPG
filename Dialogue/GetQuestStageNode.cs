@@ -14,6 +14,7 @@ namespace Dialogue
 		[FormerlySerializedAs("quest")] [SerializeField, ObjectReference(5)] private RPGObjectReference questReference;
 		[Input(ShowBackingValue.Never)] public Node previous;
 		[Output()] public Node doesntHaveQuest;
+		[Output()] public Node inProgress;
 		[Output(instancePortList = true)] public List<string> stages;
 		[Output()] public Node finishedQuest;
 
@@ -37,7 +38,13 @@ namespace Dialogue
 				{
 					return GetOutputPort("finishedQuest").Connection.node;
 				}
-				return GetOutputPort("stages " + questProgress.CurrentStage).Connection.node;
+
+				var nextPort = GetOutputPort("stages " + questProgress.CurrentStage);
+				if (nextPort.Connection == null)
+				{
+					return GetOutputPort("inProgress").Connection.node;
+				}
+				return nextPort.Connection.node;
 			}
 
 			return GetOutputPort("doesntHaveQuest").Connection.node;

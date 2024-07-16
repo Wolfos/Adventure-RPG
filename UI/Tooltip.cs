@@ -11,9 +11,7 @@ namespace UI
 	{
 		private static Tooltip instance = null;
 		private Text textDisplay;
-
-		private Transform target;
-		private Vector3 offset;
+		
 
 		private void Awake()
 		{
@@ -35,19 +33,19 @@ namespace UI
 		}
 
 
-		public static void Activate(string text, Transform target, Vector3 offset)
+		public static void Activate(string text)
 		{
 			text = text.Replace("\\n", Environment.NewLine);
 			instance.textDisplay.text = text;
 			instance.gameObject.SetActive(true);
-			instance.target = target;
-			instance.offset = offset;
+			// instance.target = target;
+			// instance.offset = offset;
 		}
 
-		private void LateUpdate()
-		{
-			transform.position = Camera.main.WorldToScreenPoint(target.position + offset);
-		}
+		// private void LateUpdate()
+		// {
+		// 	transform.position = Camera.main.WorldToScreenPoint(target.position + offset);
+		// }
 
 		public static void DeActivate()
 		{

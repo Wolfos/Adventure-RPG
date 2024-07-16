@@ -1,16 +1,18 @@
 ﻿using System;
-using WolfRPG.Character;
 
 namespace Character
 {
 	public static class CharacterCustomizationController
 	{
-		public static void SetPart(CharacterCustomizationPart part, CharacterCustomizationData data, int value)
+		public static void SetPart(CharacterCustomizationPart part, ref CharacterVisualData data, int value)
 		{
 			switch (part)
 			{
-				case CharacterCustomizationPart.Gender:
-					data.Gender = (Gender)value;
+				case CharacterCustomizationPart.BodyType:
+					data.BodyType = (BodyType)value;
+					break;
+				case CharacterCustomizationPart.HeadCovering:
+					data.HeadCovering = value;
 					break;
 				case CharacterCustomizationPart.Hair:
 					data.Hair = value;
@@ -61,12 +63,13 @@ namespace Character
 					throw new ArgumentOutOfRangeException(nameof(part), part, null);
 			}
 		}
-		public static void SetData(CharacterCustomizationData data, CharacterPartPicker partPicker)
+		public static void ApplyNewVisualData(CharacterVisualData data, CharacterPartPicker partPicker)
 		{
 			partPicker.DisableAllObjects();
 			
 			partPicker.SelectPart(data, CharacterCustomizationPart.Hair, data.Hair);
 			partPicker.SelectPart(data, CharacterCustomizationPart.BackAttachment, data.BackAttachment);
+			partPicker.SelectPart(data, CharacterCustomizationPart.HeadCovering, data.HeadCovering);
 			partPicker.SelectPart(data, CharacterCustomizationPart.Head, data.Head);
 			partPicker.SelectPart(data, CharacterCustomizationPart.Eyes, data.Eyes);
 			partPicker.SelectPart(data, CharacterCustomizationPart.Eyebrows, data.Eyebrows);

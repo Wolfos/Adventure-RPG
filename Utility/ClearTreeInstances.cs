@@ -12,6 +12,7 @@ namespace Utility
 		public void Clear()
 		{
 			terrain.terrainData.treeInstances = Array.Empty<TreeInstance>();
+			
 		}
 	}
 }

@@ -18,7 +18,32 @@ public class AutoIntensity : MonoBehaviour
 	private void Start () 
 	{
 		RenderSettings.sun = sun;
-		//StartCoroutine(UpdateLightRotation());
+		
+		CheckDayNight();
+	}
+
+	public void CheckDayNight()
+	{
+		var timePoint = TimeManager.Time + 12;
+		if (timePoint > 24) timePoint -= 24;
+		var rotation = rotationCurve.Evaluate(timePoint / 24) * 360;
+		if (rotation is > 260 or < 100) // Enable sun shadows, disable moon
+		{
+			_moonActive = false;
+			sunLightData.EnableShadows(true);
+			sunLightData.affectsVolumetric = true;
+			moonLightData.EnableShadows(false);
+			moonLightData.affectsVolumetric = true;
+			
+		}
+		else if(rotation is < 260 and > 100) // Enable moon shadows, disable sun
+		{
+			_moonActive = true;
+			sunLightData.EnableShadows(false);
+			sunLightData.affectsVolumetric = false;
+			moonLightData.EnableShadows(true);
+			moonLightData.affectsVolumetric = true;
+		}
 	}
 
 	public void Update()

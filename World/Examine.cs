@@ -21,7 +21,7 @@ namespace World
 		{
 			if (!panelVisible)
 			{
-				UI.Tooltip.Activate(text, transform, Vector3.zero);
+				UI.Tooltip.Activate(text);
 				StartCoroutine(WasInteracted(character.transform));
 			}
 			else

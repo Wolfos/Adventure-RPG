@@ -1,39 +1,37 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using Audio;
 using Combat;
 using Data;
 using Interface;
 using Items;
-using Player;
+using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.AI;
+using UnityEngine.Serialization;
 using Utility;
-using WolfRPG.Character;
 using WolfRPG.Core;
 using WolfRPG.Core.Quests;
 using WolfRPG.Core.Statistics;
-using WolfRPG.Inventory;
+using World;
 using Attribute = WolfRPG.Core.Statistics.Attribute;
-using ItemType = WolfRPG.Inventory.ItemType;
+using EquipmentData = Items.EquipmentData;
+using ItemContainer = Items.ItemContainer;
+using ItemData = Items.ItemData;
+using ItemType = Items.ItemType;
 using Random = UnityEngine.Random;
 
 namespace Character
 {
 	[RequireComponent(typeof(CharacterEquipment))]
-	public abstract class CharacterBase : MonoBehaviour
+	public abstract class CharacterBase : MonoBehaviour, IDamageTaker
 	{
+		[FormerlySerializedAs("worldSpace")] public WorldSpace currentWorldSpace;
 		public ItemContainer Inventory { get; set; }
-
-		[SerializeField, ObjectReference((int)DatabaseCategory.Characters)] public RPGObjectReference characterObjectRef;
-		public CharacterComponent CharacterComponent => Data.CharacterComponent;
-		public CharacterData Data { get; set; }
-		public LoadoutComponent LoadoutComponent { get; set; }
 		
-		// Visuals
-		public CharacterCustomizationData CustomizationData => CharacterComponent.VisualData;
+		public CharacterDataObject dataObject;
+
+		public CharacterSaveData SaveData;
 		
 		public Transform graphic;
 		[SerializeField] protected Animator animator;
@@ -45,11 +43,18 @@ namespace Character
 		[SerializeField] protected CharacterPartPicker partPicker;
 		[SerializeField] private AudioSource audioSource;
 		[SerializeField] private Collider mainCollider;
+		[SerializeField] private Material damageMaterial;
+		[SerializeField] private new Rigidbody rigidbody;
+		
+		[SerializeField] protected Rigidbody[] ragdollRigidbodies;
+		[SerializeField] private Collider[] ragdollColliders;
+		[SerializeField] protected Transform middleSpine;
 
 		[Header("Movement speeds")]
 		[SerializeField] private float generalSpeedMultiplier = 1;
 		[SerializeField] private float crouchSpeedMultiplier = 0.5f;
 		[SerializeField] private float blockSpeedMultiplier = 0.5f;
+		[SerializeField] private float staminaRecoveryTime = 1.0f;
 
 		protected Collider CurrentInteraction;
 		
@@ -72,40 +77,85 @@ namespace Character
 		public float SpeedMultiplier => _movementState.GetSpeedMultiplier();
 		public bool StrafeMovement => _movementState.HasStrafeMovement();
 		public bool IsSprinting { get; set; }
+		private float _lastStaminaUseTime;
 
+		// TODO: Probably move these elsewhere
 		private const float SprintStaminaDrain = 10;
+		public const float DodgeStaminaCost = 10;
 		private const float StaminaRecovery = 3;
 		
 		private Coroutine _talkRoutine;
 
-		public void Initialize(RPGObjectReference characterObjectReference)
+		private SkinnedMeshRenderer[] _skinnedMeshRenderers;
+		private MeshRenderer[] _meshRenderers;
+		private Material[] _skinnedMeshRendererMaterials;
+		private Material[] _meshRendererMaterials;
+
+		private Vector3 _lastHitDirection;
+
+		[Button("Fill ragdoll arrays")]
+		private void FillRagdollArrays()
 		{
-			characterObjectRef = characterObjectReference;
-			Data = new(
-				characterObjectRef.GetComponent<CharacterAttributes>().CreateInstance(),
-				characterObjectRef.GetComponent<CharacterSkills>().CreateInstance(),
-				characterObjectRef.GetComponent<CharacterComponent>().CreateInstance(),
-				characterObjectRef.GetComponent<NpcComponent>()?.CreateInstance()); // Can be null
+			ragdollRigidbodies = animator.GetComponentsInChildren<Rigidbody>();
+			ragdollColliders = animator.GetComponentsInChildren<Collider>();
+			
+			DisableRagdoll();
+		}
 
-			LoadoutComponent = characterObjectRef.GetComponent<LoadoutComponent>();
+		private void EnableRagdoll()
+		{
+			animator.enabled = false;
+			animator.GetComponent<AnimationSync>().enabled = false;
+			
+			foreach (var rb in ragdollRigidbodies)
+			{
+				rb.isKinematic = false;
+				var direction = _lastHitDirection * 500;
+				direction.y = 400;
+				rb.AddForce(direction);
+			}
 
+			foreach (var collider in ragdollColliders)
+			{
+				collider.enabled = true;
+			}
+		}
+
+		private void DisableRagdoll()
+		{
+			foreach (var rb in ragdollRigidbodies)
+			{
+				rb.isKinematic = true;
+			}
+
+			foreach (var collider in ragdollColliders)
+			{
+				collider.enabled = false;
+			}
+		}
+
+		public void Initialize()
+		{
 			Inventory = new()
 			{
-				Owner = Data
+				Owner = this
 			};
 			Inventory.OnItemUsed += OnItemUsed;
 			Inventory.OnItemRemoved += OnItemRemoved;
 			
 			if (SaveGameManager.NewGame)
 			{
-				Data.CharacterComponent.CharacterId = CharacterPool.Register(this);
+				SaveData = new();
+				SaveData.CustomizationData = dataObject.visualData; // Make a copy for runtime
+
+				//Data.CharacterComponent.CharacterId = CharacterPool.Register(this);
 			}
 			else
 			{
-				if (Data.CharacterComponent.CharacterId != Guid.Empty) // Saved game probably hasn't loaded yet
-				{
-					CharacterPool.Register(Data.CharacterComponent.CharacterId, this);
-				}
+				// if (Data.CharacterComponent.CharacterId != Guid.Empty) // Saved game probably hasn't loaded yet
+				// {
+				// 	CharacterPool.Register(Data.CharacterComponent.CharacterId, this);
+				// }
 			}
 			equipment = GetComponent<CharacterEquipment>();
 			
@@ -124,37 +174,71 @@ namespace Character
 
 		public void UpdateCustomizationData()
 		{
-			if (partPicker == null) return;
+			void SetRenderers()
+			{
+				_skinnedMeshRenderers = graphic.GetComponentsInChildren<SkinnedMeshRenderer>(includeInactive: false);
+				_meshRenderers = graphic.GetComponentsInChildren<MeshRenderer>(includeInactive: false);
+				_skinnedMeshRendererMaterials = new Material [_skinnedMeshRenderers.Length];
+				_meshRendererMaterials = new Material [_meshRenderers.Length];
+				for(var i = 0; i < _skinnedMeshRenderers.Length; i++)
+				{
+					_skinnedMeshRendererMaterials[i] = _skinnedMeshRenderers[i].material;
+				}
+
+				for (var i = 0; i < _meshRenderers.Length; i++)
+				{
+					_meshRendererMaterials[i] = _meshRenderers[i].material;
+				}
+			}
+			if (partPicker == null)
+			{
+				SetRenderers();
+				return;
+			}
+
+			SaveData.CustomizationData = dataObject.visualData;
 			
-			CustomizationData.Hips = 0;
-			CustomizationData.Torso = 0;
-			CustomizationData.BackAttachment = 0;
-			CustomizationData.HandLeft = 0;
-			CustomizationData.HandRight = 0;
-			CustomizationData.LegLeft = 0;
-			CustomizationData.LegRight = 0;
-			CustomizationData.ArmLowerLeft = 0;
-			CustomizationData.ArmLowerRight = 0;
-			CustomizationData.ArmUpperLeft = 0;
-			CustomizationData.ArmUpperRight = 0;
 			
-			CustomizationData.MaterialOverrides.Clear();
+			SaveData.CustomizationData.HeadCovering = 0;
+			SaveData.CustomizationData.Hips = 0;
+			SaveData.CustomizationData.Torso = 0;
+			SaveData.CustomizationData.BackAttachment = 0;
+			SaveData.CustomizationData.HandLeft = 0;
+			SaveData.CustomizationData.HandRight = 0;
+			SaveData.CustomizationData.LegLeft = 0;
+			SaveData.CustomizationData.LegRight = 0;
+			SaveData.CustomizationData.ArmLowerLeft = 0;
+			SaveData.CustomizationData.ArmLowerRight = 0;
+			SaveData.CustomizationData.ArmUpperLeft = 0;
+			SaveData.CustomizationData.ArmUpperRight = 0;
+
+			SaveData.CustomizationData.MaterialOverrides ??= new();
+			SaveData.CustomizationData.MaterialOverrides.Clear();
+			
+			partPicker.EnableHair();
+
 			// Add equipment
 			foreach (var item in equipment.Equipment)
 			{
 				if(item.EquipmentParts == null) continue;
-				
+
+				if (item.HideHair)
+				{
+					partPicker.DisableHair();
+				}
 				foreach (var part in item.EquipmentParts)
 				{
-					CharacterCustomizationController.SetPart(part.Part, CustomizationData, part.Index);
+					CharacterCustomizationController.SetPart(part.Part, ref SaveData.CustomizationData, part.Index);
 					if (item.Material != 0)
 					{
-						CustomizationData.MaterialOverrides.Add(part.Part, item.Material);
+						SaveData.CustomizationData.MaterialOverrides.Add(part.Part, item.Material);
 					}
 				}
 			}
 			
-			CharacterCustomizationController.SetData(CustomizationData, partPicker);
+			CharacterCustomizationController.ApplyNewVisualData(SaveData.CustomizationData, partPicker);
+			
+			SetRenderers();
 		}
 		
 
@@ -174,20 +258,17 @@ namespace Character
 			
 			if (SaveGameManager.NewGame)
 			{
-				for (int i = 0; i < LoadoutComponent.StartingInventory?.Length; i++)
+				for (int i = 0; i < dataObject.startingInventory?.Length; i++)
 				{
-					var itemReference = LoadoutComponent.StartingInventory[i];
+					var itemReference = dataObject.startingInventory[i];
+					var itemData = itemReference.itemData;
+					
+					Inventory.AddItem(itemData.Guid, itemReference.quantity);
 
-					for (int j = 0; j < itemReference.Quantity; j++)
+					var equipmentData = itemData as EquipmentData;
+					if (itemReference.isEquipped && equipmentData != null)
 					{
-						Inventory.AddItem(RPGDatabase.GetObject(itemReference.ItemObject.Guid));
-					} 
-
-					var itemData = itemReference.ItemObject.GetComponent<ItemData>();
-					var equipmentData = itemReference.ItemObject.GetComponent<EquipmentData>();
-					if (itemReference.Equipped && equipmentData != null)
-					{
-						equipment.EquipItem(itemData, equipmentData);
+						equipment.EquipItem(equipmentData);
 					}
 				}
 			}
@@ -196,8 +277,6 @@ namespace Character
 
 		protected void Update()
 		{
-			Data.Tick(Time.deltaTime);
-
 			StaminaUpdate();
 		}
 
@@ -206,16 +285,24 @@ namespace Character
 			// Sprint stamina drain
 			if (IsSprinting)
 			{
-				Data.Attributes.ModifyAttribute(Attribute.Stamina, -(SprintStaminaDrain * Time.deltaTime));
+				var athleticsLevel = GetSkillValue(Skill.Athletics);
+				ChangeStamina(-((SprintStaminaDrain - athleticsLevel * 0.1f) * Time.deltaTime));
 				if (CanSprint() == false)
 				{
 					StopSprint();
 				}
 			}
-			else // Recovery
+			else if(Time.time - _lastStaminaUseTime >= staminaRecoveryTime) // Recovery
 			{
-				Data.Attributes.ModifyAttribute(Attribute.Stamina, (StaminaRecovery * Time.deltaTime));
+				ChangeStamina(StaminaRecovery * Time.deltaTime);
 			}
+		}
+
+		public void ChangeStamina(float change)
+		{
+			if(change < 0) _lastStaminaUseTime = Time.time;
+			
+			ChangeAttributeValue(Attribute.Stamina, change);
 		}
 
 		public void PetAnimal(float width, float height, float animationLength)
@@ -262,6 +349,11 @@ namespace Character
 			return IsBlocking == false && GetAttributeValue(Attribute.Stamina) >= 0.01f;
 		}
 
+		public bool CanDodge()
+		{
+			return GetAttributeValue(Attribute.Stamina) >= DodgeStaminaCost;
+		}
+
 		public void StartSprint()
 		{
 			if (CanSprint() == false) return;
@@ -280,48 +372,77 @@ namespace Character
 			_movementState.SetStateInactive(MovementStates.Sprinting);
 		}
 
-		public int GetAttributeValue(Attribute attribute) => Data.GetAttributeValue(attribute);
-		public int GetSkillValue(Skill skill) => Data.GetSkillValue(skill);
-
-		public void OnItemRemoved(ItemData item, int slotIndex)
+		public float GetAttributeValue(Attribute attribute)
 		{
-			if (equipment.IsEquipped(item.RpgObject.Guid))
+			return 0;
+			throw new NotImplementedException();
+		}
+
+		public void SetAttributeValue(Attribute attribute, float newValue)
+		{
+			return;
+			throw new NotImplementedException();
+		}
+
+		public void ChangeAttributeValue(Attribute attribute, float change)
+		{
+			
+		}
+
+		public int GetSkillValue(Skill skill)
+		{
+			return 0;
+			throw new NotImplementedException();
+		}
+
+		public void OnItemRemoved(ItemData item, int slotIndex, bool wasLast)
+		{
+			if (wasLast && equipment.IsEquipped(item.Guid))
 			{
-				equipment.UnequipItem(item, item.RpgObject.GetComponent<EquipmentData>());
+				equipment.UnequipItem(item as EquipmentData);
 			}
 		}
 
 		public void OnItemUsed(ItemData item, int slot)
 		{
-			var itemObject = item.RpgObject;
 			switch (item.Type)
 			{
 				case ItemType.Consumable:
-					var consumable = itemObject.GetComponent<ConsumableData>();
-					Data.ApplyStatusEffect(consumable.StatusEffect);
+					var consumable = item as ConsumableData;
+					if (consumable == null)
+					{
+						Debug.LogError($"Item {item.name} is not a valid consumable");
+						return;
+					}
 
-					Inventory.RemoveItem(itemObject);
+					var currentValue = GetAttributeValue(consumable.attribute);
+					SetAttributeValue(consumable.attribute, currentValue + consumable.effect);
+					Inventory.RemoveItem(item);
 					break;
 				case ItemType.Weapon:
 				case ItemType.Equipment:
-					var equipmentData = itemObject.GetComponent<EquipmentData>();
+					var equipmentData = item as EquipmentData;
 					if (equipment.IsEquipped(equipmentData))
 					{
-						equipment.UnequipItem(item, equipmentData);
+						equipment.UnequipItem(equipmentData);
 					}
 					else
 					{
-						equipment.EquipItem(item, equipmentData);
+						equipment.EquipItem(equipmentData);
 					}
 					break;
 			}
 		}
 
-		public void EquipItem(string guid)
+		public bool IsDead()
 		{
-			var obj = RPGDatabase.GetObject(guid);
-			var itemData = obj.GetComponent<ItemData>();
-			var equipmentData = obj.GetComponent<EquipmentData>();
+			return GetAttributeValue(Attribute.Health) <= 0;
+		}
+
+		public void EquipItem(Guid guid)
+		{
+			var itemData = ItemDatabase.GetItem(guid);
+			var equipmentData = itemData as EquipmentData;
 
 			if (itemData == null || equipmentData == null)
 			{
@@ -329,7 +450,7 @@ namespace Character
 				return;
 			}
 			
-			equipment.EquipItem(itemData, equipmentData);
+			equipment.EquipItem(equipmentData);
 		}
 		
 		#region Combat
@@ -373,6 +494,7 @@ namespace Character
 			
 			if(willAttack) animator.SetTrigger("Attack");
 		}
+		
 
 		private void MeleeHitCallback()
 		{
@@ -388,12 +510,16 @@ namespace Character
 			//Armed
 			else if(Weapon.Attacking is false)
 			{
-				Weapon.Attack(graphic.forward, attackLayerMask, blockLayerMask, OnStagger);
+				Weapon.Attack(graphic.forward, attackLayerMask, blockLayerMask, Stagger);
 			}
-		}
+		} 
 
-		private void OnStagger()
+		private void Stagger()
 		{
+			if (IsBlocking)
+			{
+				EndBlock();
+			}
 			animator.SetTrigger("Hit");
 		}
 		#endregion
@@ -462,9 +588,9 @@ namespace Character
 		}
 		#endregion
 
-		public virtual bool SetHealth(int health)
+		public virtual bool SetHealth(float health)
 		{
-			Data.SetAttributeValue(Attribute.Health, health);
+			SetAttributeValue(Attribute.Health, health);
 
 			if (health <= 0)
 			{
@@ -476,16 +602,30 @@ namespace Character
 		}
 
 		// We hit an enemy
-		public virtual void HitEnemy(CharacterBase enemy)
+		public virtual void HitDamageTaker(IDamageTaker damageTaker)
 		{
 		}
 		
 		public void Die()
 		{
 			StopAllCoroutines();
-			CharacterComponent.IsDead = true;
+			SaveData.IsDead = true;
 			DeathAnimationStarted();
-			animator.SetTrigger("Death");
+			//animator.SetTrigger("Death");
+			
+			EnableRagdoll();
+
+			foreach (var mr in _skinnedMeshRenderers)
+			{
+				// Occlusion culling breaks completely when ragdoll is on.
+				mr.allowOcclusionWhenDynamic = false;
+				mr.updateWhenOffscreen = true;
+			}
+
+			foreach (var mr in _meshRenderers)
+			{
+				mr.allowOcclusionWhenDynamic = false;
+			}
 			
 			StartCoroutine(DeathAnimation());
 		}
@@ -512,22 +652,89 @@ namespace Character
 			return false;
 		}
 
-		public void TakeDamage(float damage, Vector3 point, CharacterBase other)
+		public void SetInvulnerable()
 		{
-			if (CharacterComponent.Invulnerable) return;
+			SaveData.IsInvulnerable = true; // TODO: Different boolean
+		}
+
+		public void SetVulnerable()
+		{
+			SaveData.IsInvulnerable = false; // TODO: Different boolean
+		}
+
+		private IEnumerator KnockbackRoutine(float knockBackAmount, Vector3 direction)
+		{
+			for (float t = 0; t < 1f; t += Time.deltaTime * 5)
+			{
+				transform.Translate(direction * (knockBackAmount * Time.deltaTime), Space.World);
+				yield return null;
+			}
+		}
+
+		public virtual void TakeDamage(float damage, float knockBackAmount, Vector3 point, CharacterBase other, Vector3 hitDirection = new())
+		{
+			if (SaveData.IsInvulnerable) return;
+
+			_lastHitDirection = (transform.position - other.transform.position).normalized;
 			
 			if(Weapon != null) Weapon.InterruptAttack();
-			if (CharacterComponent.IsDead) return;
+			if (SaveData.IsDead) return;
+
+			var localHitDirection = (graphic.rotation * hitDirection).normalized;
+			animator.SetFloat("HitDirection", localHitDirection.x);
 			
-			onDamaged?.Invoke(damage, other.CharacterComponent.CharacterId);
+			onDamaged?.Invoke(damage, other.SaveData.CharacterId);
 			SFXPlayer.PlaySound(hitSound, 0.2f);
 
 			//var knockback = (transform.position - point).normalized * (damage.knockback * 20);
 
-			if (SetHealth(GetAttributeValue(Attribute.Health) - (int)damage) == false)
+			var newHealth = GetAttributeValue(Attribute.Health) - (int) damage;
+			if (SetHealth(newHealth) == false)
 			{
 				animator.SetTrigger("Hit");
 			}
+
+			if (newHealth > 0)
+			{
+				StartCoroutine(KnockbackRoutine(knockBackAmount, _lastHitDirection));
+			}
+			Coroutiner.Instance.StartCoroutine(TakeDamageRoutine());
+		}
+
+		public bool CanTakeDamage()
+		{
+			return SaveData.IsDead == false;
+		}
+
+		private bool _takeDamageRoutineRunning;
+		private IEnumerator TakeDamageRoutine()
+		{
+			if (_takeDamageRoutineRunning || damageMaterial == null)
+			{
+				yield break;
+			}
+			_takeDamageRoutineRunning = true;
+			foreach (var mr in _skinnedMeshRenderers)
+			{
+				mr.material = damageMaterial;
+			}
+
+			foreach (var mr in _meshRenderers)
+			{
+				mr.material = damageMaterial;
+			}
+
+			yield return new WaitForSeconds(0.1f);
+
+			for (var i = 0; i < _skinnedMeshRenderers.Length; i++)
+			{
+				_skinnedMeshRenderers[i].material = _skinnedMeshRendererMaterials[i];
+			}
+			for (var i = 0; i < _meshRenderers.Length; i++)
+			{
+				_meshRenderers[i].material = _meshRendererMaterials[i];
+			}
+			_takeDamageRoutineRunning = false;
 		}
 		
 
@@ -544,14 +751,17 @@ namespace Character
 		// I blocked an attack
 		public virtual void DidBlock()
 		{
+			if (dataObject.isInvulnerable) return;
+			
+			Stagger(); // TODO: Calculate based on skill and blocker used.
 		}
 
 		// World space
 		public virtual void Teleport(Vector3 position, Quaternion rotation)
 		{
 		}
-
 		
+
 		public void Talk(int talkAnimation, string text)
 		{
 			animator.SetInteger(TalkAnimation, Mathf.Clamp(talkAnimation, 1, 3));
@@ -613,9 +823,19 @@ namespace Character
 			}
 		}
 
+		public Guid GetId()
+		{
+			return SaveData.CharacterId;
+		}
+
 		private void OnFootStep()
 		{
 			PlaySound(SoundClips.RandomFootStepRock, 0.2f);
+		}
+
+		public string GetName()
+		{
+			return dataObject.characterName?.Get();
 		}
 	}
 }

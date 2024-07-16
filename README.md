@@ -1,7 +1,8 @@
 # Adventure-RPG
 
 An open world RPG, created in Unity.
-This project is currently in Unity Version control. It is not frequently updated on Github.
+
+This is only the C# code as many of the assets used are proprietary. Sorry about that.
 
 ## This game is powered by
 

@@ -11,6 +11,7 @@ namespace Utility
 		public static Action<float, float> OnPlayerStaminaChanged;
 		public static Action<float, float> OnPlayerManaChanged;
 
+		// The NPC we're talking to
 		public static Action<CharacterBase> OnDialogueStarted;
 		public static Action OnDialogueEnded;
 		
@@ -29,9 +30,14 @@ namespace Utility
 		public static Action<InputAction.CallbackContext> OnPauseMenu;
 		public static Action<InputAction.CallbackContext> OnDrop;
 		public static Action<InputAction.CallbackContext> OnMenuLeft;
+		public static Action<InputAction.CallbackContext> OnMenuLeft2;
 		public static Action<InputAction.CallbackContext> OnMenuRight;
+		public static Action<InputAction.CallbackContext> OnMenuRight2;
 		public static Action<InputAction.CallbackContext> OnDialogueNext;
 		public static Action<InputAction.CallbackContext> OnToggleCommandConsole;
 		public static Action<InputAction.CallbackContext> OnSprint;
+		public static Action<InputAction.CallbackContext> OnUIMove;
+		public static Action<InputAction.CallbackContext> OnUIMoveAnalog;
+		public static Action<InputAction.CallbackContext> OnUIConfirm;
 	}
 }

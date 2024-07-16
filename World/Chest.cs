@@ -4,18 +4,16 @@ using Character;
 using UnityEngine;
 using Data;
 using Interface;
-using Newtonsoft.Json;
 using UI;
 using UnityEngine.Scripting;
-using Utility;
-using WolfRPG.Core;
-using WolfRPG.Inventory;
+using ItemContainer = Items.ItemContainer;
+using ItemData = Items.ItemData;
 
 public class Chest : SaveableObject, IInteractable
 {
 	private ChestSaveData _data;
 	[SerializeField] private Animator animator;
-	[SerializeField, ObjectReference((int)DatabaseCategory.Items)] private RPGObjectReference[] items;
+	[SerializeField] private ItemData[] items;
 
 	private ItemContainer _container;
 	
@@ -23,7 +21,7 @@ public class Chest : SaveableObject, IInteractable
 	{
 		public bool IsOpen { get; set; }
 		// GUID, item quantity
-		public List<Tuple<string, int>> ItemsAndQuantities { get; set; } = new();
+		public List<Tuple<Guid, int>> ItemsAndQuantities { get; set; } = new();
 	}
 
 	private void Start()
@@ -43,7 +41,7 @@ public class Chest : SaveableObject, IInteractable
 			_data = new();
 			foreach (var item in items)
 			{
-				_container.AddItem(item.GetObject());
+				_container.AddItem(item);
 			}
 			ContentsChanged();
 		}
@@ -61,7 +59,7 @@ public class Chest : SaveableObject, IInteractable
 		_data.ItemsAndQuantities.Clear();
 		for (int i = 0; i < _container.ItemCount; i++)
 		{
-			var guid = _container.GetItemBySlot(i).RpgObject.Guid;
+			var guid = _container.GetItemBySlot(i).Guid;
 			var quantity = _container.GetQuantityFromSlot(i);
 			_data.ItemsAndQuantities.Add(new(guid,quantity));
 		}
@@ -71,13 +69,13 @@ public class Chest : SaveableObject, IInteractable
 	public void OnCanInteract(CharacterBase character)
 	{
 		// TODO: Localize
-		Tooltip.Activate(_data.IsOpen ? "Close" : "Open", transform, Vector3.zero);
+		Tooltip.Activate(_data.IsOpen ? "Close" : "Open");
 	}
 	
 	[Preserve]
 	public void OnInteract(CharacterBase character)
 	{
-		ItemContainerWindow.SetData(_container);
+		ItemContainerWindow.SetData(_container, null);
 		WindowManager.Open<ItemContainerWindow>();
 
 		_data.IsOpen = !_data.IsOpen;

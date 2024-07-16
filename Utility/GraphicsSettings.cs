@@ -2,12 +2,17 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
+using VisualDesignCafe.Rendering.Nature;
 
 namespace Utility
 {
+	public enum Upscaler
+	{
+		None, DLSS, FSR, STP
+	}
 	public enum UpscalingMode
 	{
-		None, FSR, DLSSQuality, DLSSBalanced, DLSSPerformance, DLSSUltraPerformance
+		Quality, Balanced, Performance, UltraPerformance
 	}
 
 	public enum LightingQualityMode
@@ -24,6 +29,11 @@ namespace Utility
 	{
 		Low, Medium, High, Ultra
 	}
+
+	public enum AOQualityMode
+	{
+		Off, Low, Medium, High
+	}
 	
 	public class GraphicsSettings: MonoBehaviour
 	{
@@ -33,6 +43,7 @@ namespace Utility
 		[SerializeField] private VolumeProfile postFXProfile;
 		[SerializeField] private VolumeProfile fogProfile;
 		[SerializeField] private HDDynamicResolution hdDynamicResolution;
+		[SerializeField] private NatureRendererCameraSettings natureRendererCameraSettings;
 
 		public static Action<ShadowQualityMode> OnShadowQualityChanged;
 
@@ -40,6 +51,25 @@ namespace Utility
 		{
 			_instance = this;
 			LoadOptions();
+			
+			DynamicResolutionHandler.SetDynamicResScaler(
+				delegate()
+				{
+					switch (_instance._upscalingQuality)
+					{
+						case UpscalingMode.Quality:
+							return 66f;
+						case UpscalingMode.Balanced:
+							return 58;
+						case UpscalingMode.Performance:
+							return 50;
+						case UpscalingMode.UltraPerformance:
+							return 33;
+						default:
+							return 100;
+					}
+				},
+				DynamicResScalePolicyType.ReturnsPercentage);
 		}
 
 		private void LoadOptions()
@@ -47,14 +77,16 @@ namespace Utility
 			var res = Screen.currentResolution;
 			SetResolution(PlayerPrefs.GetInt("ResolutionWidth", res.width), PlayerPrefs.GetInt("ResolutionHeight", res.height), true);
 			SetVsync(PlayerPrefs.GetInt("VSync", 1) == 1);
-			SetUpscaling((UpscalingMode)PlayerPrefs.GetInt("UpscalingMode", 0));
+			SetUpscaling((Upscaler)PlayerPrefs.GetInt("Upscaler"), (UpscalingMode)PlayerPrefs.GetInt("UpscalingMode", 0));
 			SetLightingQuality((LightingQualityMode)PlayerPrefs.GetInt("LightingQuality", 0));
 			SetReflectionQuality((ReflectionQualityMode)PlayerPrefs.GetInt("ReflectionQuality", 0));
 			SetShadowQuality((ShadowQualityMode)PlayerPrefs.GetInt("ShadowQuality", 0));
 			SetLodQuality(PlayerPrefs.GetInt("LodQuality", 1));
+			SetTreeQuality(PlayerPrefs.GetInt("TreeQuality", 1));
 			SetMotionBlurQuality(PlayerPrefs.GetInt("MotionBlurQuality", 2));
 			SetMotionBlurIntensity(PlayerPrefs.GetFloat("MotionBlurAmount", 1));
 			SetFogQuality(PlayerPrefs.GetInt("FogQuality", 1));
+			SetAOQuality((AOQualityMode)PlayerPrefs.GetInt("AOQuality", 2));
 		}
 
 		public static void SetResolution(int width, int height, bool fullscreen)
@@ -66,50 +98,63 @@ namespace Utility
 			Screen.SetResolution(width, height, fullscreen);
 		}
 
-		public static void SetUpscaling(UpscalingMode mode)
+		private UpscalingMode _upscalingQuality;
+
+		public static void SetUpscaling(Upscaler upscaler, UpscalingMode mode)
 		{
+			PlayerPrefs.SetInt("Upscaler", (int)upscaler);
 			PlayerPrefs.SetInt("UpscalingMode", (int)mode);
 			PlayerPrefs.Save();
-			switch (mode)
+
+			_instance._upscalingQuality = mode;
+			switch (upscaler)
 			{
-				case UpscalingMode.None:
+				case Upscaler.None:
 					_instance.hdCameraData.allowDynamicResolution = false;
-					_instance.hdDynamicResolution.enabled = false;
+					//_instance.hdDynamicResolution.enabled = false;
 					break;
-				case UpscalingMode.FSR:
+				case Upscaler.DLSS:
 					_instance.hdCameraData.allowDynamicResolution = true;
-					_instance.hdDynamicResolution.enabled = true;
+					//_instance.hdDynamicResolution.enabled = true;
+					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
+					_instance.hdCameraData.allowFidelityFX2SuperResolution = false;
+
+					break;
+				case Upscaler.FSR:
+					_instance.hdCameraData.allowDynamicResolution = true;
+					//_instance.hdDynamicResolution.enabled = true;
+					_instance.hdCameraData.allowFidelityFX2SuperResolution = true;
 					_instance.hdCameraData.allowDeepLearningSuperSampling = false;
 					break;
-				case UpscalingMode.DLSSQuality:
+				case Upscaler.STP:
 					_instance.hdCameraData.allowDynamicResolution = true;
-					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
-					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
+					//_instance.hdDynamicResolution.enabled = true;
+					_instance.hdCameraData.allowFidelityFX2SuperResolution = false;
+					_instance.hdCameraData.allowDeepLearningSuperSampling = false;
+					
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(upscaler), upscaler, null);
+			}
+
+			switch (mode)
+			{
+				case UpscalingMode.Quality:
 					_instance.hdCameraData.deepLearningSuperSamplingQuality = 2;
-					_instance.hdDynamicResolution.enabled = false;
+					_instance.hdCameraData.fidelityFX2SuperResolutionQuality = 2;
 					break;
-				case UpscalingMode.DLSSBalanced:
-					_instance.hdCameraData.allowDynamicResolution = true;
-					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
-					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
+				case UpscalingMode.Balanced:
 					_instance.hdCameraData.deepLearningSuperSamplingQuality = 1;
-					_instance.hdDynamicResolution.enabled = false;
+					_instance.hdCameraData.fidelityFX2SuperResolutionQuality = 1;
 					break;
-				case UpscalingMode.DLSSPerformance:
-					_instance.hdCameraData.allowDynamicResolution = true;
-					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
-					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
+				case UpscalingMode.Performance:
 					_instance.hdCameraData.deepLearningSuperSamplingQuality = 0;
-					_instance.hdDynamicResolution.enabled = false;
+					_instance.hdCameraData.fidelityFX2SuperResolutionQuality = 0;
 					break;
-				case UpscalingMode.DLSSUltraPerformance:
-					_instance.hdCameraData.allowDynamicResolution = true;
-					_instance.hdCameraData.allowDeepLearningSuperSampling = true;
-					_instance.hdCameraData.deepLearningSuperSamplingUseCustomQualitySettings = true;
+				case UpscalingMode.UltraPerformance:
 					_instance.hdCameraData.deepLearningSuperSamplingQuality = 3;
-					_instance.hdDynamicResolution.enabled = false;
+					_instance.hdCameraData.fidelityFX2SuperResolutionQuality = 3;
 					break;
-				
 				default:
 					throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
 			}
@@ -176,6 +221,30 @@ namespace Utility
 			PlayerPrefs.SetInt("LodQuality", quality);
 			PlayerPrefs.Save();
 			_instance.hdCameraData.renderingPathCustomFrameSettings.lodBiasQualityLevel = quality;
+		}
+
+		public static void SetTreeQuality(int quality)
+		{
+			PlayerPrefs.SetInt("TreeQuality", quality);
+			PlayerPrefs.Save();
+			float bias = 1;
+			switch (quality)
+			{
+				case 0:
+					bias = 1.5f;
+					break;
+				case 1:
+					bias = 2.0f;
+					break;
+				case 2:
+					bias = 2.5f;
+					break;
+				case 3:
+					bias = 3.0f;
+					break;
+			}
+
+			_instance.natureRendererCameraSettings.LodBias = bias;
 		}
 
 		public static void SetMotionBlurQuality(int quality)
@@ -266,6 +335,38 @@ namespace Utility
 			}
 			
 			fog.quality.Override(quality);
+		}
+
+		public static void SetAOQuality(AOQualityMode mode)
+		{
+			PlayerPrefs.SetInt("AOQuality", (int)mode);
+			PlayerPrefs.Save();
+			if (_instance.postFXProfile.TryGet<ScreenSpaceAmbientOcclusion>(out var ao) == false)
+			{
+				Debug.LogError("No SSAO component found");
+				return;
+			}
+
+			switch (mode)
+			{
+				case AOQualityMode.Off:
+					ao.intensity.Override(0);
+					break;
+				case AOQualityMode.Low:
+					ao.intensity.Override(1);
+					ao.quality.Override((int)mode - 1);
+					break;
+				case AOQualityMode.Medium:
+					ao.intensity.Override(1);
+					ao.quality.Override((int)mode - 1);
+					break;
+				case AOQualityMode.High:
+					ao.intensity.Override(1);
+					ao.quality.Override((int)mode - 1);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
+			}
 		}
 	}
 }

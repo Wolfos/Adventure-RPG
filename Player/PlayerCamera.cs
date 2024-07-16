@@ -3,11 +3,17 @@ using System.Collections;
 using Character;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using Utility;
 using Random = UnityEngine.Random;
 
 namespace Player
 {
+	public enum CameraState
+	{
+		Default, Swimming
+	}
+	
 	public class PlayerCamera: MonoBehaviour
 	{
 		[SerializeField] private float followSpeed;
@@ -18,7 +24,8 @@ namespace Player
 		[SerializeField] private Range cameraDistance;
 		[SerializeField] private float zoomSpeed;
 		[SerializeField] private Transform targetTransform;
-		[SerializeField] private Vector3 offset;
+		[FormerlySerializedAs("offset")] [SerializeField] private Vector3 defaultOffset;
+		[SerializeField] private Vector3 swimOffset;
 		[SerializeField] private Vector3 dialogueOffset;
 		[SerializeField] private LayerMask blockLayerMask;
 		[SerializeField] private float recoverySmoothness = 0.5f;
@@ -26,18 +33,33 @@ namespace Player
 		[SerializeField] private float dialogueAngle = 20;
 		[SerializeField] private float dialogueCameraSpeed = 2;
 		[SerializeField] private float dialogueZoom = 2;
+		[SerializeField] private float transitionSpeed = 2;
 		
 		private Vector2 _movementInput;
 		private float _zoomInput;
 		private float _desiredZoom;
 		private bool _wasBlocked;
+		private Vector3 _offset;
 
 		private Vector3 _dialogueStartPosition;
 		private Quaternion _dialogueStartRotation;
 		private Coroutine _smoothRoutine;
 		private bool _movementOverridenByRoutine;
 		private Vector3 _dialogueStartCameraPosition;
+
+		private static PlayerCamera _instance;
+		private CameraState _currentState;
+		private static Vector3 _cameraPosition;
+
+		public static float LookHeading { get; private set; }
 		
+
+		private void Awake()
+		{
+			_instance = this;
+			_offset = defaultOffset;
+		}
+
 		private void OnEnable()
 		{
 			EventManager.OnCameraMove += OnCameraMove;
@@ -111,7 +133,7 @@ namespace Player
 				if (hit.collider.isTrigger == false)
 				{
 					var distance = Vector3.Distance(hit.point, transform.position);
-					position.z = Mathf.Lerp(localPosition.z, -distance, 0.5f);
+					position.z = Mathf.Lerp(localPosition.z, -distance, 0.7f);
 					
 					_wasBlocked = true;
 				}
@@ -127,8 +149,12 @@ namespace Player
 		private void LateUpdate()
 		{
 			if (PlayerControls.InputActive == false || _movementOverridenByRoutine) return;
-			var targetPosition = targetTransform.position + offset;
+
+			var targetPosition = targetTransform.position + _offset;
 			transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * followSpeed);
+
+			_cameraPosition = camera.position;
+			LookHeading = transform.rotation.eulerAngles.y;
 		}
 
 		private IEnumerator SmoothTowards(Vector3 targetPosition, Quaternion targetRotation, Vector3 cameraTargetPosition)
@@ -148,6 +174,12 @@ namespace Player
 			_movementOverridenByRoutine = false;
 		}
 
+		public static Vector3 GetCameraPosition()
+		{
+			return _cameraPosition;
+		}
+
+		// TODO: Use states
 		private void OnDialogueStarted(CharacterBase otherCharacter)
 		{
 			var targetPosition = targetTransform.position;
@@ -174,6 +206,45 @@ namespace Player
 		{
 			if(_smoothRoutine != null) StopCoroutine(_smoothRoutine);
 			_smoothRoutine = StartCoroutine(SmoothTowards(_dialogueStartPosition, _dialogueStartRotation, _dialogueStartCameraPosition));
+		}
+		
+		public static void SetState(CameraState state)
+		{
+			Debug.Log($"New camera state {state}");
+
+			if (_instance._stateTransitionRoutine != null)
+			{
+				_instance.StopCoroutine(_instance._stateTransitionRoutine);
+			}
+			_instance._stateTransitionRoutine = _instance.StartCoroutine(_instance.StateTransition(_instance._currentState, state));
+			_instance._currentState = state;
+		}
+
+		private Coroutine _stateTransitionRoutine;
+
+		private IEnumerator StateTransition(CameraState previousState, CameraState nextState)
+		{
+			Vector3 GetOffset(CameraState state)
+			{
+				return state switch
+				{
+					CameraState.Default => defaultOffset,
+					CameraState.Swimming => swimOffset,
+					_ => defaultOffset
+				};
+			}
+			
+			var startOffset = GetOffset(previousState);
+			var endOffset = GetOffset(nextState);
+
+			
+			for (float t = 0; t < 1; t += Time.deltaTime * transitionSpeed)
+			{
+				_offset = Vector3.Slerp(startOffset, endOffset, t);
+				yield return null;
+			}
+
+			_offset = endOffset;
 		}
 		
 		#region Input

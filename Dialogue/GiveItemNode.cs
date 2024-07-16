@@ -9,7 +9,7 @@ namespace Dialogue
     public class GiveItemNode : Node
     {
         public bool giveItem;
-        public RPGObjectReference item;
+        public ItemData item;
         public bool giveMoney;
         public int money;
         [Input(ShowBackingValue.Never)] public Node previous;
@@ -19,7 +19,7 @@ namespace Dialogue
         {
             if (giveItem)
             {
-                interactingCharacter.Inventory.AddItem(item.GetObject());
+                interactingCharacter.Inventory.AddItem(item);
             }
             else if (giveMoney)
             {

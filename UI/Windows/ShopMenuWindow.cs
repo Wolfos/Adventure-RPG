@@ -2,8 +2,6 @@ using System;
 using Items;
 using Player;
 using UnityEngine;
-using Utility;
-using WolfRPG.Inventory;
 
 namespace UI
 {

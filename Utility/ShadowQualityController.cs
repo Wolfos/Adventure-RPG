@@ -20,7 +20,11 @@ namespace Utility
 
 		private void OnShadowQualityChanged(ShadowQualityMode quality)
 		{
-			GetComponent<HDAdditionalLightData>().shadowResolution.level = (int) quality;
+			var lightData = GetComponent<HDAdditionalLightData>();
+			lightData.shadowResolution.level = (int) quality;
+			var contactShadowQuality = Mathf.Min((int) quality, 2);
+			lightData.useContactShadow.level = contactShadowQuality;
+			
 		}
 	}
 }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Users;
 using Utility;
@@ -85,16 +82,6 @@ namespace Player
 			EventManager.OnDrop?.Invoke(context);
 		}
 		
-		public void OnMenuLeft(InputAction.CallbackContext context)
-		{
-			EventManager.OnMenuLeft?.Invoke(context);
-		}
-		
-		public void OnMenuRight(InputAction.CallbackContext context)
-		{
-			EventManager.OnMenuRight?.Invoke(context);
-		}
-		
 		public void OnDialogueNext(InputAction.CallbackContext context)
 		{
 			EventManager.OnDialogueNext?.Invoke(context);
@@ -108,6 +95,41 @@ namespace Player
 		public void OnSprint(InputAction.CallbackContext context)
 		{
 			EventManager.OnSprint?.Invoke(context);
+		}
+
+		public void UIMove(InputAction.CallbackContext context)
+		{
+			EventManager.OnUIMove?.Invoke(context);
+		}
+		
+		public void UIMoveAnalog(InputAction.CallbackContext context)
+		{
+			EventManager.OnUIMoveAnalog?.Invoke(context);
+		}
+
+		public void UIConfirm(InputAction.CallbackContext context)
+		{
+			EventManager.OnUIConfirm?.Invoke(context);
+		}
+		
+		public void OnMenuLeft(InputAction.CallbackContext context)
+		{
+			EventManager.OnMenuLeft?.Invoke(context);
+		}
+		
+		public void OnMenuRight(InputAction.CallbackContext context)
+		{
+			EventManager.OnMenuRight?.Invoke(context);
+		}
+		
+		public void OnMenuLeft2(InputAction.CallbackContext context)
+		{
+			EventManager.OnMenuLeft2?.Invoke(context);
+		}
+		
+		public void OnMenuRight2(InputAction.CallbackContext context)
+		{
+			EventManager.OnMenuRight2?.Invoke(context);
 		}
 	}
 }

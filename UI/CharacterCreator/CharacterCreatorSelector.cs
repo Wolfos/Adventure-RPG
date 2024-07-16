@@ -2,7 +2,6 @@ using System;
 using Character;
 using UnityEngine;
 using UnityEngine.UI;
-using WolfRPG.Character;
 
 namespace UI.CharacterCreator
 {
@@ -45,11 +44,11 @@ namespace UI.CharacterCreator
             });
         }
 
-        public void GenderUpdated(Gender newGender)
+        public void BodyTypeUpdated(BodyType newBodyType)
         {
             bool enabled = true;
-            if (onlyEnabledForFemales) enabled = newGender == Gender.Female;
-            if (onlyEnabledForMales) enabled = newGender == Gender.Male;
+            if (onlyEnabledForFemales) enabled = newBodyType == BodyType.Female;
+            if (onlyEnabledForMales) enabled = newBodyType == BodyType.Male;
 
             if (enabled)
             {

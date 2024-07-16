@@ -54,6 +54,11 @@ namespace Data
 			_saveData.Add(id, saveData);
 		}
 
+		public static void Remove(string id)
+		{
+			_saveData.Remove(id);
+		}
+
 		public static void Save()
 		{
 			OnSave?.Invoke(); // Tell objects to update their save data. Not all objects do this though. Most read/write to their save data directly

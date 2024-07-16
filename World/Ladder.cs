@@ -12,7 +12,7 @@ namespace World
         public void OnCanInteract(CharacterBase characterBase)
         {
             // TODO: Localize
-            Tooltip.Activate("Use", transform, new (1, 1));
+            Tooltip.Activate("Use");
         }
 
         public void OnInteract(CharacterBase characterBase)

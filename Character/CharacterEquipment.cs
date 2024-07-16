@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using Items;
 using UnityEngine;
+using WolfRPG.Core;
 using WolfRPG.Core.Statistics;
-using WolfRPG.Inventory;
-using ItemType = WolfRPG.Inventory.ItemType;
+using ItemType = Items.ItemType;
 
 namespace Character
 {
@@ -20,7 +20,7 @@ namespace Character
 		private readonly Dictionary<EquipmentSlot, EquipmentData> _equipmentSlots = new();
 		private GameObject _rightHandSocketObject;
 		public Weapon CurrentWeapon { get; private set; }
-		private readonly List<string> _equippedGuids = new();
+		private readonly List<Guid> _equippedGuids = new();
 
 		private bool _hasInitialized;
 
@@ -47,7 +47,7 @@ namespace Character
 			}
 		}
 
-		public bool IsEquipped(string guid)
+		public bool IsEquipped(Guid guid)
 		{
 			return _equippedGuids.Contains(guid);
 		}
@@ -61,7 +61,7 @@ namespace Character
 		{
 			if (data.OverrideAnimations)
 			{
-				animator.runtimeAnimatorController = data.AnimationSet.GetAsset<AnimatorOverrideController>();
+				animator.runtimeAnimatorController = data.AnimationSet;
 			}
 		}
 
@@ -71,12 +71,12 @@ namespace Character
 			animator.runtimeAnimatorController = unarmedAnimationSet;
 		}
 
-		public List<string> GetEquippedItems()
+		public List<Guid> GetEquippedItems()
 		{
 			return _equippedGuids;
 		}
 
-		public void EquipItem(ItemData itemData, EquipmentData data)
+		public void EquipItem(EquipmentData data)
 		{
 			if (_hasInitialized == false)
 			{
@@ -91,26 +91,22 @@ namespace Character
 			var currentItem = _equipmentSlots[data.EquipmentSlot];
 			if (currentItem != null)
 			{
-				UnequipItem(itemData, currentItem);
+				UnequipItem(data);
 			}
 
 			_equipmentSlots[data.EquipmentSlot] = data;
 			Equipment.Add(data);
-			if (data.StatusEffect != null)
-			{
-				_characterBase.Data.ApplyStatusEffect(data.StatusEffect);
-			}
 
-			if (data.UsePrefab && itemData.Prefab != null)
+			if (data.UsePrefab && data.EquippedPrefab != null)
 			{
 				// Used for weapons, only right hand supported atm
 				if (data.EquipmentSlot == EquipmentSlot.RightHand)
 				{
-					var prefab = itemData.Prefab.GetAsset<GameObject>();
+					var prefab = data.EquippedPrefab;
 					if (prefab != null)
 					{
 						_rightHandSocketObject = Instantiate(prefab, partPicker.handSocketRight);
-						if (itemData.Type == ItemType.Weapon)
+						if (data.Type == ItemType.Weapon)
 						{
 							CurrentWeapon = _rightHandSocketObject.GetComponent<Weapon>();
 							CurrentWeapon.Character = _characterBase;
@@ -120,7 +116,7 @@ namespace Character
 			}
 
 
-			_equippedGuids.Add(itemData.RpgObject.Guid);
+			_equippedGuids.Add(data.Guid);
 
 			
 			
@@ -129,18 +125,12 @@ namespace Character
 			SetAnimations(data);
 		}
 		
-		public void UnequipItem(ItemData itemData, EquipmentData data)
+		public void UnequipItem(EquipmentData data)
 		{
 			if (data.EquipmentSlot is EquipmentSlot.UNDEFINED or EquipmentSlot.MAX)
 			{
 				Debug.LogError("Item has invalid equipment slot");
 				return;
-			}
-
-			var effect = data.StatusEffect?.GetComponent<StatusEffect>();
-			if (effect != null)
-			{
-				_characterBase.Data.RemoveStatusEffect(effect.Id);
 			}
 
 			_equipmentSlots[data.EquipmentSlot] = null;
@@ -156,11 +146,11 @@ namespace Character
 				}
 			}
 
-			_equippedGuids.Remove(itemData.RpgObject.Guid);
+			_equippedGuids.Remove(data.Guid);
 			
 			_characterBase.UpdateCustomizationData();
 			
-			if (data.OverrideAnimations)
+			if (data.OverrideAnimations && _characterBase.IsDead() == false)
 			{
 				ResetAnimations();
 			}

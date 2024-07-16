@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Combat;
 using Character;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Utility;
 using WolfRPG.Core;
 using WolfRPG.Core.Statistics;
@@ -13,18 +14,14 @@ namespace Items
 	public abstract class Weapon : Item
 	{
 		[Header("Weapon")]
-		[SerializeField, ObjectReference((int)DatabaseCategory.Items)] protected RPGObjectReference rpgObjectReference;
+		[SerializeField] public MeleeWeaponData weaponData; // TODO: Generic WeaponData, when implementing other weapons
 		
 		protected LayerMask BlockLayerMask;
 		protected LayerMask AttackLayerMask;
 		public CharacterBase Character { get; set; }
 		public bool Attacking { get; set; }
-		public Skill AssociatedSkill { get; set; }
 		
 		private int _defaultLayer;
-
-		protected AudioClip AttackSound;
-		protected AudioClip HitSound;
 
 		private void Awake()
 		{
@@ -60,12 +57,13 @@ namespace Items
 		{
 			AttackLayerMask = attackLayerMask;
 			BlockLayerMask = blockLayerMask;
-			SFXPlayer.PlaySound(AttackSound);
+			SFXPlayer.PlaySound(weaponData.AttackSound);
 		}
 
 		// We blocked an attack
 		public void Blocked()
 		{
+			SFXPlayer.PlaySound(weaponData.BlockSound);
 			Character.DidBlock();
 		}
 

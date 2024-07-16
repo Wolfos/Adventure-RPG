@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Character;
 using Data;
+using OpenWorld;
 using UnityEngine;
 
 namespace AI
@@ -42,7 +43,7 @@ namespace AI
 				var npcsToLoad = _allNPCs.ToList();
 				foreach (var saveData in _saveData.Json)
 				{
-					var npc = npcsToLoad.First(n => n.characterObjectRef.Guid == saveData.Item1);
+					var npc = npcsToLoad.First(n => n.GetId().ToString() == saveData.Item1);
 					CharacterSaveUtility.Load(saveData.Item2, npc);
 					npcsToLoad.Remove(npc);
 				}
@@ -76,8 +77,8 @@ namespace AI
 			for (int i = _inactiveNPCs.Count - 1; i >= 0; i--)
 			{
 				var npc = _inactiveNPCs[i];
-				var squareDistance = Vector3.SqrMagnitude(cameraPosition - npc.CharacterComponent.Position);
-				if (squareDistance < cullingDistance * cullingDistance)
+				var squareDistance = Vector3.SqrMagnitude(cameraPosition - npc.SaveData.Position);
+				if (squareDistance < cullingDistance * cullingDistance && npc.currentWorldSpace == WorldStreamer.CurrentWorldSpace)
 				{
 					npc.gameObject.SetActive(true);
 					npc.Resume();
@@ -90,8 +91,8 @@ namespace AI
 			for (int i = _activeNPCs.Count - 1; i >= 0; i--)
 			{
 				var npc = _activeNPCs[i];
-				var squareDistance = Vector3.SqrMagnitude(cameraPosition - npc.CharacterComponent.Position);
-				if (squareDistance > cullingDistance * cullingDistance)
+				var squareDistance = Vector3.SqrMagnitude(cameraPosition - npc.SaveData.Position);
+				if (squareDistance > cullingDistance * cullingDistance || npc.currentWorldSpace != WorldStreamer.CurrentWorldSpace)
 				{
 					npc.gameObject.SetActive(false);
 					npc.StopAllCoroutines();
@@ -109,7 +110,7 @@ namespace AI
 			foreach (var npc in _allNPCs)
 			{
 				var json = CharacterSaveUtility.GetSaveData(npc);
-				var tuple = new Tuple<string, string>(npc.characterObjectRef.Guid, json);
+				var tuple = new Tuple<string, string>(npc.GetId().ToString(), json);
 				_saveData.Json.Add(tuple);
 			}
 		}

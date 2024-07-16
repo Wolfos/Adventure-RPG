@@ -1,4 +1,4 @@
-﻿using System;
+﻿	using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sirenix.OdinInspector;
@@ -30,6 +30,7 @@ namespace Utility
 		[SerializeField] private float noiseCutoff = 0.5f;
 		[SerializeField] private float noiseCutoffRandom = 0.1f;
 		[SerializeField] private float noiseOffset;
+		[Range(0, 1), SerializeField] private float minDensity = 0;
 		[Range(0, 1), SerializeField] private float maxDensity = 1;
 		[SerializeField] private Terrain[] terrains;
 		[SerializeField] private byte uniqueIdentifier;
@@ -75,6 +76,13 @@ namespace Utility
 			
 			var rng = new Random(randomSeed);
 			var splineContainer = GetComponent<SplineContainer>();
+			GenerateForest(splineContainer, rng);
+			
+			Debug.Log($"Spawned {_treesSpawned} trees");
+		}
+
+		private void GenerateForest(SplineContainer splineContainer, Random rng)
+		{
 			foreach (var spline in splineContainer.Splines)
 			{
 				var bounds = spline.GetBounds();
@@ -88,7 +96,7 @@ namespace Utility
 						pos.x += rng.NextFloat(-resolution / 2, resolution / 2);
 						pos.z += rng.NextFloat(-resolution / 2, resolution / 2);
 						var perlin = Mathf.PerlinNoise(pos.x * noiseScale + noiseOffset, pos.z * noiseScale + noiseOffset);
-						perlin = math.clamp(perlin, 1 - maxDensity, 1);
+						perlin = math.clamp(math.min(perlin, 1 - minDensity), 1 - maxDensity, 1);
 
 						if(perlin > noiseCutoff + rng.NextFloat() * noiseCutoffRandom) continue;
 						
@@ -120,7 +128,7 @@ namespace Utility
 								foreach (var s in road.Splines)
 								{
 									var distance = SplineUtility.GetNearestPoint(s, worldPosition - (float3) road.transform.position,
-										out _, out _);
+										out _, out _, SplineUtility.PickResolutionMin);
 									if (distance < maxDistanceFromRoad)
 									{
 										_excluded.Add(worldPosition);
@@ -138,8 +146,6 @@ namespace Utility
 					}
 				}
 			}
-			
-			Debug.Log($"Spawned {_treesSpawned} trees");
 		}
 
 		[Button("Clear trees")]
@@ -147,18 +153,9 @@ namespace Utility
 		{
 			foreach (var terrain in terrains)
 			{
-				var newTreeInstances = new List<TreeInstance>(terrain.terrainData.treeInstances);
+				var treeInstances = terrain.terrainData.treeInstances.Where(i => i.lightmapColor.r != uniqueIdentifier);
 				
-				for(var i = terrain.terrainData.treeInstanceCount - 1; i >= 0; i--)
-				{
-					var tree = terrain.terrainData.treeInstances[i];
-					if (tree.lightmapColor.r == uniqueIdentifier)
-					{
-						newTreeInstances.RemoveAt(i);
-					}
-				}
-				
-				terrain.terrainData.SetTreeInstances(newTreeInstances.ToArray(), false);
+				terrain.terrainData.SetTreeInstances(treeInstances.ToArray(), false);
 			}
 		}
 
@@ -255,7 +252,7 @@ namespace Utility
 			{
 				return false;
 			}
-			SplineUtility.GetNearestPoint(spline, point, out var splinePoint, out var t);
+			SplineUtility.GetNearestPoint(spline, point, out var splinePoint, out var t, 4);
 			spline.Evaluate(t, out _, out var tangent, out _);
 			
 			var cross = math.cross(math.up(), math.normalize(tangent));

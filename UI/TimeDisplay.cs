@@ -1,14 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class TimeDisplay : MonoBehaviour
 {
-	private Text text;
+	private TextMeshProUGUI text;
 	void Start()
 	{
-		text = GetComponent<Text>();
+		text = GetComponent<TextMeshProUGUI>();
 	}
 
 	void Update()

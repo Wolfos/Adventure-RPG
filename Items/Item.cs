@@ -8,7 +8,13 @@ namespace Items
 {
 	public enum ItemType
 	{
-		Consumable, RangedWeapon, MeleeWeapon, Ammunition, Clothing
+		UNDEFINED,
+		Consumable,
+		Weapon,
+		Equipment,
+		Junk,
+		QuestItem,
+		MAX
 	}
 
 	public enum ItemEffectType
@@ -29,9 +35,6 @@ namespace Items
 		public Event onEquipped;
 		public Event onUnEquipped;
 		public Event onQuantityChanged;
-		
-		public ItemType type;
-		public RuntimeAnimatorController animationSet;
 
 		private int _quantity = 1;
 		public int Quantity

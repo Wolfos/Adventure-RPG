@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+using Player;
 using UnityEngine;
 
 namespace Utility
@@ -10,9 +9,16 @@ namespace Utility
         
         private float _lastUpdateTime;
         private float _updateDelta;
+
+        private const float CullingDistanceSquared = 100.0f;
         
         private void FixedUpdate()
         {
+            if (Vector3.SqrMagnitude(transform.position - PlayerCamera.GetCameraPosition()) > CullingDistanceSquared)
+            {
+                return;
+            }
+            
             var delta = Time.time - _lastUpdateTime;
             animator.Update(delta);
             
@@ -22,6 +28,11 @@ namespace Utility
 
         private void Update()
         {
+            if (Vector3.SqrMagnitude(transform.position - PlayerCamera.GetCameraPosition()) > CullingDistanceSquared)
+            {
+                return;
+            }
+            
             animator.Update(-_updateDelta);
 
             _updateDelta = 0;

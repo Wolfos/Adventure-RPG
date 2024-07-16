@@ -7,10 +7,9 @@ namespace SideActivities
 {
 	public class Fishing: MonoBehaviour, IInteractable
 	{
-		[SerializeField] private float tooltipOffset;
 		public void OnCanInteract(CharacterBase characterBase)
 		{
-			Tooltip.Activate("Fish", transform, transform.up * tooltipOffset);
+			Tooltip.Activate("Fish");
 		}
 
 		public void OnInteract(CharacterBase characterBase)

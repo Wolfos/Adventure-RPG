@@ -9,6 +9,7 @@ using UnityEditor.SceneManagement;
 #endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using World;
 using Object = UnityEngine.Object;
 
 namespace OpenWorld
@@ -18,6 +19,7 @@ namespace OpenWorld
     {
         public int chunkWidth, chunkDepth;
         public int chunksX, chunksZ;
+        public int offsetX, offsetZ;
         public List<Chunk> chunks;
 
         public Object worldScene;
@@ -37,10 +39,10 @@ namespace OpenWorld
 
         public ChunkPosition WorldToChunkPosition(float x, float z)
         {
-            var chunkX = Mathf.FloorToInt(x / chunkWidth) +(chunksX / 2);
-            var chunkZ = Mathf.FloorToInt(z / chunkDepth) +(chunksZ / 2);
+            var chunkX = Mathf.FloorToInt(x / chunkWidth) +(chunksX / 2) + offsetX;
+            var chunkZ = Mathf.FloorToInt(z / chunkDepth) +(chunksZ / 2) + offsetZ;
 
-            return new ChunkPosition(chunkX, chunkZ);
+            return new(chunkX, chunkZ);
         }
 
         public Chunk GetChunkByWorldPosition(float x, float z)
@@ -77,8 +79,8 @@ namespace OpenWorld
         public List<Chunk> GetChunkAndAdjacent(float x, float z)
         {
             var ret = new List<Chunk>();
-            int chunkX = Mathf.FloorToInt(x / chunkWidth) +(chunksX / 2);
-            int chunkZ = Mathf.FloorToInt(z / chunkDepth) +(chunksZ / 2);
+            int chunkX = Mathf.FloorToInt(x / chunkWidth) +(chunksX / 2) + offsetX;
+            int chunkZ = Mathf.FloorToInt(z / chunkDepth) +(chunksZ / 2) + offsetZ;
 
             void AddIfNotNullOrEmpty(Chunk chunk)
             {
@@ -127,7 +129,7 @@ namespace OpenWorld
 
             if (chunks == null || chunks.Count == 0)
             {
-                chunks = new List<Chunk>();
+                chunks = new();
 
                 for (int x = 0; x < chunksX; x++)
                 {
@@ -223,10 +225,10 @@ namespace OpenWorld
 
             var chunk = new Chunk();
             chunk.Name = chunkName;
-            int minX = -(chunksX / 2) * chunkWidth;
-            int minZ = -(chunksZ / 2) * chunkDepth;
-            chunk.min = new Vector3(minX + x * chunkWidth, 0, minZ + z * chunkDepth);
-            chunk.max = new Vector3(chunk.min.x + chunkWidth, 0, chunk.min.z + chunkDepth);
+            int minX = (-(chunksX / 2) - offsetX) * chunkWidth;
+            int minZ = (-(chunksZ / 2) - offsetZ) * chunkDepth;
+            chunk.min = new(minX + x * chunkWidth, 0, minZ + z * chunkDepth);
+            chunk.max = new(chunk.min.x + chunkWidth, 0, chunk.min.z + chunkDepth);
             chunk.x = x;
             chunk.z = z;
             

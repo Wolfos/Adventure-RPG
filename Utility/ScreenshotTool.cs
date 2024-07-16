@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class ScreenshotTool : MonoBehaviour
 {
+    [SerializeField] private int superSample = 1;
 	private void Update()
 	{
 		// TODO: Update for new input system
@@ -17,6 +18,6 @@ public class ScreenshotTool : MonoBehaviour
 	[Button("Take Screenshot")]
 	public void TakeScreenshot()
 	{
-		ScreenCapture.CaptureScreenshot("Screenshot.png");
+		ScreenCapture.CaptureScreenshot("Screenshot.png", superSample);
 	}
 }

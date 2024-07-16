@@ -2,9 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using Character;
+using Interface;
 using UnityEngine;
 using Utility;
-using WolfRPG.Inventory;
 
 namespace Items
 {
@@ -16,16 +16,11 @@ namespace Items
 		[SerializeField] private Collider blockCollider;
 
 		private List<Matrix4x4> _cubeMatrices = new();
-		private MeleeWeaponData _weaponData;
 		private ParticleSystem _hitParticles;
 
 		private void Start()
 		{
-			_weaponData = rpgObjectReference.GetComponent<MeleeWeaponData>();
-			AttackSound = _weaponData.AttackSound?.GetAsset<AudioClip>();
-			HitSound = _weaponData.HitSound?.GetAsset<AudioClip>();
-			_hitParticles = Instantiate(_weaponData.HitParticles.GetAsset<GameObject>()).GetComponent<ParticleSystem>(); // TODO: More performant to use only one of these throughout the game
-			AssociatedSkill = _weaponData.AssociatedSkill;
+			//_hitParticles = Instantiate(_weaponData.HitParticles.GetAsset<GameObject>()).GetComponent<ParticleSystem>(); // TODO: More performant to use only one of these throughout the game
 		}
 
 		public override void Attack(Vector3 direction, LayerMask attackLayerMask, LayerMask blockLayerMask, Action onStagger)
@@ -45,6 +40,11 @@ namespace Items
 			blockCollider.gameObject.SetActive(false);
 		}
 
+		public override bool CanAttack()
+		{
+			return true;
+		}
+
 		private IEnumerator AttackRoutine(Action onStagger)
 		{
 			if (attackFx != null)
@@ -57,7 +57,7 @@ namespace Items
 			var previousPosition = transform.TransformPoint(hitCollider.center);
 			var previousRotation = transform.rotation;
 			var alreadyHit = new List<Rigidbody>();
-			for (float t = 0; t < _weaponData.AttackDuration; t += Time.deltaTime)
+			for (float t = 0; t < weaponData.AttackDuration; t += Time.deltaTime)
 			{
 				yield return new WaitForFixedUpdate();
 				
@@ -81,8 +81,8 @@ namespace Items
 					{
 						foreach (var blockCollider in blockResult)
 						{
-							var weapon = blockCollider.GetComponentInParent<Weapon>();
-							weapon.Blocked();
+							var otherWeapon = blockCollider.GetComponentInParent<Weapon>();
+							otherWeapon.Blocked();
 						}
 						onStagger?.Invoke();
 						goto EndAttack;
@@ -110,11 +110,11 @@ namespace Items
 						if (alreadyHit.Contains(collider.attachedRigidbody)) continue;
 						alreadyHit.Add(collider.attachedRigidbody);
 
-						var otherCharacter = collider.attachedRigidbody.GetComponent<CharacterBase>();
-						if (otherCharacter.Data.CharacterComponent.IsDead) continue;
-						if (otherCharacter == Character) continue;
-						if (otherCharacter == null) continue;
-						AttackHit(otherCharacter, collider.ClosestPoint(hitPosition));
+						var damageTaker = collider.attachedRigidbody.GetComponent<IDamageTaker>();
+						if (damageTaker == null) continue;
+						if (damageTaker.CanTakeDamage() == false) continue;
+						if (damageTaker is CharacterBase @base && @base == Character) continue;
+						AttackHit(damageTaker, collider.ClosestPoint(hitPosition), currentPosition - previousPosition);
 					}
 				}
 				
@@ -157,19 +157,19 @@ namespace Items
 			Rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
 		}
 
-		private void AttackHit(CharacterBase otherCharacter, Vector3 hitPosition)
+		private void AttackHit(IDamageTaker damageTaker, Vector3 hitPosition, Vector3 hitDirection)
 		{
-			SFXPlayer.PlaySound(HitSound);
-			if (otherCharacter != null && otherCharacter != Character)
+			SFXPlayer.PlaySound(weaponData.HitSound);
+			if (damageTaker != null)
 			{
 				//var position = transform.position;
-				otherCharacter.TakeDamage(_weaponData.BaseDamage, hitPosition, Character);
-				Character.HitEnemy(otherCharacter);
-				if (_hitParticles != null)
-				{
-					_hitParticles.transform.position = hitPosition;
-					_hitParticles.Play();
-				}
+				damageTaker.TakeDamage(weaponData.BaseDamage, weaponData.Knockback, hitPosition, Character, hitDirection);
+				Character.HitDamageTaker(damageTaker);
+				// if (_hitParticles != null)
+				// {
+				// 	_hitParticles.transform.position = hitPosition;
+				// 	_hitParticles.Play();
+				// }
 			}
 		}
 	}

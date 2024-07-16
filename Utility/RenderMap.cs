@@ -1,13 +1,12 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using UI;
 using UnityEngine;
 
 public class RenderMap : MonoBehaviour
 {
-    private void Start()
+    private IEnumerator Start()
     {
+        yield return new WaitForSeconds(1);
         UIBase.Disable();
         ScreenCapture.CaptureScreenshot("Map.png");
     }
